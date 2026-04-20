@@ -309,31 +309,96 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
 
     <!-- ══ PAGE: OVERVIEW ══ -->
     <div class="page-section active" id="page-overview">
-      <div class="grid4" id="overview-stats" style="margin-bottom:20px"></div>
-      <div class="grid2" style="margin-bottom:20px">
-        <div class="card">
-          <div class="card-hd">
-            <span>📅</span>
-            <div><div class="card-hd-title">진행중 지원사업·정책자금</div><div class="card-hd-sub">이번달 마감 임박 포함</div></div>
+
+      <!-- 1. 통계 카드 -->
+      <div class="grid4" id="overview-stats" style="margin-bottom:24px"></div>
+
+      <!-- 2. 지원사업·정책자금 일정 관리 (간트) -->
+      <div style="margin-bottom:24px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:28px;height:28px;border-radius:8px;background:rgba(37,99,235,.2);display:flex;align-items:center;justify-content:center;font-size:13px">📅</div>
+            <div style="font-size:14px;font-weight:500">지원사업 · 정책자금 일정 관리</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g1);background:rgba(255,255,255,.06);padding:2px 8px;border-radius:10px" id="ov-gantt-cnt">0건</div>
           </div>
-          <div class="card-body" id="ov-gantt-list"></div>
+          <button class="btn btn-primary btn-sm" onclick="openCatModal()">+ 대분류 추가</button>
         </div>
-        <div class="card">
-          <div class="card-hd">
-            <span>✅</span>
-            <div><div class="card-hd-title">수시처리 To-Do</div><div class="card-hd-sub">진행중 항목</div></div>
+        <div class="gantt-wrap">
+          <div class="gantt-top">
+            <button class="cal-nav-btn" onclick="prevMonth()">‹</button>
+            <div class="cal-month-title" id="cal-month-title"></div>
+            <button class="cal-nav-btn" onclick="nextMonth()">›</button>
+            <button class="cal-today-btn" onclick="goToday()">오늘</button>
           </div>
-          <div class="card-body" id="ov-todo-list"></div>
+          <div class="gantt-scroll"><table class="gantt-table" id="gantt-table"></table></div>
         </div>
       </div>
-      <div class="card">
-        <div class="card-hd">
-          <span>📊</span>
-          <div><div class="card-hd-title">업무 영역별 진행 현황</div></div>
-          <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="navTo('work')">전체보기</button>
+
+      <!-- 3. 수시처리 To-Do -->
+      <div style="margin-bottom:24px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <div style="width:28px;height:28px;border-radius:8px;background:rgba(16,185,129,.2);display:flex;align-items:center;justify-content:center;font-size:13px">✅</div>
+          <div style="font-size:14px;font-weight:500">수시처리 To-Do List</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g1);background:rgba(255,255,255,.06);padding:2px 8px;border-radius:10px" id="ov-todo-cnt">0건</div>
         </div>
-        <div class="card-body" id="ov-work-summary"></div>
+        <div class="todo-wrap">
+          <div class="todo-col">
+            <div class="todo-col-hd"><span style="color:var(--warn)">●</span> 진행중</div>
+            <div id="todo-ing"></div>
+            <div class="todo-inp-row">
+              <input class="todo-inp" id="ti-ing" placeholder="+ 할일 추가" onkeydown="if(event.key==='Enter')addTodo('ing')">
+              <button class="btn btn-primary btn-sm" onclick="addTodo('ing')">추가</button>
+            </div>
+          </div>
+          <div class="todo-col">
+            <div class="todo-col-hd"><span style="color:var(--ok)">●</span> 완료</div>
+            <div id="todo-done"></div>
+            <div class="todo-inp-row">
+              <input class="todo-inp" id="ti-done" placeholder="+ 완료 항목 추가" onkeydown="if(event.key==='Enter')addTodo('done')">
+              <button class="btn btn-primary btn-sm" onclick="addTodo('done')">추가</button>
+            </div>
+          </div>
+        </div>
       </div>
+
+      <!-- 4. 업무 영역별 진행현황 -->
+      <div style="margin-bottom:24px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <div style="width:28px;height:28px;border-radius:8px;background:rgba(139,92,246,.2);display:flex;align-items:center;justify-content:center;font-size:13px">📊</div>
+          <div style="font-size:14px;font-weight:500">업무 영역별 진행 현황</div>
+        </div>
+        <div class="grid3" id="work-grid"></div>
+      </div>
+
+      <!-- 5. 업체별 진행 분야 현황 -->
+      <div style="margin-bottom:24px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:28px;height:28px;border-radius:8px;background:rgba(13,148,136,.2);display:flex;align-items:center;justify-content:center;font-size:13px">🏢</div>
+            <div style="font-size:14px;font-weight:500">업체별 진행 분야 현황</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g1);background:rgba(255,255,255,.06);padding:2px 8px;border-radius:10px" id="ov-cli-cnt">0개</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openCliModal()">+ 업체 추가</button>
+        </div>
+        <div class="card">
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead><tr id="ctbl-head"></tr></thead>
+              <tbody id="ctbl-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. 누적 통계 -->
+      <div style="margin-bottom:24px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <div style="width:28px;height:28px;border-radius:8px;background:rgba(212,168,67,.2);display:flex;align-items:center;justify-content:center;font-size:13px">📈</div>
+          <div style="font-size:14px;font-weight:500">누적 통계 데이터</div>
+        </div>
+        <div id="overview-stats-detail"></div>
+      </div>
+
     </div>
 
     <!-- ══ PAGE: GANTT ══ -->
@@ -345,11 +410,11 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
       <div class="gantt-wrap">
         <div class="gantt-top">
           <button class="cal-nav-btn" onclick="prevMonth()">‹</button>
-          <div class="cal-month-title" id="cal-month-title"></div>
+          <div class="cal-month-title" id="cal-month-title-sub"></div>
           <button class="cal-nav-btn" onclick="nextMonth()">›</button>
           <button class="cal-today-btn" onclick="goToday()">오늘</button>
         </div>
-        <div class="gantt-scroll"><table class="gantt-table" id="gantt-table"></table></div>
+        <div class="gantt-scroll"><table class="gantt-table" id="gantt-table-sub"></table></div>
       </div>
     </div>
 
@@ -358,18 +423,18 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
       <div class="todo-wrap">
         <div class="todo-col">
           <div class="todo-col-hd"><span style="color:var(--warn)">●</span> 진행중</div>
-          <div id="todo-ing"></div>
+          <div id="todo-ing-sub"></div>
           <div class="todo-inp-row">
-            <input class="todo-inp" id="ti-ing" placeholder="+ 할일 추가" onkeydown="if(event.key==='Enter')addTodo('ing')">
-            <button class="btn btn-primary btn-sm" onclick="addTodo('ing')">추가</button>
+            <input class="todo-inp" id="ti-ing-sub" placeholder="+ 할일 추가" onkeydown="if(event.key==='Enter')addTodo('ing','sub')">
+            <button class="btn btn-primary btn-sm" onclick="addTodo('ing','sub')">추가</button>
           </div>
         </div>
         <div class="todo-col">
           <div class="todo-col-hd"><span style="color:var(--ok)">●</span> 완료</div>
-          <div id="todo-done"></div>
+          <div id="todo-done-sub"></div>
           <div class="todo-inp-row">
-            <input class="todo-inp" id="ti-done" placeholder="+ 완료 항목 추가" onkeydown="if(event.key==='Enter')addTodo('done')">
-            <button class="btn btn-primary btn-sm" onclick="addTodo('done')">추가</button>
+            <input class="todo-inp" id="ti-done-sub" placeholder="+ 완료 항목 추가" onkeydown="if(event.key==='Enter')addTodo('done','sub')">
+            <button class="btn btn-primary btn-sm" onclick="addTodo('done','sub')">추가</button>
           </div>
         </div>
       </div>
@@ -377,7 +442,7 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
 
     <!-- ══ PAGE: WORK ══ -->
     <div class="page-section" id="page-work">
-      <div class="grid3" id="work-grid"></div>
+      <div class="grid3" id="work-grid-sub"></div>
     </div>
 
     <!-- ══ PAGE: CLIENTS ══ -->
@@ -392,8 +457,8 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
       <div class="card">
         <div class="tbl-wrap">
           <table class="tbl">
-            <thead><tr id="ctbl-head"></tr></thead>
-            <tbody id="ctbl-body"></tbody>
+            <thead><tr id="ctbl-head-sub"></tr></thead>
+            <tbody id="ctbl-body-sub"></tbody>
           </table>
         </div>
       </div>
@@ -727,11 +792,18 @@ function navTo(page){
   renderPage(page);
 }
 function renderPage(page){
-  if(page==='overview')renderOverview();
-  else if(page==='gantt')renderGantt();
-  else if(page==='todo')renderTodos();
-  else if(page==='work')renderWorks();
-  else if(page==='clients')renderClientTable();
+  if(page==='overview'){
+    renderOverviewStats();
+    renderGantt();
+    renderTodos();
+    renderWorks();
+    renderClientTable();
+    renderOverviewStatsDetail();
+  }
+  else if(page==='gantt')renderGanttSub();
+  else if(page==='todo')renderTodosSub();
+  else if(page==='work')renderWorksSub();
+  else if(page==='clients')renderClientTableSub();
   else if(page==='stats')renderStats();
   else if(page==='companies')renderCorpList();
 }
@@ -751,63 +823,79 @@ function updateSidebarCounts(){
 }
 
 // ── OVERVIEW ──
-function renderOverview(){
-  // 통계 카드
+function renderOverviewStats(){
   const totalCorp=S.companies.length;
   const totalCat=S.cats.length;
   const ingCat=S.cats.filter(c=>c.status==='ing').length;
   const doneCat=S.cats.filter(c=>c.status==='done').length;
   const totalWork=Object.values(S.workItems).flat().length;
   const doneWork=Object.values(S.workItems).flat().filter(i=>i.status==='done').length;
-  document.getElementById('overview-stats').innerHTML=`
+  const el=document.getElementById('overview-stats');
+  if(el)el.innerHTML=`
     <div class="stat-mini"><div class="stat-mini-val" style="color:var(--blue-l)">${totalCorp}</div><div class="stat-mini-label">등록 기업</div><div class="stat-mini-sub">관리중인 업체</div></div>
     <div class="stat-mini"><div class="stat-mini-val" style="color:var(--warn)">${ingCat}</div><div class="stat-mini-label">진행중 지원사업</div><div class="stat-mini-sub">전체 ${totalCat}건 중</div></div>
     <div class="stat-mini"><div class="stat-mini-val" style="color:var(--ok)">${doneCat}</div><div class="stat-mini-label">완료 지원사업</div><div class="stat-mini-sub">누적 완료건</div></div>
     <div class="stat-mini"><div class="stat-mini-val" style="color:var(--teal)">${totalWork?Math.round(doneWork/totalWork*100):0}%</div><div class="stat-mini-label">업무 완료율</div><div class="stat-mini-sub">${doneWork}/${totalWork}건 완료</div></div>
   `;
-  // 진행중 간트
-  const ingCats=S.cats.filter(c=>c.status!=='done').slice(0,5);
-  document.getElementById('ov-gantt-list').innerHTML=ingCats.length?ingCats.map(cat=>`
-    <div class="ci" onclick="navTo('gantt')">
-      <div class="s-dot" style="background:${DOT_C[cat.status||'new']}"></div>
-      <div style="flex:1">
-        <div class="ci-title">${cat.name}</div>
-        <div class="ci-meta">${WORK_META[cat.type]?.icon||''} ${WORK_META[cat.type]?.name||cat.type} · 마감 ${cat.end||'미정'}</div>
+  const gc=document.getElementById('ov-gantt-cnt');if(gc)gc.textContent=totalCat+'건';
+  const tc=document.getElementById('ov-todo-cnt');if(tc)tc.textContent=S.todos.filter(t=>t.status==='ing').length+'건';
+  const cc=document.getElementById('ov-cli-cnt');if(cc)cc.textContent=S.clients.length+'개';
+}
+function renderOverviewStatsDetail(){
+  const catBySt={신규:0,진행중:0,완료:0,대기:0};
+  S.cats.forEach(c=>{const l=ST_LABEL[c.status||'new']||'신규';catBySt[l]=(catBySt[l]||0)+1;});
+  const totalCat=S.cats.length;
+  const workRates=WORK_IDS.map(wid=>{
+    const items=S.workItems[wid]||[];const catItems=getCatItemsForWork(wid);
+    const all=[...items,...catItems];const m=WORK_META[wid];
+    const tot=all.length,dn=all.filter(i=>i.status==='done').length;
+    return {name:m.name,icon:m.icon,color:m.color,pct:tot?Math.round(dn/tot*100):0,tot,dn};
+  });
+  const el=document.getElementById('overview-stats-detail');
+  if(!el)return;
+  el.innerHTML=`
+    <div class="grid2">
+      <div class="card">
+        <div class="card-hd"><span>📊</span><div class="card-hd-title">업무 영역별 완료율</div></div>
+        <div class="card-body">
+          ${workRates.map(r=>`
+            <div style="margin-bottom:12px">
+              <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+                <span style="font-size:11px">${r.icon} ${r.name}</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g1)">${r.dn}/${r.tot} (${r.pct}%)</span>
+              </div>
+              <div class="prog-wrap"><div class="prog-fill" style="width:${r.pct}%;background:${r.color}"></div></div>
+            </div>`).join('')}
+        </div>
       </div>
-      <span class="badge badge-${cat.status||'new'}">${ST_LABEL[cat.status||'new']}</span>
-    </div>`).join(''):`<div class="empty"><div class="empty-ico">📅</div><div class="empty-txt">등록된 일정이 없습니다</div></div>`;
-  // 투두
-  const ingTodos=S.todos.filter(t=>t.status==='ing').slice(0,5);
-  document.getElementById('ov-todo-list').innerHTML=ingTodos.length?ingTodos.map(t=>`
-    <div class="ci" onclick="toggleTodo(${t.id})">
-      <div class="ti-chk ing"><svg width="9" height="7" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      <div style="flex:1"><div class="ci-title">${t.text}</div>${t.tag?`<div class="ci-meta">${t.tag}</div>`:''}</div>
-    </div>`).join(''):`<div class="empty"><div class="empty-ico">✅</div><div class="empty-txt">진행중인 할일이 없습니다</div></div>`;
-  // 업무 요약
-  document.getElementById('ov-work-summary').innerHTML=`
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
-      ${WORK_IDS.map(wid=>{
-        const items=S.workItems[wid]||[];
-        const catItems=getCatItemsForWork(wid);
-        const all=[...items,...catItems];
-        const m=WORK_META[wid];
-        const tot=all.length,dn=all.filter(i=>i.status==='done').length,pct=tot?Math.round(dn/tot*100):0;
-        return `<div style="text-align:center;padding:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:8px">
-          <div style="font-size:18px;margin-bottom:4px">${m.icon}</div>
-          <div style="font-size:10px;color:var(--g1);margin-bottom:6px">${m.name}</div>
-          <div class="prog-wrap"><div class="prog-fill" style="width:${pct}%;background:${m.color}"></div></div>
-          <div style="font-size:9px;color:var(--g2);margin-top:4px">${dn}/${tot}건 (${pct}%)</div>
-        </div>`;
-      }).join('')}
+      <div class="card">
+        <div class="card-hd"><span>📅</span><div class="card-hd-title">지원사업 진행 현황</div></div>
+        <div class="card-body">
+          ${Object.entries(catBySt).map(([l,cnt])=>`
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <div style="width:60px;font-size:11px;color:var(--g1)">${l}</div>
+              <div style="flex:1;height:20px;background:rgba(255,255,255,.05);border-radius:4px;overflow:hidden">
+                <div style="height:100%;width:${totalCat?Math.round(cnt/totalCat*100):0}%;background:${l==='진행중'?'var(--warn)':l==='완료'?'var(--ok)':l==='신규'?'var(--blue)':'var(--g3)'};transition:width .6s ease"></div>
+              </div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:11px;width:24px;text-align:right">${cnt}</div>
+            </div>`).join('')}
+        </div>
+      </div>
     </div>`;
 }
 
-// ── GANTT ──
-function renderGantt(){
+// ── GANTT (overview용 + 개별페이지용) ──
+function renderGantt(suffix=''){
+  const sfx=suffix;
+  const titleId='cal-month-title'+(sfx?'-'+sfx:'');
+  const tableId='gantt-table'+(sfx?'-'+sfx:'');
   const y=S.calY,m=S.calM;
   const days=daysInMonth(y,m);
   const today=new Date();
-  document.getElementById('cal-month-title').textContent=`${y}년 ${m+1}월`;
+  const titleEl=document.getElementById(titleId);
+  const tableEl=document.getElementById(tableId);
+  if(!titleEl||!tableEl)return;
+  titleEl.textContent=`${y}년 ${m+1}월`;
   const DOW=['일','월','화','수','목','금','토'];
   let head=`<tr class="gantt-head-row"><th class="gantt-label-th">정책자금·지원사업 / 업체</th>`;
   for(let d=1;d<=days;d++){
@@ -839,14 +927,14 @@ function renderGantt(){
       body+=`<td class="cat-bar-td">`;
       if(inRange){
         const br=isStart?'9px 0 0 9px':isEnd?'0 9px 9px 0':'0';
-        body+=`<div style="position:absolute;inset:6px 0;background:${color}55;border-radius:${br};${isStart?'left:2px':''}${isEnd?'right:2px':''}"></div>`;
+        body+=`<div style="position:absolute;inset:6px 0;background:${color}55;border-radius:${br}"></div>`;
         if(isStart)body+=`<div class="gbar" style="left:2px;right:0;background:${color}" onclick="event.stopPropagation();openManageModal(${cat.id})"><span class="gbar-label">${cat.name}</span></div>`;
       }
       body+=`</td>`;
     }
     body+=`</tr>`;
     if(cat.clients&&cat.clients.length){
-      (cat.clients).forEach(cli=>{
+      cat.clients.forEach(cli=>{
         body+=`<tr class="cli-row${expanded?'':' hidden'}" data-cat="${cat.id}"><td class="cli-label-td">
           <div class="cli-name">
             <span style="color:${DOT_C[cli.status||'new']}">●</span>${cli.name}
@@ -864,16 +952,18 @@ function renderGantt(){
     }
   });
   if(!S.cats.length)body=`<tr><td colspan="999" style="text-align:center;padding:30px;color:var(--g2);font-size:12px">+ 대분류 추가 버튼을 눌러 일정을 등록하세요</td></tr>`;
-  document.getElementById('gantt-table').innerHTML=head+body;
+  tableEl.innerHTML=head+body;
 }
+function renderGanttSub(){renderGantt('sub');}
 function toggleCat(id){
   if(S.expandedCats.has(id))S.expandedCats.delete(id);
   else S.expandedCats.add(id);
-  renderGantt();
+  if(currentPage==='overview')renderGantt();
+  else renderGanttSub();
 }
-function prevMonth(){S.calM--;if(S.calM<0){S.calM=11;S.calY--}renderGantt();}
-function nextMonth(){S.calM++;if(S.calM>11){S.calM=0;S.calY++}renderGantt();}
-function goToday(){const t=new Date();S.calY=t.getFullYear();S.calM=t.getMonth();renderGantt();}
+function prevMonth(){S.calM--;if(S.calM<0){S.calM=11;S.calY--}renderGantt();renderGanttSub();}
+function nextMonth(){S.calM++;if(S.calM>11){S.calM=0;S.calY++}renderGantt();renderGanttSub();}
+function goToday(){const t=new Date();S.calY=t.getFullYear();S.calM=t.getMonth();renderGantt();renderGanttSub();}
 
 // ── CAT MODAL ──
 function openCatModal(){
@@ -982,7 +1072,8 @@ function deleteCategory(){
 }
 
 // ── TODO ──
-function renderTodos(){
+function renderTodos(sfx=''){
+  const s=sfx?'-'+sfx:'';
   const ing=S.todos.filter(t=>t.status==='ing');
   const done=S.todos.filter(t=>t.status==='done');
   const mk=t=>`<div class="ti${t.status==='done'?' done':''}" onclick="toggleTodo(${t.id})">
@@ -990,12 +1081,32 @@ function renderTodos(){
     <div style="flex:1"><div class="ti-text">${t.text}</div>${t.tag?`<div class="ti-tag">${t.tag}</div>`:''}</div>
     <span onclick="event.stopPropagation();deleteTodo(${t.id})" style="color:var(--g2);font-size:15px;cursor:pointer;padding:0 3px">×</span>
   </div>`;
-  document.getElementById('todo-ing').innerHTML=ing.map(mk).join('')||`<div style="font-size:11px;color:var(--g2);padding:8px 6px">아래 입력창에서 추가하세요</div>`;
-  document.getElementById('todo-done').innerHTML=done.map(mk).join('')||`<div style="font-size:11px;color:var(--g2);padding:8px 6px">완료된 항목 없음</div>`;
+  const ingEl=document.getElementById('todo-ing'+s);
+  const doneEl=document.getElementById('todo-done'+s);
+  if(ingEl)ingEl.innerHTML=ing.map(mk).join('')||`<div style="font-size:11px;color:var(--g2);padding:8px 6px">아래 입력창에서 추가하세요</div>`;
+  if(doneEl)doneEl.innerHTML=done.map(mk).join('')||`<div style="font-size:11px;color:var(--g2);padding:8px 6px">완료된 항목 없음</div>`;
 }
-function addTodo(st){const inp=document.getElementById(`ti-${st}`);const v=inp.value.trim();if(!v)return;S.todos.push({id:S.nid++,text:v,tag:'',status:st});inp.value='';renderTodos();updateSidebarCounts();saveAll();}
-function toggleTodo(id){const t=S.todos.find(x=>x.id===id);if(!t)return;t.status=t.status==='done'?'ing':'done';renderTodos();updateSidebarCounts();saveAll();}
-function deleteTodo(id){S.todos=S.todos.filter(x=>x.id!==id);renderTodos();updateSidebarCounts();saveAll();}
+function renderTodosSub(){renderTodos('sub');}
+function addTodo(st,sfx){
+  const s=sfx?'-'+sfx:'';
+  const inp=document.getElementById(`ti-${st}${s}`);
+  const v=inp?.value.trim();if(!v)return;
+  S.todos.push({id:S.nid++,text:v,tag:'',status:st});
+  if(inp)inp.value='';
+  renderTodos();renderTodos('sub');
+  updateSidebarCounts();saveAll();
+}
+function toggleTodo(id){
+  const t=S.todos.find(x=>x.id===id);if(!t)return;
+  t.status=t.status==='done'?'ing':'done';
+  renderTodos();renderTodos('sub');
+  updateSidebarCounts();saveAll();
+}
+function deleteTodo(id){
+  S.todos=S.todos.filter(x=>x.id!==id);
+  renderTodos();renderTodos('sub');
+  updateSidebarCounts();saveAll();
+}
 
 // ── WORK ──
 function getCatItemsForWork(wid){
@@ -1013,8 +1124,9 @@ function getCatItemsForWork(wid){
   });
   return items;
 }
-function renderWorks(){
-  document.getElementById('work-grid').innerHTML=WORK_IDS.map(wid=>{
+function renderWorks(gridId='work-grid'){
+  const el=document.getElementById(gridId);if(!el)return;
+  el.innerHTML=WORK_IDS.map(wid=>{
     const items=S.workItems[wid]||[];
     const catItems=getCatItemsForWork(wid);
     const allItems=[...items,...catItems];
@@ -1050,6 +1162,7 @@ function renderWorks(){
     </div>`;
   }).join('');
 }
+function renderWorksSub(){renderWorks('work-grid-sub');}
 function openWorkModal(wid,editId,prefillClient){
   S.currentWorkCat=wid;const m=WORK_META[wid];
   if(editId){
@@ -1121,15 +1234,19 @@ function getClientDomainStatus(clientName){
   if(manual?.domains)WORK_IDS.forEach(wid=>{if(manual.domains[wid])result[wid]=manual.domains[wid];});
   return result;
 }
-function renderClientTable(){
+function renderClientTable(sfx=''){
+  const s=sfx?'-'+sfx:'';
   const q=(document.getElementById('cli-search')?.value||'').toLowerCase();
   const TABLE_WIDS=WORK_IDS.filter(w=>w!=='etc');
-  document.getElementById('ctbl-head').innerHTML=`
+  const headEl=document.getElementById('ctbl-head'+s);
+  const bodyEl=document.getElementById('ctbl-body'+s);
+  if(!headEl||!bodyEl)return;
+  headEl.innerHTML=`
     <th>업체명</th><th>구분</th>
     ${TABLE_WIDS.map(wid=>`<th title="${WORK_META[wid].name}">${WORK_META[wid].icon} ${WORK_META[wid].name.length>5?WORK_META[wid].name.slice(0,5)+'…':WORK_META[wid].name}</th>`).join('')}
     <th style="width:60px">관리</th>`;
   const filtered=S.clients.filter(c=>!q||c.name.toLowerCase().includes(q));
-  document.getElementById('ctbl-body').innerHTML=filtered.length?filtered.map(cli=>{
+  bodyEl.innerHTML=filtered.length?filtered.map(cli=>{
     const domains=getClientDomainStatus(cli.name);
     const domainCells=TABLE_WIDS.map(wid=>{
       const st=domains[wid];
@@ -1147,6 +1264,7 @@ function renderClientTable(){
     </tr>`;
   }).join(''):`<tr><td colspan="99" style="text-align:center;padding:30px;color:var(--g2)">등록된 업체가 없습니다</td></tr>`;
 }
+function renderClientTableSub(){renderClientTable('sub');}
 function openCliModal(){
   document.getElementById('clm-modal-title').textContent='🏢 업체 추가';
   document.getElementById('clm-name').value='';
