@@ -1757,17 +1757,17 @@ loadFromFirebase().then(()=>startRealtimeSync());
 Object.assign(window,{
   saveAll,renderAll,closeModal,
   prevMonth,nextMonth,goToday,toggleCat,openCatModal,openManageModal,saveCat,saveManage,deleteCategory,
-  addNewCatClient,removeNewCatClient,addManageClient,deleteManageClient,updateCliStatus,
-  renderManageClients,livePreviewGantt,openGanttCell,closeGanttCell,setCellGanttStatus,
+  addNewCatClient,addManageClient,deleteManageClient,updateCliStatus,
+  renderManageClients,livePreviewGantt,renderNewCatClients,
   addTodo,toggleTodo,deleteTodo,
   renderClientTable,openCliModal,openEditCliModal,saveCliModal,deleteCli,openCellModal,setCellStatus,
   openWorkFromCell,deleteWorkFromCell,
   renderWorks,openWorkModal,openWorkModalEdit,saveWork,confirmDeleteWorkFromModal,quickCycleWork,deleteWorkItem,
-  updateStats,
-  openWorkMetaModal,saveWorkMeta,removeWorkMetaItem,addWorkMetaItem,
+  updateStats,showPop,closePopover,
+  openWorkMetaModal,saveWorkMeta,deleteWorkMetaRow,addWorkMetaRow,renderWorkMetaList,resetWorkMeta,
   openCorpModal,editCorp,deleteCorp,saveCorp,resetCorpForm,renderCorpList,updateCorpHeaderCnt,
+  getCorpByName,getCorpNames,
   buildCorpDatalist,selectCorpDrop,attachAllCorpDropdowns,
-  closePopover,
 });
 </script>
 </body>
