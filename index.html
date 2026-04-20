@@ -828,8 +828,11 @@ function renderOverviewStats(){
   const totalCat=S.cats.length;
   const ingCat=S.cats.filter(c=>c.status==='ing').length;
   const doneCat=S.cats.filter(c=>c.status==='done').length;
-  const totalWork=Object.values(S.workItems).flat().length;
-  const doneWork=Object.values(S.workItems).flat().filter(i=>i.status==='done').length;
+  // workItems + 간트 연동 항목 모두 포함해서 집계
+  const allWorkItems=WORK_IDS.flatMap(wid=>[...(S.workItems[wid]||[]),...getCatItemsForWork(wid)]);
+  const totalWork=allWorkItems.length;
+  const doneWork=allWorkItems.filter(i=>i.status==='done').length;
+  const ingWork=allWorkItems.filter(i=>i.status==='ing').length;
   const el=document.getElementById('overview-stats');
   if(el)el.innerHTML=`
     <div class="stat-mini"><div class="stat-mini-val" style="color:var(--blue-l)">${totalCorp}</div><div class="stat-mini-label">등록 기업</div><div class="stat-mini-sub">관리중인 업체</div></div>
@@ -841,45 +844,118 @@ function renderOverviewStats(){
   const tc=document.getElementById('ov-todo-cnt');if(tc)tc.textContent=S.todos.filter(t=>t.status==='ing').length+'건';
   const cc=document.getElementById('ov-cli-cnt');if(cc)cc.textContent=S.clients.length+'개';
 }
+
 function renderOverviewStatsDetail(){
-  const catBySt={신규:0,진행중:0,완료:0,대기:0};
-  S.cats.forEach(c=>{const l=ST_LABEL[c.status||'new']||'신규';catBySt[l]=(catBySt[l]||0)+1;});
-  const totalCat=S.cats.length;
+  const now=new Date();
+  // 업무 상태 집계 (workItems + 간트 연동 포함)
+  const allItems=WORK_IDS.flatMap(wid=>[...(S.workItems[wid]||[]),...getCatItemsForWork(wid)]);
+  const stCnt={new:0,ing:0,done:0,wait:0};
+  allItems.forEach(it=>{if(stCnt[it.status]!==undefined)stCnt[it.status]++;});
+  const total=allItems.length||1;
+  const stColors={new:'#3B82F6',ing:'#F59E0B',done:'#10B981',wait:'#64748B'};
+
+  // 업무 영역별 현황
   const workRates=WORK_IDS.map(wid=>{
-    const items=S.workItems[wid]||[];const catItems=getCatItemsForWork(wid);
-    const all=[...items,...catItems];const m=WORK_META[wid];
+    const items=S.workItems[wid]||[];
+    const catItems=getCatItemsForWork(wid);
+    const all=[...items,...catItems];
+    const m=WORK_META[wid];
     const tot=all.length,dn=all.filter(i=>i.status==='done').length;
-    return {name:m.name,icon:m.icon,color:m.color,pct:tot?Math.round(dn/tot*100):0,tot,dn};
-  });
+    return {name:m.name,icon:m.icon,color:m.color,tot,dn,pct:tot?Math.round(dn/tot*100):0};
+  }).filter(r=>r.tot>0);
+
+  // 세부구분 집계
+  const sub={};
+  Object.values(S.workItems).flat().forEach(it=>{if(it.sub&&it.sub.trim())sub[it.sub]=(sub[it.sub]||0)+1;});
+  S.cats.forEach(c=>{c.clients?.forEach(cli=>{if(cli.sub&&cli.sub.trim())sub[cli.sub]=(sub[cli.sub]||0)+1;});});
+  const subSorted=Object.entries(sub).sort((a,b)=>b[1]-a[1]).slice(0,8);
+
+  // D-Day 현황
+  const ddays=S.cats.filter(c=>c.end).map(c=>{
+    const diff=Math.ceil((new Date(c.end)-now)/(1000*60*60*24));
+    return {...c,diff};
+  }).sort((a,b)=>a.diff-b.diff).slice(0,6);
+
   const el=document.getElementById('overview-stats-detail');
   if(!el)return;
   el.innerHTML=`
-    <div class="grid2">
-      <div class="card">
-        <div class="card-hd"><span>📊</span><div class="card-hd-title">업무 영역별 완료율</div></div>
-        <div class="card-body">
-          ${workRates.map(r=>`
-            <div style="margin-bottom:12px">
-              <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-                <span style="font-size:11px">${r.icon} ${r.name}</span>
-                <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g1)">${r.dn}/${r.tot} (${r.pct}%)</span>
-              </div>
-              <div class="prog-wrap"><div class="prog-fill" style="width:${r.pct}%;background:${r.color}"></div></div>
-            </div>`).join('')}
+    <div class="grid4">
+      <!-- 카드1: 전체 업무 상태 분포 -->
+      <div class="card" style="padding:16px">
+        <div style="font-size:11px;font-weight:500;color:var(--g1);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
+          전체 업무 상태 분포
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="position:relative;width:70px;height:70px;flex-shrink:0">
+            <svg viewBox="0 0 36 36" style="width:70px;height:70px;transform:rotate(-90deg)">
+              ${(()=>{
+                let offset=0;
+                const colors=[stColors.new,stColors.ing,stColors.done,stColors.wait];
+                const vals=[stCnt.new,stCnt.ing,stCnt.done,stCnt.wait];
+                return vals.map((v,i)=>{
+                  const pct=v/total*100;
+                  const r=`<circle cx="18" cy="18" r="15.9" fill="none" stroke="${colors[i]}" stroke-width="3.2" stroke-dasharray="${pct} ${100-pct}" stroke-dashoffset="${-offset}" opacity="${v?1:.15}"/>`;
+                  offset+=pct;return r;
+                }).join('');
+              })()}
+            </svg>
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500">${allItems.length}</div>
+          </div>
+          <div class="stat-leg" style="flex:1">
+            ${[['new','신규'],['ing','진행중'],['done','완료'],['wait','대기']].map(([k,l])=>`
+              <div class="stat-leg-item">
+                <div class="stat-leg-dot" style="background:${stColors[k]}"></div>
+                <span>${l}</span>
+                <span class="stat-leg-val">${stCnt[k]}</span>
+              </div>`).join('')}
+          </div>
         </div>
       </div>
-      <div class="card">
-        <div class="card-hd"><span>📅</span><div class="card-hd-title">지원사업 진행 현황</div></div>
-        <div class="card-body">
-          ${Object.entries(catBySt).map(([l,cnt])=>`
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-              <div style="width:60px;font-size:11px;color:var(--g1)">${l}</div>
-              <div style="flex:1;height:20px;background:rgba(255,255,255,.05);border-radius:4px;overflow:hidden">
-                <div style="height:100%;width:${totalCat?Math.round(cnt/totalCat*100):0}%;background:${l==='진행중'?'var(--warn)':l==='완료'?'var(--ok)':l==='신규'?'var(--blue)':'var(--g3)'};transition:width .6s ease"></div>
-              </div>
-              <div style="font-family:'JetBrains Mono',monospace;font-size:11px;width:24px;text-align:right">${cnt}</div>
-            </div>`).join('')}
+
+      <!-- 카드2: 업무 영역별 현황 -->
+      <div class="card" style="padding:16px">
+        <div style="font-size:11px;font-weight:500;color:var(--g1);margin-bottom:14px;display:flex;justify-content:space-between">
+          업무 영역별 현황<span style="font-size:9px;color:var(--g2)">(업무+간트 통합)</span>
         </div>
+        ${workRates.length?workRates.map(r=>`
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+            <div style="font-size:10px;color:var(--g1);width:72px;text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.icon} ${r.name}</div>
+            <div style="flex:1;height:12px;background:rgba(255,255,255,.07);border-radius:6px;overflow:hidden">
+              <div style="height:100%;width:${r.pct}%;background:${r.color};border-radius:6px;transition:width .8s ease"></div>
+            </div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g1);width:22px;text-align:right">${r.dn}</div>
+          </div>`).join(''):`<div class="empty" style="padding:20px 0"><div class="empty-txt">업무 항목을 추가하면 집계됩니다</div></div>`}
+      </div>
+
+      <!-- 카드3: 세부구분 누적 건수 -->
+      <div class="card" style="padding:16px">
+        <div style="font-size:11px;font-weight:500;color:var(--g1);margin-bottom:14px;display:flex;justify-content:space-between">
+          세부구분 누적 건수<span style="font-size:9px;color:var(--g2)">(선정·기표·심림·인정 등)</span>
+        </div>
+        ${subSorted.length?subSorted.map(([k,v])=>`
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+            <div style="font-size:10px;color:var(--g1);width:72px;text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${k}</div>
+            <div style="flex:1;height:12px;background:rgba(255,255,255,.07);border-radius:6px;overflow:hidden">
+              <div style="height:100%;width:${subSorted[0]?Math.round(v/subSorted[0][1]*100):0}%;background:var(--teal);border-radius:6px;transition:width .8s ease"></div>
+            </div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g1);width:22px;text-align:right">${v}</div>
+          </div>`).join(''):`<div class="empty" style="padding:20px 0"><div class="empty-txt">업무 항목에 세부구분을 지정하면 집계됩니다</div></div>`}
+      </div>
+
+      <!-- 카드4: D-Day 현황 -->
+      <div class="card" style="padding:16px">
+        <div style="font-size:11px;font-weight:500;color:var(--g1);margin-bottom:14px;display:flex;justify-content:space-between">
+          정책자금·지원사업 D-Day<span style="font-size:9px;color:var(--g2)">(마감 임박순)</span>
+        </div>
+        ${ddays.length?ddays.map(c=>{
+          const color=c.diff<0?'var(--danger)':c.diff<=7?'var(--warn)':c.diff<=30?'var(--gold)':'var(--g1)';
+          const label=c.diff<0?`D+${Math.abs(c.diff)}`:c.diff===0?'D-Day':`D-${c.diff}`;
+          return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:${color};width:42px;flex-shrink:0;font-weight:500">${label}</div>
+            <div style="flex:1;font-size:10px;color:rgba(255,255,255,.8);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.name}</div>
+            <span class="badge badge-${c.status||'new'}" style="font-size:8px">${ST_LABEL[c.status||'new']}</span>
+          </div>`;
+        }).join(''):`<div class="empty" style="padding:20px 0"><div class="empty-txt">지원사업을 추가하면 집계됩니다</div></div>`}
       </div>
     </div>`;
 }
@@ -1314,51 +1390,87 @@ function deleteCli(id){if(!confirm('삭제하시겠습니까?'))return;S.clients
 
 // ── STATS ──
 function renderStats(){
-  const totalCorp=S.companies.length;
-  const totalCat=S.cats.length;
-  const catBySt={신규:0,진행중:0,완료:0,대기:0};
-  S.cats.forEach(c=>{const l=ST_LABEL[c.status||'new']||'신규';catBySt[l]=(catBySt[l]||0)+1;});
+  const el=document.getElementById('stats-content');
+  if(!el)return;
+  // renderOverviewStatsDetail과 동일한 내용을 stats 페이지에도 표시
+  // overview-stats-detail 대신 stats-content를 타겟으로 임시 변경
+  const orig=document.getElementById('overview-stats-detail');
+  // 임시로 stats-content에 직접 렌더
+  const now=new Date();
+  const allItems=WORK_IDS.flatMap(wid=>[...(S.workItems[wid]||[]),...getCatItemsForWork(wid)]);
+  const stCnt={new:0,ing:0,done:0,wait:0};
+  allItems.forEach(it=>{if(stCnt[it.status]!==undefined)stCnt[it.status]++;});
+  const total=allItems.length||1;
+  const stColors={new:'#3B82F6',ing:'#F59E0B',done:'#10B981',wait:'#64748B'};
   const workRates=WORK_IDS.map(wid=>{
-    const items=S.workItems[wid]||[];
-    const catItems=getCatItemsForWork(wid);
-    const all=[...items,...catItems];
-    const m=WORK_META[wid];
+    const items=S.workItems[wid]||[];const catItems=getCatItemsForWork(wid);
+    const all=[...items,...catItems];const m=WORK_META[wid];
     const tot=all.length,dn=all.filter(i=>i.status==='done').length;
-    return {name:m.name,icon:m.icon,color:m.color,pct:tot?Math.round(dn/tot*100):0,tot,dn};
-  });
-  document.getElementById('stats-content').innerHTML=`
-    <div class="grid4" style="margin-bottom:20px">
-      <div class="stat-mini"><div class="stat-mini-val" style="color:var(--blue-l)">${totalCorp}</div><div class="stat-mini-label">등록 기업</div></div>
-      <div class="stat-mini"><div class="stat-mini-val" style="color:var(--gold-l)">${totalCat}</div><div class="stat-mini-label">전체 지원사업</div></div>
-      <div class="stat-mini"><div class="stat-mini-val" style="color:var(--warn)">${catBySt['진행중']}</div><div class="stat-mini-label">진행중</div></div>
-      <div class="stat-mini"><div class="stat-mini-val" style="color:var(--ok)">${catBySt['완료']}</div><div class="stat-mini-label">완료</div></div>
-    </div>
-    <div class="grid2">
-      <div class="card">
-        <div class="card-hd"><span>📊</span><div class="card-hd-title">업무 영역별 완료율</div></div>
-        <div class="card-body">
-          ${workRates.map(r=>`
-            <div style="margin-bottom:12px">
-              <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-                <span style="font-size:11px">${r.icon} ${r.name}</span>
-                <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g1)">${r.dn}/${r.tot} (${r.pct}%)</span>
-              </div>
-              <div class="prog-wrap"><div class="prog-fill" style="width:${r.pct}%;background:${r.color}"></div></div>
-            </div>`).join('')}
+    return {name:m.name,icon:m.icon,color:m.color,tot,dn,pct:tot?Math.round(dn/tot*100):0};
+  }).filter(r=>r.tot>0);
+  const sub={};
+  Object.values(S.workItems).flat().forEach(it=>{if(it.sub&&it.sub.trim())sub[it.sub]=(sub[it.sub]||0)+1;});
+  const subSorted=Object.entries(sub).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const ddays=S.cats.filter(c=>c.end).map(c=>{
+    const diff=Math.ceil((new Date(c.end)-now)/(1000*60*60*24));
+    return {...c,diff};
+  }).sort((a,b)=>a.diff-b.diff).slice(0,6);
+  const lastUpdated=new Date().toLocaleTimeString('ko-KR');
+  el.innerHTML=`
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px;font-size:10px;color:var(--g2);font-family:'JetBrains Mono',monospace">업데이트: ${lastUpdated}</div>
+    <div class="grid4">
+      <div class="card" style="padding:16px">
+        <div style="font-size:11px;font-weight:500;color:var(--g1);margin-bottom:14px">전체 업무 상태 분포</div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="position:relative;width:70px;height:70px;flex-shrink:0">
+            <svg viewBox="0 0 36 36" style="width:70px;height:70px;transform:rotate(-90deg)">
+              ${(()=>{let offset=0;const colors=[stColors.new,stColors.ing,stColors.done,stColors.wait];const vals=[stCnt.new,stCnt.ing,stCnt.done,stCnt.wait];return vals.map((v,i)=>{const pct=v/total*100;const r=`<circle cx="18" cy="18" r="15.9" fill="none" stroke="${colors[i]}" stroke-width="3.2" stroke-dasharray="${pct} ${100-pct}" stroke-dashoffset="${-offset}" opacity="${v?1:.15}"/>`;offset+=pct;return r;}).join('');})()}
+            </svg>
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500">${allItems.length}</div>
+          </div>
+          <div style="flex:1">
+            ${[['new','신규'],['ing','진행중'],['done','완료'],['wait','대기']].map(([k,l])=>`
+              <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--g1);margin-bottom:5px">
+                <div style="width:8px;height:8px;border-radius:50%;background:${stColors[k]};flex-shrink:0"></div>
+                <span style="flex:1">${l}</span>
+                <span style="font-family:'JetBrains Mono',monospace;color:var(--white)">${stCnt[k]}</span>
+              </div>`).join('')}
+            <div style="border-top:1px solid rgba(255,255,255,.06);margin-top:6px;padding-top:6px;display:flex;justify-content:space-between;font-size:10px">
+              <span style="color:var(--g2)">총합</span>
+              <span style="font-family:'JetBrains Mono',monospace">${allItems.length}</span>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="card">
-        <div class="card-hd"><span>📅</span><div class="card-hd-title">지원사업 현황</div></div>
-        <div class="card-body">
-          ${Object.entries(catBySt).map(([l,cnt])=>`
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-              <div style="width:70px;font-size:11px;color:var(--g1)">${l}</div>
-              <div style="flex:1;height:20px;background:rgba(255,255,255,.05);border-radius:4px;overflow:hidden">
-                <div style="height:100%;width:${totalCat?Math.round(cnt/totalCat*100):0}%;background:${l==='진행중'?'var(--warn)':l==='완료'?'var(--ok)':l==='신규'?'var(--blue)':'var(--g3)'};transition:width .6s ease"></div>
-              </div>
-              <div style="font-family:'JetBrains Mono',monospace;font-size:11px;width:30px;text-align:right">${cnt}</div>
-            </div>`).join('')}
-        </div>
+      <div class="card" style="padding:16px">
+        <div style="font-size:11px;font-weight:500;color:var(--g1);margin-bottom:14px;display:flex;justify-content:space-between">업무 영역별 현황<span style="font-size:9px;color:var(--g2)">(업무+간트 통합)</span></div>
+        ${workRates.length?workRates.map(r=>`
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+            <div style="font-size:10px;color:var(--g1);width:72px;text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.icon} ${r.name}</div>
+            <div style="flex:1;height:12px;background:rgba(255,255,255,.07);border-radius:6px;overflow:hidden"><div style="height:100%;width:${r.pct}%;background:${r.color};border-radius:6px"></div></div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g1);width:22px;text-align:right">${r.dn}</div>
+          </div>`).join(''):`<div class="empty" style="padding:16px 0"><div class="empty-txt">업무 항목을 추가하면 집계됩니다</div></div>`}
+      </div>
+      <div class="card" style="padding:16px">
+        <div style="font-size:11px;font-weight:500;color:var(--g1);margin-bottom:14px;display:flex;justify-content:space-between">세부구분 누적 건수<span style="font-size:9px;color:var(--g2)">(선정·기표·심림·인정 등)</span></div>
+        ${subSorted.length?subSorted.map(([k,v])=>`
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+            <div style="font-size:10px;color:var(--g1);width:72px;text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${k}</div>
+            <div style="flex:1;height:12px;background:rgba(255,255,255,.07);border-radius:6px;overflow:hidden"><div style="height:100%;width:${subSorted[0]?Math.round(v/subSorted[0][1]*100):0}%;background:var(--teal);border-radius:6px"></div></div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g1);width:22px;text-align:right">${v}</div>
+          </div>`).join(''):`<div class="empty" style="padding:16px 0"><div class="empty-txt">업무 항목에 세부구분을 지정하면 집계됩니다</div></div>`}
+      </div>
+      <div class="card" style="padding:16px">
+        <div style="font-size:11px;font-weight:500;color:var(--g1);margin-bottom:14px;display:flex;justify-content:space-between">정책자금·지원사업 D-Day<span style="font-size:9px;color:var(--g2)">(마감 임박순)</span></div>
+        ${ddays.length?ddays.map(c=>{
+          const color=c.diff<0?'var(--danger)':c.diff<=7?'var(--warn)':c.diff<=30?'var(--gold)':'var(--g1)';
+          const label=c.diff<0?`D+${Math.abs(c.diff)}`:c.diff===0?'D-Day':`D-${c.diff}`;
+          return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:${color};width:42px;flex-shrink:0;font-weight:500">${label}</div>
+            <div style="flex:1;font-size:10px;color:rgba(255,255,255,.8);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.name}</div>
+            <span class="badge badge-${c.status||'new'}" style="font-size:8px">${ST_LABEL[c.status||'new']}</span>
+          </div>`;
+        }).join(''):`<div class="empty" style="padding:16px 0"><div class="empty-txt">지원사업을 추가하면 집계됩니다</div></div>`}
       </div>
     </div>`;
 }
