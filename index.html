@@ -71,6 +71,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--navy);color:var(--wh
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.grid5{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
 .stat-mini{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:var(--r);padding:14px 16px}
 .stat-mini-val{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:500;line-height:1}
 .stat-mini-label{font-size:10px;color:var(--g1);margin-top:5px}
@@ -223,7 +224,7 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
 
     <!-- PAGE: OVERVIEW -->
     <div class="page-section active" id="page-overview">
-      <div class="grid4" id="ov-stats" style="margin-bottom:24px"></div>
+      <div class="grid5" id="ov-stats" style="margin-bottom:24px"></div>
       <div style="margin-bottom:24px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
           <div style="display:flex;align-items:center;gap:8px">
@@ -680,6 +681,7 @@ function renderOverview(){
 }
 function renderOverviewStats(){
   const allWork=CAT_IDS.flatMap(c=>[...(workItems[c]||[]),...getConsWorkItems(c)]);
+  const waitW=allWork.filter(i=>i.status==='wait').length;
   const ingW=allWork.filter(i=>i.status==='ing').length;
   const doneW=allWork.filter(i=>i.status==='done').length;
   const totalW=allWork.length;
@@ -687,6 +689,7 @@ function renderOverviewStats(){
   if(!el)return;
   el.innerHTML=`
     <div class="stat-mini"><div class="stat-mini-val" style="color:var(--blue-l)">${companies.length}</div><div class="stat-mini-label">등록 기업</div><div class="stat-mini-sub">관리중인 업체</div></div>
+    <div class="stat-mini"><div class="stat-mini-val" style="color:var(--g1)">${waitW}</div><div class="stat-mini-label">대기중 업무</div><div class="stat-mini-sub">전체 ${totalW}건 중</div></div>
     <div class="stat-mini"><div class="stat-mini-val" style="color:var(--warn)">${ingW}</div><div class="stat-mini-label">진행중 업무</div><div class="stat-mini-sub">전체 ${totalW}건 중</div></div>
     <div class="stat-mini"><div class="stat-mini-val" style="color:var(--ok)">${doneW}</div><div class="stat-mini-label">완료 업무</div><div class="stat-mini-sub">누적 완료건</div></div>
     <div class="stat-mini"><div class="stat-mini-val" style="color:var(--teal)">${totalW?Math.round(doneW/totalW*100):0}%</div><div class="stat-mini-label">업무 완료율</div><div class="stat-mini-sub">${doneW}/${totalW}건 완료</div></div>`;
