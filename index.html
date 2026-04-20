@@ -729,7 +729,9 @@ function renderGantt(sfx){
     const color=CAT_COLORS[ci%CAT_COLORS.length];
     const cm=CAT_META[c.category]||CAT_META.etc;
     body+=`<tr class="cat-row" onclick="toggleCat('${c.id}')"><td class="cat-label-td">
-      <div class="cat-name">${cm.icon} ${c.title} ${badge(c.status||'wait')}<span class="cat-arrow${exp?' open':''}">▶</span></div>
+      <div class="cat-name">${cm.icon} ${c.title} ${badge(c.status||'wait')}<span class="cat-arrow${exp?' open':''}">▶</span>
+        <button onclick="event.stopPropagation();openConsultingModal('${c.id}')" style="margin-left:6px;padding:2px 8px;background:rgba(37,99,235,.2);border:1px solid rgba(37,99,235,.4);border-radius:5px;color:#93C5FD;font-size:9px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">관리</button>
+      </div>
       <div style="font-size:9px;color:var(--g2);margin-top:2px">${c.org||''} ${c.endDate?'· ~'+c.endDate:''} ${c.amount?'· '+fmtAmt(c.amount):''}</div>
     </td>`;
     for(let d=1;d<=days;d++){
@@ -792,11 +794,20 @@ function renderConsCompaniesList(){
   document.getElementById('cons-companies-list').innerHTML=tempConsCompanies.map((cm,i)=>`
     <div class="ci" style="cursor:default">
       <div style="font-size:12px;flex:1">🏢 ${cm.name}<span style="font-size:9px;color:var(--g2);margin-left:6px">${cm.bizno}</span></div>
-      <select onchange="tempConsCompanies[${i}].status=this.value" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:var(--white);font-size:10px;padding:2px 5px;outline:none;font-family:'Noto Sans KR',sans-serif">
+      <select data-idx="${i}" onchange="updateConsCompanyStatus(this)" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:var(--white);font-size:10px;padding:2px 5px;outline:none;font-family:'Noto Sans KR',sans-serif">
         ${['wait','ing','done'].map(s=>`<option value="${s}"${cm.status===s?' selected':''}>${ST[s].label}</option>`).join('')}
       </select>
-      <button onclick="tempConsCompanies.splice(${i},1);renderConsCompaniesList()" style="background:none;border:none;color:var(--g2);cursor:pointer;font-size:16px">×</button>
+      <button data-idx="${i}" onclick="removeConsCompany(this)" style="background:none;border:none;color:var(--g2);cursor:pointer;font-size:16px">×</button>
     </div>`).join('')||`<div style="font-size:11px;color:var(--g2);padding:4px">참여 업체 없음</div>`;
+}
+function updateConsCompanyStatus(select){
+  const idx=+select.getAttribute('data-idx');
+  if(tempConsCompanies[idx])tempConsCompanies[idx].status=select.value;
+}
+function removeConsCompany(btn){
+  const idx=+btn.getAttribute('data-idx');
+  tempConsCompanies.splice(idx,1);
+  renderConsCompaniesList();
 }
 function addConsCompany(){
   const inp=document.getElementById('cons-comp-inp');
@@ -987,14 +998,13 @@ function renderClientsTable(headId,bodyId,searchVal){
   const headEl=document.getElementById(headId);const bodyEl=document.getElementById(bodyId);
   if(!headEl||!bodyEl)return;
   const SHOW=CAT_IDS.filter(c=>c!=='etc');
-  headEl.innerHTML=`<th>업체명</th><th>사업자번호</th>${SHOW.map(c=>`<th title="${CAT_META[c].name}">${CAT_META[c].icon} ${CAT_META[c].name.length>5?CAT_META[c].name.slice(0,5)+'…':CAT_META[c].name}</th>`).join('')}<th>관리</th>`;
+  headEl.innerHTML=`<th>업체명</th>${SHOW.map(c=>`<th title="${CAT_META[c].name}">${CAT_META[c].icon} ${CAT_META[c].name.length>5?CAT_META[c].name.slice(0,5)+'…':CAT_META[c].name}</th>`).join('')}<th>관리</th>`;
   const q=(searchVal||'').toLowerCase();
   const filtered=companies.filter(c=>!q||c.name.toLowerCase().includes(q));
   bodyEl.innerHTML=filtered.length?filtered.map(comp=>{
     const domains=getCompanyDomains(comp._id);
     return `<tr>
       <td><div style="font-size:12px;font-weight:500">${comp.name}</div></td>
-      <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g2)">${comp._id}</td>
       ${SHOW.map(c=>`<td>${domains[c]?badge(domains[c]):'<span style="color:var(--g3);font-size:10px">—</span>'}</td>`).join('')}
       <td>
         <button onclick="openCompanyModal('${comp._id}')" style="background:none;border:none;color:var(--g2);font-size:12px;cursor:pointer;padding:2px">✏️</button>
@@ -1176,7 +1186,7 @@ loadAll();
 Object.assign(window,{
   navTo,manualSave,closeModal,
   prevMonth,nextMonth,goToday,toggleCat,
-  openConsultingModal,saveConsulting,deleteConsulting,addConsCompany,renderConsCompaniesList,
+  openConsultingModal,saveConsulting,deleteConsulting,addConsCompany,renderConsCompaniesList,updateConsCompanyStatus,removeConsCompany,
   openTodoModal,saveTodo,cycleTodo,deleteTodoItem,
   renderWork,openWorkModal,saveWork,confirmDeleteWork,cycleWork,
   renderClientsPage,
