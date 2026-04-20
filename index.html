@@ -323,7 +323,7 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
         <button class="btn btn-primary" onclick="openCompanyModal()">+ 기업 등록</button>
       </div>
       <div class="card"><div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>기업명</th><th>대표자</th><th>업종</th><th>사업자번호</th><th>연락처</th><th>신청금액</th><th>등록일</th><th style="width:80px">관리</th></tr></thead>
+        <thead><tr><th>기업명</th><th>대표자</th><th>생년월일</th><th>업종</th><th>사업자번호</th><th>법인번호</th><th>연락처</th><th>신청금액</th><th>등록일</th><th style="width:60px">관리</th></tr></thead>
         <tbody id="corp-tbody"></tbody>
       </table></div></div>
     </div>
@@ -339,6 +339,10 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
     <div class="frow">
       <div class="fg"><label class="fl">기업명 *</label><input class="fi" id="comp-name" placeholder="(주)예시회사"></div>
       <div class="fg"><label class="fl">대표자</label><input class="fi" id="comp-ceo" placeholder="홍길동"></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label class="fl">대표자 생년월일</label><input class="fi" id="comp-ceo-birth" type="date" placeholder="1980-01-01"></div>
+      <div class="fg"><label class="fl">법인번호</label><input class="fi" id="comp-corp-no" placeholder="000000-0000000"></div>
     </div>
     <div class="frow">
       <div class="fg">
@@ -1069,6 +1073,8 @@ function openCompanyModal(bizno){
     document.getElementById('comp-edit-bizno').value=bizno;
     document.getElementById('comp-name').value=c.name||'';
     document.getElementById('comp-ceo').value=c.ceo||'';
+    document.getElementById('comp-ceo-birth').value=c.ceoBirth||'';
+    document.getElementById('comp-corp-no').value=c.corpNo||'';
     document.getElementById('comp-bizno').value=c._id||'';
     document.getElementById('comp-bizno-auto').textContent='';
     document.getElementById('comp-biztype').value=c.biztype||'';
@@ -1079,7 +1085,7 @@ function openCompanyModal(bizno){
   } else {
     document.getElementById('company-modal-title').textContent='🏛️ 기업 등록';
     document.getElementById('comp-edit-bizno').value='';
-    ['comp-name','comp-ceo','comp-bizno','comp-biztype','comp-tel','comp-email','comp-addr','comp-memo'].forEach(id=>document.getElementById(id).value='');
+    ['comp-name','comp-ceo','comp-ceo-birth','comp-corp-no','comp-bizno','comp-biztype','comp-tel','comp-email','comp-addr','comp-memo'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('comp-bizno-auto').textContent='';
   }
   openModal('company-modal');
@@ -1096,7 +1102,19 @@ async function saveCompany(){
   let bizno=document.getElementById('comp-bizno').value.trim();
   const editBizno=document.getElementById('comp-edit-bizno').value;
   if(!bizno&&!editBizno)bizno=genTempBizno();
-  const data={name,ceo:document.getElementById('comp-ceo').value,biztype:document.getElementById('comp-biztype').value,tel:document.getElementById('comp-tel').value,email:document.getElementById('comp-email').value,addr:document.getElementById('comp-addr').value,memo:document.getElementById('comp-memo').value,joinDate:new Date().toISOString().slice(0,10),updatedAt:Date.now()};
+  const data={
+    name,
+    ceo:document.getElementById('comp-ceo').value,
+    ceoBirth:document.getElementById('comp-ceo-birth').value,
+    corpNo:document.getElementById('comp-corp-no').value,
+    biztype:document.getElementById('comp-biztype').value,
+    tel:document.getElementById('comp-tel').value,
+    email:document.getElementById('comp-email').value,
+    addr:document.getElementById('comp-addr').value,
+    memo:document.getElementById('comp-memo').value,
+    joinDate:new Date().toISOString().slice(0,10),
+    updatedAt:Date.now()
+  };
   try{
     setBadge('🔄 저장 중...');
     if(editBizno){await updateDoc(doc(db,'companies',editBizno),data);}
@@ -1119,8 +1137,10 @@ function renderCompaniesPage(){
     return `<tr>
       <td><div style="font-size:12px;font-weight:500">${c.name}</div></td>
       <td>${c.ceo||'—'}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g2)">${c.ceoBirth||'—'}</td>
       <td style="color:var(--g1)">${c.biztype||'—'}</td>
       <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g2)">${c._id}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g2)">${c.corpNo||'—'}</td>
       <td style="color:var(--g1)">${c.tel||'—'}</td>
       <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold-l)">${amt?fmtAmt(amt):'—'}</td>
       <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g2)">${c.joinDate||'—'}</td>
