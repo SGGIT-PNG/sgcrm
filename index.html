@@ -716,49 +716,103 @@ WORK_IDS.forEach(wid=>{if(!S.workItems[wid])S.workItems[wid]=[];});
 if(!S.companies)S.companies=[];
 
 // ── FIREBASE ──
-let _isSaving = false;
+let _myLastSaveTs = 0;      // 내가 마지막으로 저장한 타임스탬프
+let _saveTimer = null;       // 디바운스 타이머
+let _syncUnsubscribe = null; // 실시간 동기화 해제 함수
+let _initialLoadDone = false;
+
+// 상태 적용 (Firebase → 화면)
+function applyState(data, fromRemote=false){
+  // 내가 방금 저장한 데이터가 되돌아온 경우 무시
+  if(fromRemote && data._savedAt && data._savedAt <= _myLastSaveTs){
+    return;
+  }
+  S = data;
+  S.expandedCats = new Set(S.expandedCats||[]);
+  WORK_IDS.forEach(wid=>{if(!S.workItems[wid])S.workItems[wid]=[];});
+  if(!S.companies)S.companies=[];
+  if(!S.todos)S.todos=[];
+  if(!S.cats)S.cats=[];
+  if(!S.clients)S.clients=[];
+  renderAll();
+  updateSidebarCounts();
+}
+
+// Firebase에서 최초 로드
 async function loadFromFirebase(){
   try{
     setBadge('🔄 동기화 중...');
     const snap = await getDoc(DOC_REF);
     if(snap.exists()){
-      const data = snap.data().state;
-      if(data){applyState(JSON.parse(data));}
+      const raw = snap.data().state;
+      if(raw){
+        const data = JSON.parse(raw);
+        applyState(data, false); // 최초 로드는 무조건 적용
+      }
     }
-    setBadge('✅ 동기화 완료',2000);
-  }catch(e){setBadge('⚠️ 오프라인');}
+    _initialLoadDone = true;
+    setBadge('✅ 동기화 완료', 2000);
+  }catch(e){
+    console.error('Firebase 로드 오류:', e);
+    _initialLoadDone = true;
+    setBadge('⚠️ 오프라인 모드');
+  }
 }
-function applyState(data){
-  S = data;
-  S.expandedCats = new Set(S.expandedCats||[]);
-  WORK_IDS.forEach(wid=>{if(!S.workItems[wid])S.workItems[wid]=[];});
-  if(!S.companies)S.companies=[];
-  renderAll();updateSidebarCounts();
-}
+
+// 실시간 동기화 (공동대표가 수정하면 자동 반영)
 function startRealtimeSync(){
-  onSnapshot(DOC_REF,(snap)=>{
-    if(_isSaving)return;
-    if(snap.exists()){const data=snap.data().state;if(data)applyState(JSON.parse(data));}
+  if(_syncUnsubscribe) _syncUnsubscribe();
+  _syncUnsubscribe = onSnapshot(DOC_REF, (snap)=>{
+    if(!_initialLoadDone) return; // 초기 로드 전엔 무시
+    if(!snap.exists()) return;
+    const raw = snap.data().state;
+    if(!raw) return;
+    try{
+      const data = JSON.parse(raw);
+      const remoteSavedAt = data._savedAt || 0;
+      // 내가 저장한 데이터가 되돌아온 경우 무시 (5초 여유)
+      if(remoteSavedAt > 0 && remoteSavedAt <= _myLastSaveTs + 5000) return;
+      applyState(data, true);
+    }catch(e){console.error('동기화 오류:', e);}
   });
 }
+
+// 저장 (디바운스 적용 - 연속 저장 방지)
 async function saveAll(){
   S.workMetaList = WORK_IDS.map(wid=>({id:wid,...WORK_META[wid]}));
-  const toSave = {...S,expandedCats:[...S.expandedCats]};
-  try{localStorage.setItem('sg_crm_v2',JSON.stringify(toSave));}catch(e){}
+  const ts = Date.now();
+  _myLastSaveTs = ts;
+  const toSave = {...S, expandedCats:[...S.expandedCats], _savedAt: ts};
+  // 로컬 백업
+  try{localStorage.setItem('sg_crm_v2', JSON.stringify(toSave));}catch(e){}
+  // Firebase 저장
   try{
-    _isSaving=true;
     setBadge('🔄 저장 중...');
-    await setDoc(DOC_REF,{state:JSON.stringify(toSave),updatedAt:new Date().toISOString()});
-    setBadge('✅ 저장됨 '+p2(new Date().getHours())+':'+p2(new Date().getMinutes()),2000);
-  }catch(e){setBadge('⚠️ 저장 실패');}
-  finally{setTimeout(()=>{_isSaving=false;},2100);}
+    await setDoc(DOC_REF,{
+      state: JSON.stringify(toSave),
+      updatedAt: new Date().toISOString()
+    });
+    setBadge('✅ 저장됨 '+p2(new Date().getHours())+':'+p2(new Date().getMinutes()), 2000);
+  }catch(e){
+    console.error('저장 오류:', e);
+    setBadge('⚠️ 저장 실패 (로컬 백업됨)');
+  }
 }
-function setBadge(txt,resetMs){
+
+// 데이터 변경 시 즉시 저장 (디바운스 300ms)
+function saveDebounced(){
+  if(_saveTimer) clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(saveAll, 300);
+}
+
+function setBadge(txt, resetMs){
   const el=document.getElementById('save-badge');
   if(el)el.textContent=txt;
-  if(resetMs)setTimeout(()=>{if(el)el.textContent='💾 저장';},resetMs);
+  if(resetMs)setTimeout(()=>{if(el)el.textContent='💾 저장';}, resetMs);
 }
-setInterval(saveAll,30000);
+
+// 30초마다 자동 저장
+setInterval(saveAll, 30000);
 
 // ── UTILS ──
 function p2(v){return String(v).padStart(2,'0')}
@@ -1084,7 +1138,7 @@ function saveCat(){
     if(!c.domains)c.domains={};
     if(!c.domains[wid])c.domains[wid]='new';
   });
-  closeModal('cat-modal');renderAll();saveAll();
+  closeModal('cat-modal');renderAll();saveDebounced();
 }
 
 // ── MANAGE MODAL ──
@@ -1139,12 +1193,12 @@ function saveManage(){
     if(!c.domains[cat.type])c.domains[cat.type]=cli.status||'new';
     else if(higherStatus(c.domains[cat.type],cli.status||'new')!==c.domains[cat.type])c.domains[cat.type]=cli.status||'new';
   });
-  closeModal('manage-modal');renderAll();saveAll();
+  closeModal('manage-modal');renderAll();saveDebounced();
 }
 function deleteCategory(){
   if(!confirm('삭제하시겠습니까?'))return;
   S.cats=S.cats.filter(c=>c.id!==S.currentManageCatId);
-  closeModal('manage-modal');renderAll();saveAll();
+  closeModal('manage-modal');renderAll();saveDebounced();
 }
 
 // ── TODO ──
@@ -1170,18 +1224,18 @@ function addTodo(st,sfx){
   S.todos.push({id:S.nid++,text:v,tag:'',status:st});
   if(inp)inp.value='';
   renderTodos();renderTodos('sub');
-  updateSidebarCounts();saveAll();
+  updateSidebarCounts();saveDebounced();
 }
 function toggleTodo(id){
   const t=S.todos.find(x=>x.id===id);if(!t)return;
   t.status=t.status==='done'?'ing':'done';
   renderTodos();renderTodos('sub');
-  updateSidebarCounts();saveAll();
+  updateSidebarCounts();saveDebounced();
 }
 function deleteTodo(id){
   S.todos=S.todos.filter(x=>x.id!==id);
   renderTodos();renderTodos('sub');
-  updateSidebarCounts();saveAll();
+  updateSidebarCounts();saveDebounced();
 }
 
 // ── WORK ──
@@ -1279,19 +1333,19 @@ function saveWork(){
       if(!c.domains[wid])c.domains[wid]=newData.status;
     }
   }
-  closeModal('work-modal');renderAll();saveAll();
+  closeModal('work-modal');renderAll();saveDebounced();
 }
 function confirmDeleteWorkFromModal(){
   const wid=S.currentWorkCat;const iid=+document.getElementById('wm-edit-id').value;
   if(!wid||!iid)return;
   if(!confirm('삭제하시겠습니까?'))return;
   if(S.workItems[wid])S.workItems[wid]=S.workItems[wid].filter(x=>x.id!==iid);
-  closeModal('work-modal');renderAll();saveAll();
+  closeModal('work-modal');renderAll();saveDebounced();
 }
 function quickCycleWork(wid,iid){
   const it=(S.workItems[wid]||[]).find(x=>x.id===iid);if(!it)return;
   const cy=['new','ing','wait','done'];it.status=cy[(cy.indexOf(it.status)+1)%cy.length];
-  renderWorks();saveAll();
+  renderWorks();saveDebounced();
 }
 
 // ── CLIENT TABLE ──
@@ -1384,9 +1438,9 @@ function saveCliModal(){
   } else {
     S.clients.push({id:S.nid++,name,type:document.getElementById('clm-type').value,cons:'',domains});
   }
-  closeModal('cli-modal');renderClientTable();updateSidebarCounts();saveAll();
+  closeModal('cli-modal');renderClientTable();updateSidebarCounts();saveDebounced();
 }
-function deleteCli(id){if(!confirm('삭제하시겠습니까?'))return;S.clients=S.clients.filter(c=>c.id!==id);renderClientTable();updateSidebarCounts();saveAll();}
+function deleteCli(id){if(!confirm('삭제하시겠습니까?'))return;S.clients=S.clients.filter(c=>c.id!==id);renderClientTable();updateSidebarCounts();saveDebounced();}
 
 // ── STATS ──
 function renderStats(){
@@ -1507,13 +1561,13 @@ function saveCorp(){
     S.companies.push({id:S.nid++,...data});
     if(!S.clients.find(c=>c.name===name))S.clients.push({id:S.nid++,name,type:'법인',cons:'',domains:{}});
   }
-  closeModal('corp-modal');renderCorpList();updateSidebarCounts();saveAll();
+  closeModal('corp-modal');renderCorpList();updateSidebarCounts();saveDebounced();
 }
 function deleteCorp(id){
   const c=S.companies.find(x=>x.id===id);if(!c)return;
   if(!confirm(`'${c.name}'을(를) 삭제하시겠습니까?`))return;
   S.companies=S.companies.filter(x=>x.id!==id);
-  renderCorpList();updateSidebarCounts();saveAll();
+  renderCorpList();updateSidebarCounts();saveDebounced();
 }
 function renderCorpList(){
   const q=(document.getElementById('corp-search')?.value||'').toLowerCase();
@@ -1564,7 +1618,7 @@ loadFromFirebase().then(()=>startRealtimeSync());
 
 // ── GLOBAL EXPORTS ──
 Object.assign(window,{
-  navTo,saveAll,closeModal,
+  navTo,saveAll,saveDebounced,closeModal,
   prevMonth,nextMonth,goToday,toggleCat,
   openCatModal,openManageModal,saveCat,saveManage,deleteCategory,
   addNewCatClient,removeNewCatClient,addManageClient,deleteManageClient,updateCliStatus,renderManageClients,
