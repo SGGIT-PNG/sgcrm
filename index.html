@@ -679,18 +679,17 @@ function renderOverview(){
   const cc=document.getElementById('ov-cli-cnt');if(cc)cc.textContent=companies.length+'개';
 }
 function renderOverviewStats(){
-  const total=consulting.length;
-  const ingC=consulting.filter(c=>c.status==='ing').length;
-  const doneC=consulting.filter(c=>c.status==='done').length;
-  const allWork=CAT_IDS.flatMap(w=>[...(workItems[w]||[]),...getConsWorkItems(w)]);
+  const allWork=CAT_IDS.flatMap(c=>[...(workItems[c]||[]),...getConsWorkItems(c)]);
+  const ingW=allWork.filter(i=>i.status==='ing').length;
   const doneW=allWork.filter(i=>i.status==='done').length;
+  const totalW=allWork.length;
   const el=document.getElementById('ov-stats');
   if(!el)return;
   el.innerHTML=`
     <div class="stat-mini"><div class="stat-mini-val" style="color:var(--blue-l)">${companies.length}</div><div class="stat-mini-label">등록 기업</div><div class="stat-mini-sub">관리중인 업체</div></div>
-    <div class="stat-mini"><div class="stat-mini-val" style="color:var(--warn)">${ingC}</div><div class="stat-mini-label">진행중 지원사업</div><div class="stat-mini-sub">전체 ${total}건 중</div></div>
-    <div class="stat-mini"><div class="stat-mini-val" style="color:var(--ok)">${doneC}</div><div class="stat-mini-label">완료 지원사업</div><div class="stat-mini-sub">누적 완료건</div></div>
-    <div class="stat-mini"><div class="stat-mini-val" style="color:var(--teal)">${allWork.length?Math.round(doneW/allWork.length*100):0}%</div><div class="stat-mini-label">업무 완료율</div><div class="stat-mini-sub">${doneW}/${allWork.length}건 완료</div></div>`;
+    <div class="stat-mini"><div class="stat-mini-val" style="color:var(--warn)">${ingW}</div><div class="stat-mini-label">진행중 업무</div><div class="stat-mini-sub">전체 ${totalW}건 중</div></div>
+    <div class="stat-mini"><div class="stat-mini-val" style="color:var(--ok)">${doneW}</div><div class="stat-mini-label">완료 업무</div><div class="stat-mini-sub">누적 완료건</div></div>
+    <div class="stat-mini"><div class="stat-mini-val" style="color:var(--teal)">${totalW?Math.round(doneW/totalW*100):0}%</div><div class="stat-mini-label">업무 완료율</div><div class="stat-mini-sub">${doneW}/${totalW}건 완료</div></div>`;
 }
 
 // ── GANTT ──
