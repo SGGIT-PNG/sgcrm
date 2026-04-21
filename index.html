@@ -179,6 +179,9 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
 .dot-ing{background:#F59E0B}
 .dot-done{background:#10B981}
 
+.toggle-btn{display:flex;align-items:center;gap:2px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:3px;flex-shrink:0}
+.toggle-opt{padding:4px 12px;border-radius:6px;font-size:11px;cursor:pointer;transition:all .15s;color:var(--g1);border:none;background:none;font-family:'Noto Sans KR',sans-serif;white-space:nowrap}
+.toggle-opt.active{background:var(--blue);color:#fff}
 @media(max-width:900px){
   #sidebar{width:56px;min-width:56px}
   .sb-menu span:not(.sb-ico){display:none}
@@ -203,6 +206,7 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
   <div class="sb-menu" id="nav-work" onclick="navTo('work')"><span class="sb-ico">📊</span><span>업무 영역별 현황</span></div>
   <div class="sb-menu" id="nav-clients" onclick="navTo('clients')"><span class="sb-ico">🏢</span><span>업체별 진행현황</span><span class="sb-cnt" id="sb-cli-cnt">0</span></div>
   <div class="sb-menu" id="nav-stats" onclick="navTo('stats')"><span class="sb-ico">📈</span><span>누적 통계 데이터</span></div>
+  <div class="sb-menu" id="nav-history" onclick="navTo('history')"><span class="sb-ico">📁</span><span>완료 업무 이력</span><span class="sb-cnt" id="sb-history-cnt">0</span></div>
   <div class="sb-section">관리</div>
   <div class="sb-menu" id="nav-companies" onclick="navTo('companies')"><span class="sb-ico">🏛️</span><span>기업 관리</span><span class="sb-cnt" id="sb-corp-cnt">0</span></div>
   <div class="sb-bottom">
@@ -232,7 +236,13 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
             <span style="font-size:14px;font-weight:500">지원사업 · 정책자금 일정 관리</span>
             <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g1);background:rgba(255,255,255,.06);padding:2px 8px;border-radius:10px" id="ov-gantt-cnt">0건</span>
           </div>
-          <button class="btn btn-primary btn-sm" onclick="openConsultingModal()">+ 대분류 추가</button>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div class="toggle-btn" id="gantt-filter-toggle">
+              <button class="toggle-opt active" onclick="setGanttFilter('active')">진행중만</button>
+              <button class="toggle-opt" onclick="setGanttFilter('all')">전체보기</button>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openConsultingModal()">+ 대분류 추가</button>
+          </div>
         </div>
         <div class="gantt-wrap">
           <div class="gantt-top">
@@ -253,9 +263,15 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
         <div class="todo-wrap" id="todo-grid"></div>
       </div>
       <div style="margin-bottom:24px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-          <div style="width:28px;height:28px;border-radius:8px;background:rgba(139,92,246,.2);display:flex;align-items:center;justify-content:center">📊</div>
-          <span style="font-size:14px;font-weight:500">업무 영역별 진행 현황</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:28px;height:28px;border-radius:8px;background:rgba(139,92,246,.2);display:flex;align-items:center;justify-content:center">📊</div>
+            <span style="font-size:14px;font-weight:500">업무 영역별 진행 현황</span>
+          </div>
+          <div class="toggle-btn" id="work-filter-toggle">
+            <button class="toggle-opt active" onclick="setWorkFilter('active')">진행중만</button>
+            <button class="toggle-opt" onclick="setWorkFilter('all')">전체보기</button>
+          </div>
         </div>
         <div class="grid3" id="work-grid"></div>
       </div>
@@ -281,7 +297,11 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
 
     <!-- PAGE: GANTT -->
     <div class="page-section" id="page-gantt">
-      <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div class="toggle-btn" id="gantt-filter-toggle-sub">
+          <button class="toggle-opt active" onclick="setGanttFilter('active')">진행중만</button>
+          <button class="toggle-opt" onclick="setGanttFilter('all')">전체보기</button>
+        </div>
         <button class="btn btn-primary" onclick="openConsultingModal()">+ 대분류 추가</button>
       </div>
       <div class="gantt-wrap">
@@ -302,6 +322,13 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
 
     <!-- PAGE: WORK -->
     <div class="page-section" id="page-work">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-size:13px;font-weight:500;color:var(--g1)">업무 영역별 진행 현황</div>
+        <div class="toggle-btn" id="work-filter-toggle-sub">
+          <button class="toggle-opt active" onclick="setWorkFilter('active')">진행중만</button>
+          <button class="toggle-opt" onclick="setWorkFilter('all')">전체보기</button>
+        </div>
+      </div>
       <div class="grid3" id="work-grid-sub"></div>
     </div>
 
@@ -316,6 +343,34 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
 
     <!-- PAGE: STATS -->
     <div class="page-section" id="page-stats"><div id="stats-page"></div></div>
+
+    <!-- PAGE: HISTORY (완료 업무 이력) -->
+    <div class="page-section" id="page-history">
+      <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap">
+        <div class="search-wrap" style="flex:1;margin-bottom:0;min-width:200px"><span class="search-ico">🔍</span><input class="search-inp" id="hist-search" placeholder="업체명, 업무명 검색..." oninput="renderHistoryPage()"></div>
+        <select class="fs" id="hist-cat-filter" onchange="renderHistoryPage()" style="width:140px">
+          <option value="">전체 분야</option>
+          <option value="policy">💰 정책자금</option>
+          <option value="support">🏆 지원사업</option>
+          <option value="ven">🚀 벤처·이노비즈</option>
+          <option value="lab">🔬 기업부설연구소</option>
+          <option value="pat">💡 특허·지재</option>
+          <option value="iso">🏅 ISO 인증</option>
+          <option value="fund">🏦 일반자금조달</option>
+          <option value="etc">📋 기타·행정</option>
+        </select>
+        <select class="fs" id="hist-type-filter" onchange="renderHistoryPage()" style="width:130px">
+          <option value="all">전체(업무+간트)</option>
+          <option value="work">업무항목만</option>
+          <option value="cons">간트(대분류)만</option>
+        </select>
+      </div>
+      <div id="hist-summary" style="margin-bottom:14px"></div>
+      <div class="card"><div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>업체명</th><th>분야</th><th>업무내용</th><th>세부구분</th><th>출처</th></tr></thead>
+        <tbody id="hist-body"></tbody>
+      </table></div></div>
+    </div>
 
     <!-- PAGE: COMPANIES -->
     <div class="page-section" id="page-companies">
@@ -520,7 +575,7 @@ const ST = {
   ing: {label:'진행',bg:'rgba(245,158,11,.2)', tx:'#FCD34D',dot:'#F59E0B'},
   done:{label:'완료',bg:'rgba(16,185,129,.2)', tx:'#6EE7B7',dot:'#10B981'},
 };
-const PAGE_TITLES={overview:'전체 현황',gantt:'지원사업·정책자금 일정 관리',todo:'수시처리 To-Do List',work:'업무 영역별 진행 현황',clients:'업체별 진행 분야 현황',stats:'누적 통계 데이터',companies:'기업 관리'};
+const PAGE_TITLES={overview:'전체 현황',gantt:'지원사업·정책자금 일정 관리',todo:'수시처리 To-Do List',work:'업무 영역별 진행 현황',clients:'업체별 진행 분야 현황',stats:'누적 통계 데이터',companies:'기업 관리',history:'📁 완료 업무 이력'};
 
 // ── LOCAL STATE (메모리) ──
 let companies = [];   // [{bizno, name, ceo, biztype, tel, email, addr, memo, joinDate, _id}]
@@ -533,6 +588,29 @@ let expandedCats = new Set();
 let currentWorkCat = null;
 let tempConsCompanies = []; // 모달 임시 업체 목록
 let _tempBiznoCounter = 1;
+let ganttFilter = 'active';  // 'active'=완료제외, 'all'=전체
+let workFilter = 'active';   // 'active'=완료제외, 'all'=전체
+
+function setGanttFilter(val){
+  ganttFilter=val;
+  // 모든 간트 토글 버튼 상태 업데이트 (overview + sub 페이지)
+  ['gantt-filter-toggle','gantt-filter-toggle-sub'].forEach(id=>{
+    document.querySelectorAll(`#${id} .toggle-opt`).forEach((btn,i)=>{
+      btn.classList.toggle('active',(i===0&&val==='active')||(i===1&&val==='all'));
+    });
+  });
+  renderGantt('');renderGantt('sub');
+}
+function setWorkFilter(val){
+  workFilter=val;
+  // 모든 업무 토글 버튼 상태 업데이트 (overview + sub 페이지)
+  ['work-filter-toggle','work-filter-toggle-sub'].forEach(id=>{
+    document.querySelectorAll(`#${id} .toggle-opt`).forEach((btn,i)=>{
+      btn.classList.toggle('active',(i===0&&val==='active')||(i===1&&val==='all'));
+    });
+  });
+  renderWork('work-grid');renderWork('work-grid-sub');
+}
 
 CAT_IDS.forEach(c=>{if(!workItems[c])workItems[c]=[];});
 
@@ -657,6 +735,7 @@ function renderPage(p){
   else if(p==='work'){renderWork('work-grid-sub');}
   else if(p==='clients'){renderClientsPage();}
   else if(p==='stats'){renderStatsPage();}
+  else if(p==='history'){renderHistoryPage();}
   else if(p==='companies'){renderCompaniesPage();}
 }
 function renderAll(){renderPage(currentPage);}
@@ -665,6 +744,7 @@ function updateCounts(){
   const t=document.getElementById('sb-todo-cnt');if(t)t.textContent=todos.filter(x=>x.status==='ing').length;
   const c=document.getElementById('sb-cli-cnt');if(c)c.textContent=companies.length;
   const co=document.getElementById('sb-corp-cnt');if(co)co.textContent=companies.length;
+  updateHistoryCnt();
 }
 
 // ── OVERVIEW ──
@@ -726,7 +806,8 @@ function renderGantt(sfx){
   }
   head+=`</tr>`;
   let body='';
-  consulting.forEach((c,ci)=>{
+  const filteredCons = ganttFilter==='active' ? consulting.filter(c=>c.status!=='done') : consulting;
+  filteredCons.forEach((c,ci)=>{
     const exp=expandedCats.has(c.id);
     const color=CAT_COLORS[ci%CAT_COLORS.length];
     const cm=CAT_META[c.category]||CAT_META.etc;
@@ -756,7 +837,7 @@ function renderGantt(sfx){
       body+=`</tr>`;
     });
   });
-  if(!consulting.length)body=`<tr><td colspan="999" style="text-align:center;padding:30px;color:var(--g2);font-size:12px">+ 대분류 추가 버튼을 눌러 일정을 등록하세요</td></tr>`;
+  if(!filteredCons.length)body=`<tr><td colspan="999" style="text-align:center;padding:30px;color:var(--g2);font-size:12px">${consulting.length?'완료된 일정은 [전체보기]에서 확인하세요':'+ 대분류 추가 버튼을 눌러 일정을 등록하세요'}</td></tr>`;
   tableEl.innerHTML=head+body;
 }
 function toggleCat(id){if(expandedCats.has(id))expandedCats.delete(id);else expandedCats.add(id);saveAppState();renderGantt('');renderGantt('sub');}
@@ -900,19 +981,24 @@ async function deleteTodoItem(id){
 function renderWork(gridId){
   const el=document.getElementById(gridId);if(!el)return;
   el.innerHTML=CAT_IDS.map(cat=>{
-    const items=workItems[cat]||[];
-    const catItems=getConsWorkItems(cat);
+    const allItems=workItems[cat]||[];
+    const allCatItems=getConsWorkItems(cat);
+    const allFull=[...allItems,...allCatItems];
+    // 필터: 'active'면 완료 제외해서 표시, 통계는 전체 기준
+    const items=workFilter==='active'?allItems.filter(i=>i.status!=='done'):allItems;
+    const catItems=workFilter==='active'?allCatItems.filter(i=>i.status!=='done'):allCatItems;
     const all=[...items,...catItems];
     const m=CAT_META[cat];
-    const tot=all.length,dn=all.filter(i=>i.status==='done').length,pct=tot?Math.round(dn/tot*100):0;
+    const tot=allFull.length,dn=allFull.filter(i=>i.status==='done').length,pct=tot?Math.round(dn/tot*100):0;
+    const hiddenDone=allFull.length-all.length;
     return `<div class="card">
       <div class="card-hd" style="border-bottom:2px solid ${m.color}33">
         <div style="width:30px;height:30px;border-radius:8px;background:${m.color}22;display:flex;align-items:center;justify-content:center;font-size:14px">${m.icon}</div>
-        <div style="flex:1"><div class="card-hd-title">${m.name}</div><div class="card-hd-sub">${tot}건 · 완료 ${dn}건 (${pct}%)${catItems.length?` · <span style="color:${m.color}">간트 ${catItems.length}건</span>`:''}</div></div>
+        <div style="flex:1"><div class="card-hd-title">${m.name}</div><div class="card-hd-sub">${tot}건 · 완료 ${dn}건 (${pct}%)${hiddenDone>0?` · <span style="color:var(--ok);font-size:9px">완료 ${hiddenDone}건 숨김</span>`:''}</div></div>
       </div>
       <div style="height:3px;background:rgba(255,255,255,.05)"><div style="height:100%;width:${pct}%;background:${m.color};transition:width .6s ease"></div></div>
       <div style="padding:10px 12px;max-height:220px;overflow-y:auto">
-        ${!all.length?`<div class="empty" style="padding:12px"><div class="empty-txt">항목을 추가해 보세요</div></div>`:''}
+        ${!all.length?`<div class="empty" style="padding:12px"><div class="empty-txt">${tot>0?'완료된 항목은 [전체보기]에서 확인하세요':'항목을 추가해 보세요'}</div></div>`:''}
         ${items.map(it=>`<div class="ci" onclick="openWorkModal('${cat}','${it.id}')">
           ${dot(it.status)}
           <div style="flex:1"><div style="font-size:11px">${it.name}${it.sub?` <span style="font-size:9px;color:var(--g2)">[${it.sub}]</span>`:''}</div>${it.client?`<div style="font-size:9px;color:var(--g1)">${it.client}</div>`:''}</div>
@@ -1161,7 +1247,80 @@ function renderCompaniesPage(){
   }).join(''):`<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--g2)">등록된 기업이 없습니다</td></tr>`;
 }
 
-// ── CORP AUTOCOMPLETE ──
+// ── HISTORY PAGE (완료 업무 이력) ──
+function renderHistoryPage(){
+  const q=(document.getElementById('hist-search')?.value||'').toLowerCase();
+  const catF=document.getElementById('hist-cat-filter')?.value||'';
+  const typeF=document.getElementById('hist-type-filter')?.value||'all';
+
+  // workItems에서 완료 항목 수집
+  let workDone=[];
+  if(typeF!=='cons'){
+    CAT_IDS.forEach(cat=>{
+      if(catF&&cat!==catF)return;
+      (workItems[cat]||[]).filter(it=>it.status==='done').forEach(it=>{
+        workDone.push({type:'work',cat,catMeta:CAT_META[cat],name:it.name,client:it.client||'—',sub:it.sub||'—',source:'업무항목'});
+      });
+    });
+  }
+
+  // consulting(간트)에서 완료 항목 수집
+  let consDone=[];
+  if(typeF!=='work'){
+    consulting.filter(c=>c.status==='done').forEach(c=>{
+      if(catF&&c.category!==catF)return;
+      const m=CAT_META[c.category]||CAT_META.etc;
+      if(!c.companies||!c.companies.length){
+        consDone.push({type:'cons',cat:c.category,catMeta:m,name:c.title,client:'—',sub:'—',source:'간트(대분류)',amount:c.amount});
+      } else {
+        c.companies.filter(cm=>cm.status==='done').forEach(cm=>{
+          consDone.push({type:'cons',cat:c.category,catMeta:m,name:c.title,client:cm.name,sub:'—',source:'간트(대분류)',amount:c.amount});
+        });
+      }
+    });
+  }
+
+  let all=[...workDone,...consDone];
+
+  // 검색 필터
+  if(q)all=all.filter(r=>r.client.toLowerCase().includes(q)||r.name.toLowerCase().includes(q));
+
+  // 요약
+  const summaryEl=document.getElementById('hist-summary');
+  if(summaryEl){
+    const totalAmt=consDone.reduce((s,r)=>s+(+r.amount||0),0);
+    summaryEl.innerHTML=`<div style="display:flex;gap:12px;flex-wrap:wrap">
+      <div class="stat-mini" style="padding:10px 14px;flex:1;min-width:120px"><div class="stat-mini-val" style="font-size:20px;color:var(--ok)">${all.length}</div><div class="stat-mini-label">완료 건수</div></div>
+      <div class="stat-mini" style="padding:10px 14px;flex:1;min-width:120px"><div class="stat-mini-val" style="font-size:20px;color:var(--blue-l)">${workDone.length}</div><div class="stat-mini-label">업무항목 완료</div></div>
+      <div class="stat-mini" style="padding:10px 14px;flex:1;min-width:120px"><div class="stat-mini-val" style="font-size:20px;color:var(--gold-l)">${consDone.length}</div><div class="stat-mini-label">간트 완료</div></div>
+      <div class="stat-mini" style="padding:10px 14px;flex:1;min-width:120px"><div class="stat-mini-val" style="font-size:20px;color:var(--gold)">${totalAmt?fmtAmt(totalAmt):'—'}</div><div class="stat-mini-label">완료 신청금액 합계</div></div>
+    </div>`;
+  }
+
+  // 테이블
+  const bodyEl=document.getElementById('hist-body');
+  if(!bodyEl)return;
+  bodyEl.innerHTML=all.length?all.map(r=>`
+    <tr>
+      <td><div style="font-size:12px;font-weight:500">${r.client}</div></td>
+      <td><span style="font-size:10px;padding:2px 7px;border-radius:8px;background:${r.catMeta.color}22;color:${r.catMeta.color}">${r.catMeta.icon} ${r.catMeta.name}</span></td>
+      <td style="font-size:11px">${r.name}</td>
+      <td style="font-size:10px;color:var(--g1)">${r.sub}</td>
+      <td><span style="font-size:9px;padding:2px 7px;border-radius:8px;background:rgba(255,255,255,.06);color:var(--g2)">${r.source}</span></td>
+    </tr>`).join(''):`<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--g2)">완료된 업무가 없습니다</td></tr>`;
+
+  // 히스토리 카운트 업데이트
+  const hc=document.getElementById('sb-history-cnt');
+  if(hc)hc.textContent=[...workDone,...consDone].length;
+}
+
+// updateCounts에 history 추가
+function updateHistoryCnt(){
+  const workDoneCnt=CAT_IDS.reduce((s,c)=>s+(workItems[c]||[]).filter(i=>i.status==='done').length,0);
+  const consDoneCnt=consulting.filter(c=>c.status==='done').length;
+  const hc=document.getElementById('sb-history-cnt');
+  if(hc)hc.textContent=workDoneCnt+consDoneCnt;
+}
 function showCorpDrop(inputId){
   const inp=document.getElementById(inputId);const dd=document.getElementById('dd-'+inputId);
   if(!inp||!dd)return;
@@ -1188,11 +1347,13 @@ loadAll();
 Object.assign(window,{
   navTo,manualSave,closeModal,
   prevMonth,nextMonth,goToday,toggleCat,
+  setGanttFilter,setWorkFilter,
   openConsultingModal,saveConsulting,deleteConsulting,addConsCompany,renderConsCompaniesList,updateConsCompanyStatus,removeConsCompany,
   openTodoModal,saveTodo,cycleTodo,deleteTodoItem,
   renderWork,openWorkModal,saveWork,confirmDeleteWork,cycleWork,
   renderClientsPage,
   renderStatsPage,
+  renderHistoryPage,
   openCompanyModal,saveCompany,checkBizno,renderCompaniesPage,
   showCorpDrop,hideCorpDrop,selectCorpDrop,
 });
