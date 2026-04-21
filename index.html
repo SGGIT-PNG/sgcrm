@@ -182,6 +182,10 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
 .toggle-btn{display:flex;align-items:center;gap:2px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:3px;flex-shrink:0}
 .toggle-opt{padding:4px 12px;border-radius:6px;font-size:11px;cursor:pointer;transition:all .15s;color:var(--g1);border:none;background:none;font-family:'Noto Sans KR',sans-serif;white-space:nowrap}
 .toggle-opt.active{background:var(--blue);color:#fff}
+/* CSS 숨김 - 완료 항목 hide/show */
+.filter-active .work-item-done{display:none !important}
+.filter-active .gantt-row-done{display:none !important}
+.filter-active .gantt-cli-done{display:none !important}
 @media(max-width:900px){
   #sidebar{width:56px;min-width:56px}
   .sb-menu span:not(.sb-ico){display:none}
@@ -593,23 +597,38 @@ let workFilter = 'active';   // 'active'=완료제외, 'all'=전체
 
 function setGanttFilter(val){
   ganttFilter=val;
-  // 모든 간트 토글 버튼 상태 업데이트 (overview + sub 페이지)
+  // 토글 버튼 UI 업데이트
   ['gantt-filter-toggle','gantt-filter-toggle-sub'].forEach(id=>{
     document.querySelectorAll(`#${id} .toggle-opt`).forEach((btn,i)=>{
       btn.classList.toggle('active',(i===0&&val==='active')||(i===1&&val==='all'));
     });
   });
-  renderGantt('');renderGantt('sub');
+  // CSS만으로 간트 행 숨김/표시 (DOM 재생성 없음)
+  applyGanttFilterCSS();
 }
 function setWorkFilter(val){
   workFilter=val;
-  // 모든 업무 토글 버튼 상태 업데이트 (overview + sub 페이지)
+  // 토글 버튼 UI 업데이트
   ['work-filter-toggle','work-filter-toggle-sub'].forEach(id=>{
     document.querySelectorAll(`#${id} .toggle-opt`).forEach((btn,i)=>{
       btn.classList.toggle('active',(i===0&&val==='active')||(i===1&&val==='all'));
     });
   });
-  renderWork('work-grid');renderWork('work-grid-sub');
+  // CSS만으로 업무 항목 숨김/표시 (DOM 재생성 없음)
+  ['work-grid','work-grid-sub'].forEach(id=>{
+    applyWorkFilterCSS(document.getElementById(id));
+  });
+}
+// 간트 CSS 필터 적용
+function applyGanttFilterCSS(){
+  ['gantt-table','gantt-table-sub'].forEach(id=>{
+    const tbl=document.getElementById(id);if(!tbl)return;
+    if(ganttFilter==='active'){
+      tbl.classList.add('filter-active');
+    } else {
+      tbl.classList.remove('filter-active');
+    }
+  });
 }
 
 CAT_IDS.forEach(c=>{if(!workItems[c])workItems[c]=[];});
@@ -806,12 +825,13 @@ function renderGantt(sfx){
   }
   head+=`</tr>`;
   let body='';
-  const filteredCons = ganttFilter==='active' ? consulting.filter(c=>c.status!=='done') : consulting;
-  filteredCons.forEach((c,ci)=>{
+  // 전체 렌더링 (완료 항목엔 CSS 클래스만 부여, DOM 재생성 없이 토글)
+  consulting.forEach((c,ci)=>{
+    const isDone=c.status==='done';
     const exp=expandedCats.has(c.id);
     const color=CAT_COLORS[ci%CAT_COLORS.length];
     const cm=CAT_META[c.category]||CAT_META.etc;
-    body+=`<tr class="cat-row" onclick="toggleCat('${c.id}')"><td class="cat-label-td">
+    body+=`<tr class="cat-row${isDone?' gantt-row-done':''}" onclick="toggleCat('${c.id}')"><td class="cat-label-td">
       <div class="cat-name">${cm.icon} ${c.title} ${badge(c.status||'wait')}<span class="cat-arrow${exp?' open':''}">▶</span>
         <button onclick="event.stopPropagation();openConsultingModal('${c.id}')" style="margin-left:6px;padding:2px 8px;background:rgba(37,99,235,.2);border:1px solid rgba(37,99,235,.4);border-radius:5px;color:#93C5FD;font-size:9px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">관리</button>
       </div>
@@ -826,7 +846,8 @@ function renderGantt(sfx){
     }
     body+=`</tr>`;
     (c.companies||[]).forEach(cm2=>{
-      body+=`<tr class="cli-row${exp?'':' hidden'}" data-cat="${c.id}"><td class="cli-label-td">
+      const cliDone=cm2.status==='done';
+      body+=`<tr class="cli-row${exp?'':' hidden'}${cliDone?' gantt-cli-done':''}" data-cat="${c.id}"><td class="cli-label-td">
         <div class="cli-name-cell">${dot(cm2.status||'wait')}${cm2.name} ${badge(cm2.status||'wait')}</div>
       </td>`;
       for(let d=1;d<=days;d++){
@@ -837,8 +858,11 @@ function renderGantt(sfx){
       body+=`</tr>`;
     });
   });
-  if(!filteredCons.length)body=`<tr><td colspan="999" style="text-align:center;padding:30px;color:var(--g2);font-size:12px">${consulting.length?'완료된 일정은 [전체보기]에서 확인하세요':'+ 대분류 추가 버튼을 눌러 일정을 등록하세요'}</td></tr>`;
+  const doneCnt=consulting.filter(c=>c.status==='done').length;
+  if(!consulting.length)body=`<tr><td colspan="999" style="text-align:center;padding:30px;color:var(--g2);font-size:12px">+ 대분류 추가 버튼을 눌러 일정을 등록하세요</td></tr>`;
   tableEl.innerHTML=head+body;
+  // 렌더 후 현재 필터 CSS 즉시 적용
+  applyGanttFilterCSS();
 }
 function toggleCat(id){if(expandedCats.has(id))expandedCats.delete(id);else expandedCats.add(id);saveAppState();renderGantt('');renderGantt('sub');}
 function prevMonth(){calM--;if(calM<0){calM=11;calY--}saveAppState();renderGantt('');renderGantt('sub');}
@@ -980,43 +1004,69 @@ async function deleteTodoItem(id){
 // ── WORK ──
 function renderWork(gridId){
   const el=document.getElementById(gridId);if(!el)return;
+  // 전체 데이터 한 번만 렌더링 (CSS로 숨김/표시 제어)
   el.innerHTML=CAT_IDS.map(cat=>{
     const allItems=workItems[cat]||[];
     const allCatItems=getConsWorkItems(cat);
     const allFull=[...allItems,...allCatItems];
-    // 필터: 'active'면 완료 제외해서 표시, 통계는 전체 기준
-    const items=workFilter==='active'?allItems.filter(i=>i.status!=='done'):allItems;
-    const catItems=workFilter==='active'?allCatItems.filter(i=>i.status!=='done'):allCatItems;
-    const all=[...items,...catItems];
     const m=CAT_META[cat];
-    const tot=allFull.length,dn=allFull.filter(i=>i.status==='done').length,pct=tot?Math.round(dn/tot*100):0;
-    const hiddenDone=allFull.length-all.length;
+    const tot=allFull.length;
+    const dn=allFull.filter(i=>i.status==='done').length;
+    const pct=tot?Math.round(dn/tot*100):0;
     return `<div class="card">
       <div class="card-hd" style="border-bottom:2px solid ${m.color}33">
         <div style="width:30px;height:30px;border-radius:8px;background:${m.color}22;display:flex;align-items:center;justify-content:center;font-size:14px">${m.icon}</div>
-        <div style="flex:1"><div class="card-hd-title">${m.name}</div><div class="card-hd-sub">${tot}건 · 완료 ${dn}건 (${pct}%)${hiddenDone>0?` · <span style="color:var(--ok);font-size:9px">완료 ${hiddenDone}건 숨김</span>`:''}</div></div>
+        <div style="flex:1">
+          <div class="card-hd-title">${m.name}</div>
+          <div class="card-hd-sub">${tot}건 · 완료 ${dn}건 (${pct}%)${dn>0?` · <span class="done-hint" style="color:var(--ok);font-size:9px">완료 ${dn}건 숨김중</span>`:''}</div>
+        </div>
       </div>
       <div style="height:3px;background:rgba(255,255,255,.05)"><div style="height:100%;width:${pct}%;background:${m.color};transition:width .6s ease"></div></div>
       <div style="padding:10px 12px;max-height:220px;overflow-y:auto">
-        ${!all.length?`<div class="empty" style="padding:12px"><div class="empty-txt">${tot>0?'완료된 항목은 [전체보기]에서 확인하세요':'항목을 추가해 보세요'}</div></div>`:''}
-        ${items.map(it=>`<div class="ci" onclick="openWorkModal('${cat}','${it.id}')">
-          ${dot(it.status)}
-          <div style="flex:1"><div style="font-size:11px">${it.name}${it.sub?` <span style="font-size:9px;color:var(--g2)">[${it.sub}]</span>`:''}</div>${it.client?`<div style="font-size:9px;color:var(--g1)">${it.client}</div>`:''}</div>
-          ${badge(it.status)}
-          <span onclick="event.stopPropagation();cycleWork('${cat}','${it.id}')" style="color:var(--g2);font-size:11px;cursor:pointer;opacity:.6" title="상태변경">🔄</span>
-        </div>`).join('')}
-        ${catItems.length?`<div style="border-top:1px solid rgba(255,255,255,.06);margin:6px 0 4px;padding-top:4px">
-          <div style="font-size:9px;color:var(--g2);padding:0 4px 4px">📅 간트 연동</div>
-          ${catItems.map(it=>`<div class="ci" onclick="openConsultingModal('${it.consId}')">
+        ${!allFull.length?`<div class="empty" style="padding:12px"><div class="empty-txt">항목을 추가해 보세요</div></div>`:''}
+        ${allItems.map(it=>`
+          <div class="ci work-item${it.status==='done'?' work-item-done':''}" onclick="openWorkModal('${cat}','${it.id}')">
             ${dot(it.status)}
-            <div style="flex:1"><div style="font-size:11px;color:rgba(255,255,255,.6)">${it.client||it.consTitle}</div><div style="font-size:9px;color:var(--g2)">${it.consTitle}</div></div>
+            <div style="flex:1">
+              <div style="font-size:11px">${it.name}${it.sub?` <span style="font-size:9px;color:var(--g2)">[${it.sub}]</span>`:''}</div>
+              ${it.client?`<div style="font-size:9px;color:var(--g1)">${it.client}</div>`:''}
+            </div>
             ${badge(it.status)}
+            <span onclick="event.stopPropagation();cycleWork('${cat}','${it.id}')" style="color:var(--g2);font-size:11px;cursor:pointer;opacity:.6" title="상태변경">🔄</span>
           </div>`).join('')}
-        </div>`:''}
+        ${allCatItems.length?`
+          <div class="gantt-section" style="border-top:1px solid rgba(255,255,255,.06);margin:6px 0 4px;padding-top:4px">
+            <div style="font-size:9px;color:var(--g2);padding:0 4px 4px">📅 간트 연동</div>
+            ${allCatItems.map(it=>`
+              <div class="ci work-item${it.status==='done'?' work-item-done':''}" onclick="openConsultingModal('${it.consId}')">
+                ${dot(it.status)}
+                <div style="flex:1">
+                  <div style="font-size:11px;color:rgba(255,255,255,.6)">${it.client||it.consTitle}</div>
+                  <div style="font-size:9px;color:var(--g2)">${it.consTitle}</div>
+                </div>
+                ${badge(it.status)}
+              </div>`).join('')}
+          </div>`:''}
         <button onclick="openWorkModal('${cat}',null)" style="width:100%;padding:6px;background:none;border:1px dashed rgba(255,255,255,.1);border-radius:7px;color:var(--g2);font-size:11px;cursor:pointer;margin-top:4px;font-family:'Noto Sans KR',sans-serif">+ 항목 추가</button>
       </div>
     </div>`;
   }).join('');
+  // 현재 필터 상태 즉시 적용
+  applyWorkFilterCSS(el);
+}
+
+// CSS만으로 완료 항목 토글 (DOM 재생성 없음)
+function applyWorkFilterCSS(el){
+  if(!el)return;
+  if(workFilter==='active'){
+    el.classList.add('filter-active');
+    // 완료 숨김 힌트 표시
+    el.querySelectorAll('.done-hint').forEach(h=>h.style.display='');
+  } else {
+    el.classList.remove('filter-active');
+    // 완료 숨김 힌트 숨기기
+    el.querySelectorAll('.done-hint').forEach(h=>h.style.display='none');
+  }
 }
 function openWorkModal(cat,itemId,prefillClient){
   currentWorkCat=cat;const m=CAT_META[cat];
