@@ -331,10 +331,22 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
     <!-- PAGE: WORK -->
     <div class="page-section" id="page-work">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-        <div style="font-size:13px;font-weight:500;color:var(--g1)">업무 영역별 진행 현황</div>
         <div class="toggle-btn" id="work-filter-toggle-sub">
           <button class="toggle-opt active" onclick="setWorkFilter('active')">진행중만</button>
           <button class="toggle-opt" onclick="setWorkFilter('all')">전체보기</button>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select class="fs" id="work-add-cat" style="width:140px">
+            <option value="policy">💰 정책자금</option>
+            <option value="support">🏆 지원사업</option>
+            <option value="ven">🚀 벤처·이노비즈</option>
+            <option value="lab">🔬 기업부설연구소</option>
+            <option value="pat">💡 특허·지재</option>
+            <option value="iso">🏅 ISO 인증</option>
+            <option value="fund">🏦 일반자금조달</option>
+            <option value="etc">📋 기타·행정</option>
+          </select>
+          <button class="btn btn-primary" onclick="openWorkModal(document.getElementById('work-add-cat').value, null)">+ 항목 추가</button>
         </div>
       </div>
       <div class="grid3" id="work-grid-sub"></div>
