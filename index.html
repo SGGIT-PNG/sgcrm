@@ -186,6 +186,10 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
 .filter-active .work-item-done{display:none !important}
 .filter-active .gantt-row-done{display:none !important}
 .filter-active .gantt-cli-done{display:none !important}
+/* 7일 경과 완료 항목 - 전체보기에도 항상 숨김 */
+.work-item-expired{display:none !important}
+.gantt-row-expired{display:none !important}
+.gantt-cli-expired{display:none !important}
 @media(max-width:900px){
   #sidebar{width:56px;min-width:56px}
   .sb-menu span:not(.sb-ico){display:none}
@@ -828,10 +832,11 @@ function renderGantt(sfx){
   // 전체 렌더링 (완료 항목엔 CSS 클래스만 부여, DOM 재생성 없이 토글)
   consulting.forEach((c,ci)=>{
     const isDone=c.status==='done';
+    const isExpired=isDone&&isDoneExpired({status:c.status,doneAt:c.doneAt});
     const exp=expandedCats.has(c.id);
     const color=CAT_COLORS[ci%CAT_COLORS.length];
     const cm=CAT_META[c.category]||CAT_META.etc;
-    body+=`<tr class="cat-row${isDone?' gantt-row-done':''}" onclick="toggleCat('${c.id}')"><td class="cat-label-td">
+    body+=`<tr class="cat-row${isDone?' gantt-row-done':''}${isExpired?' gantt-row-expired':''}" onclick="toggleCat('${c.id}')"><td class="cat-label-td">
       <div class="cat-name">${cm.icon} ${c.title} ${badge(c.status||'wait')}<span class="cat-arrow${exp?' open':''}">▶</span>
         <button onclick="event.stopPropagation();openConsultingModal('${c.id}')" style="margin-left:6px;padding:2px 8px;background:rgba(37,99,235,.2);border:1px solid rgba(37,99,235,.4);border-radius:5px;color:#93C5FD;font-size:9px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">관리</button>
       </div>
@@ -846,8 +851,8 @@ function renderGantt(sfx){
     }
     body+=`</tr>`;
     (c.companies||[]).forEach(cm2=>{
-      const cliDone=cm2.status==='done';
-      body+=`<tr class="cli-row${exp?'':' hidden'}${cliDone?' gantt-cli-done':''}" data-cat="${c.id}"><td class="cli-label-td">
+      const cliDone=cm2.status==="done";const cliExpired=cliDone&&isDoneExpired({status:cm2.status,doneAt:cm2.doneAt});
+      body+=`<tr class="cli-row${exp?'':' hidden'}${cliDone?' gantt-cli-done':''}${cliExpired?' gantt-cli-expired':''}" data-cat="${c.id}"><td class="cli-label-td">
         <div class="cli-name-cell">${dot(cm2.status||'wait')}${cm2.name} ${badge(cm2.status||'wait')}</div>
       </td>`;
       for(let d=1;d<=days;d++){
@@ -931,19 +936,33 @@ async function saveConsulting(){
   const title=document.getElementById('cons-title').value.trim();
   const endDate=document.getElementById('cons-end').value;
   if(!title||!endDate){alert('대분류명과 마감일은 필수입니다.');return;}
+  const newStatus=document.getElementById('cons-status').value;
+  const editId=document.getElementById('cons-edit-id').value;
+  // 이전 상태 확인 (완료 전환 시점 기록)
+  const prevCons=editId?consulting.find(x=>x.id===editId):null;
+  // 참여업체 doneAt 처리
+  const companiesWithDoneAt=tempConsCompanies.map(cm=>{
+    const prevCm=prevCons?.companies?.find(x=>x.bizno===cm.bizno);
+    if(cm.status==='done'&&prevCm?.status!=='done') return {...cm,doneAt:Date.now()};
+    else if(cm.status!=='done') return {...cm,doneAt:null};
+    else return {...cm,doneAt:prevCm?.doneAt||Date.now()};
+  });
   const data={
     title,
     category:document.getElementById('cons-category').value,
     org:document.getElementById('cons-org').value,
     startDate:document.getElementById('cons-start').value,
     endDate,
-    status:document.getElementById('cons-status').value,
+    status:newStatus,
+    // 완료 전환 시점 기록
+    doneAt: newStatus==='done'&&prevCons?.status!=='done' ? Date.now()
+           : newStatus!=='done' ? null
+           : (prevCons?.doneAt||null),
     amount:+document.getElementById('cons-amount').value||0,
     memo:document.getElementById('cons-memo').value,
-    companies:tempConsCompanies,
+    companies:companiesWithDoneAt,
     updatedAt:Date.now()
   };
-  const editId=document.getElementById('cons-edit-id').value;
   try{
     setBadge('🔄 저장 중...');
     if(editId){await updateDoc(doc(db,'consulting',editId),data);}
@@ -1001,10 +1020,17 @@ async function deleteTodoItem(id){
   try{await deleteDoc(doc(db,'todos',id));}catch(e){alert('삭제 실패');}
 }
 
+// 완료 후 7일 경과 여부 판단
+const DONE_HIDE_MS = 7 * 24 * 60 * 60 * 1000; // 7일
+function isDoneExpired(item){
+  if(item.status!=='done') return false;
+  if(!item.doneAt) return false; // doneAt 없으면 숨기지 않음 (기존 데이터 보호)
+  return (Date.now()-item.doneAt) > DONE_HIDE_MS;
+}
+
 // ── WORK ──
 function renderWork(gridId){
   const el=document.getElementById(gridId);if(!el)return;
-  // 전체 데이터 한 번만 렌더링 (CSS로 숨김/표시 제어)
   el.innerHTML=CAT_IDS.map(cat=>{
     const allItems=workItems[cat]||[];
     const allCatItems=getConsWorkItems(cat);
@@ -1013,45 +1039,53 @@ function renderWork(gridId){
     const tot=allFull.length;
     const dn=allFull.filter(i=>i.status==='done').length;
     const pct=tot?Math.round(dn/tot*100):0;
+    // 7일 경과 완료 항목 수
+    const expired=allFull.filter(i=>isDoneExpired(i)).length;
     return `<div class="card">
       <div class="card-hd" style="border-bottom:2px solid ${m.color}33">
         <div style="width:30px;height:30px;border-radius:8px;background:${m.color}22;display:flex;align-items:center;justify-content:center;font-size:14px">${m.icon}</div>
         <div style="flex:1">
           <div class="card-hd-title">${m.name}</div>
-          <div class="card-hd-sub">${tot}건 · 완료 ${dn}건 (${pct}%)${dn>0?` · <span class="done-hint" style="color:var(--ok);font-size:9px">완료 ${dn}건 숨김중</span>`:''}</div>
+          <div class="card-hd-sub">${tot}건 · 완료 ${dn}건 (${pct}%)${dn>0?`<span class="done-hint" style="color:var(--ok);font-size:9px"> · 완료 ${dn}건 숨김중</span>`:''}</div>
         </div>
       </div>
       <div style="height:3px;background:rgba(255,255,255,.05)"><div style="height:100%;width:${pct}%;background:${m.color};transition:width .6s ease"></div></div>
       <div style="padding:10px 12px;max-height:220px;overflow-y:auto">
         ${!allFull.length?`<div class="empty" style="padding:12px"><div class="empty-txt">항목을 추가해 보세요</div></div>`:''}
-        ${allItems.map(it=>`
-          <div class="ci work-item${it.status==='done'?' work-item-done':''}" onclick="openWorkModal('${cat}','${it.id}')">
+        ${allItems.map(it=>{
+          // 완료이면서 7일 경과 → work-item-done-expired (전체보기에도 안 보임)
+          // 완료이면서 7일 이내 → work-item-done (진행중만 필터 시 숨김)
+          const cls=it.status==='done'?(isDoneExpired(it)?'work-item-done work-item-expired':'work-item-done'):'';
+          return `<div class="ci work-item${cls?' '+cls:''}" onclick="openWorkModal('${cat}','${it.id}')">
             ${dot(it.status)}
             <div style="flex:1">
               <div style="font-size:11px">${it.name}${it.sub?` <span style="font-size:9px;color:var(--g2)">[${it.sub}]</span>`:''}</div>
               ${it.client?`<div style="font-size:9px;color:var(--g1)">${it.client}</div>`:''}
             </div>
             ${badge(it.status)}
+            ${cls.includes('expired')?`<span style="font-size:8px;color:var(--g3);padding:1px 5px;border-radius:4px;background:rgba(255,255,255,.04)">7일+</span>`:''}
             <span onclick="event.stopPropagation();cycleWork('${cat}','${it.id}')" style="color:var(--g2);font-size:11px;cursor:pointer;opacity:.6" title="상태변경">🔄</span>
-          </div>`).join('')}
+          </div>`;
+        }).join('')}
         ${allCatItems.length?`
           <div class="gantt-section" style="border-top:1px solid rgba(255,255,255,.06);margin:6px 0 4px;padding-top:4px">
             <div style="font-size:9px;color:var(--g2);padding:0 4px 4px">📅 간트 연동</div>
-            ${allCatItems.map(it=>`
-              <div class="ci work-item${it.status==='done'?' work-item-done':''}" onclick="openConsultingModal('${it.consId}')">
+            ${allCatItems.map(it=>{
+              const cls=it.status==='done'?(isDoneExpired(it)?'work-item-done work-item-expired':'work-item-done'):'';
+              return `<div class="ci work-item${cls?' '+cls:''}" onclick="openConsultingModal('${it.consId}')">
                 ${dot(it.status)}
                 <div style="flex:1">
                   <div style="font-size:11px;color:rgba(255,255,255,.6)">${it.client||it.consTitle}</div>
                   <div style="font-size:9px;color:var(--g2)">${it.consTitle}</div>
                 </div>
                 ${badge(it.status)}
-              </div>`).join('')}
+              </div>`;
+            }).join('')}
           </div>`:''}
         <button onclick="openWorkModal('${cat}',null)" style="width:100%;padding:6px;background:none;border:1px dashed rgba(255,255,255,.1);border-radius:7px;color:var(--g2);font-size:11px;cursor:pointer;margin-top:4px;font-family:'Noto Sans KR',sans-serif">+ 항목 추가</button>
       </div>
     </div>`;
   }).join('');
-  // 현재 필터 상태 즉시 적용
   applyWorkFilterCSS(el);
 }
 
@@ -1096,12 +1130,21 @@ function saveWork(){
   const editId=document.getElementById('wm-edit-id').value;
   const clientName=document.getElementById('wm-client').value.trim();
   const comp=companies.find(c=>c.name===clientName);
-  const data={name,client:clientName,clientBizno:comp?comp._id:'',status:document.getElementById('wm-status').value,sub:document.getElementById('wm-sub').value};
+  const newStatus=document.getElementById('wm-status').value;
+  const data={name,client:clientName,clientBizno:comp?comp._id:'',status:newStatus,sub:document.getElementById('wm-sub').value};
   if(editId){
     const idx=workItems[cat].findIndex(x=>x.id===editId);
-    if(idx>=0)workItems[cat][idx]={...workItems[cat][idx],...data};
+    if(idx>=0){
+      const prev=workItems[cat][idx];
+      // 완료로 변경되는 순간 doneAt 기록, 완료 해제 시 삭제
+      if(newStatus==='done'&&prev.status!=='done') data.doneAt=Date.now();
+      else if(newStatus!=='done') data.doneAt=null;
+      else data.doneAt=prev.doneAt; // 이미 완료 상태 유지
+      workItems[cat][idx]={...prev,...data};
+    }
   } else {
     const maxId=workItems[cat].reduce((m,i)=>Math.max(m,+i.id||0),0);
+    if(newStatus==='done') data.doneAt=Date.now();
     workItems[cat].push({id:String(maxId+1),...data});
   }
   closeModal('work-modal');saveAppState();renderWork('work-grid');renderWork('work-grid-sub');
@@ -1115,7 +1158,11 @@ function confirmDeleteWork(){
 function cycleWork(cat,itemId){
   const it=(workItems[cat]||[]).find(x=>x.id===itemId);if(!it)return;
   const cy={wait:'ing',ing:'done',done:'wait'};
-  it.status=cy[it.status]||'wait';
+  const newStatus=cy[it.status]||'wait';
+  it.status=newStatus;
+  // 완료로 변경 시 doneAt 기록, 완료 해제 시 삭제
+  if(newStatus==='done') it.doneAt=Date.now();
+  else it.doneAt=null;
   saveAppState();renderWork('work-grid');renderWork('work-grid-sub');
 }
 
@@ -1309,7 +1356,9 @@ function renderHistoryPage(){
     CAT_IDS.forEach(cat=>{
       if(catF&&cat!==catF)return;
       (workItems[cat]||[]).filter(it=>it.status==='done').forEach(it=>{
-        workDone.push({type:'work',cat,catMeta:CAT_META[cat],name:it.name,client:it.client||'—',sub:it.sub||'—',source:'업무항목'});
+        const expired=isDoneExpired(it);
+        const doneAgo=it.doneAt?Math.floor((Date.now()-it.doneAt)/(1000*60*60*24)):null;
+        workDone.push({type:'work',cat,catMeta:CAT_META[cat],name:it.name,client:it.client||'—',sub:it.sub||'—',source:'업무항목',doneAt:it.doneAt,doneAgo,expired});
       });
     });
   }
@@ -1320,11 +1369,15 @@ function renderHistoryPage(){
     consulting.filter(c=>c.status==='done').forEach(c=>{
       if(catF&&c.category!==catF)return;
       const m=CAT_META[c.category]||CAT_META.etc;
+      const doneAgo=c.doneAt?Math.floor((Date.now()-c.doneAt)/(1000*60*60*24)):null;
+      const expired=isDoneExpired({status:c.status,doneAt:c.doneAt});
       if(!c.companies||!c.companies.length){
-        consDone.push({type:'cons',cat:c.category,catMeta:m,name:c.title,client:'—',sub:'—',source:'간트(대분류)',amount:c.amount});
+        consDone.push({type:'cons',cat:c.category,catMeta:m,name:c.title,client:'—',sub:'—',source:'간트(대분류)',amount:c.amount,doneAt:c.doneAt,doneAgo,expired});
       } else {
         c.companies.filter(cm=>cm.status==='done').forEach(cm=>{
-          consDone.push({type:'cons',cat:c.category,catMeta:m,name:c.title,client:cm.name,sub:'—',source:'간트(대분류)',amount:c.amount});
+          const cmDoneAgo=cm.doneAt?Math.floor((Date.now()-cm.doneAt)/(1000*60*60*24)):doneAgo;
+          const cmExpired=isDoneExpired({status:cm.status,doneAt:cm.doneAt});
+          consDone.push({type:'cons',cat:c.category,catMeta:m,name:c.title,client:cm.name,sub:'—',source:'간트(대분류)',amount:c.amount,doneAt:cm.doneAt||c.doneAt,doneAgo:cmDoneAgo,expired:cmExpired});
         });
       }
     });
@@ -1339,13 +1392,19 @@ function renderHistoryPage(){
   const summaryEl=document.getElementById('hist-summary');
   if(summaryEl){
     const totalAmt=consDone.reduce((s,r)=>s+(+r.amount||0),0);
+    const expiredCnt=all.filter(r=>r.expired).length;
     summaryEl.innerHTML=`<div style="display:flex;gap:12px;flex-wrap:wrap">
       <div class="stat-mini" style="padding:10px 14px;flex:1;min-width:120px"><div class="stat-mini-val" style="font-size:20px;color:var(--ok)">${all.length}</div><div class="stat-mini-label">완료 건수</div></div>
       <div class="stat-mini" style="padding:10px 14px;flex:1;min-width:120px"><div class="stat-mini-val" style="font-size:20px;color:var(--blue-l)">${workDone.length}</div><div class="stat-mini-label">업무항목 완료</div></div>
       <div class="stat-mini" style="padding:10px 14px;flex:1;min-width:120px"><div class="stat-mini-val" style="font-size:20px;color:var(--gold-l)">${consDone.length}</div><div class="stat-mini-label">간트 완료</div></div>
+      <div class="stat-mini" style="padding:10px 14px;flex:1;min-width:120px"><div class="stat-mini-val" style="font-size:20px;color:var(--g2)">${expiredCnt}</div><div class="stat-mini-label">7일+ 경과 (화면숨김)</div></div>
       <div class="stat-mini" style="padding:10px 14px;flex:1;min-width:120px"><div class="stat-mini-val" style="font-size:20px;color:var(--gold)">${totalAmt?fmtAmt(totalAmt):'—'}</div><div class="stat-mini-label">완료 신청금액 합계</div></div>
     </div>`;
   }
+
+  // 테이블 헤더 업데이트 (완료일, 경과 컬럼 추가)
+  const headRow=document.querySelector('#page-history table thead tr');
+  if(headRow)headRow.innerHTML='<th>업체명</th><th>분야</th><th>업무내용</th><th>세부구분</th><th>완료일</th><th>경과</th><th>출처</th>';
 
   // 테이블
   const bodyEl=document.getElementById('hist-body');
@@ -1356,8 +1415,10 @@ function renderHistoryPage(){
       <td><span style="font-size:10px;padding:2px 7px;border-radius:8px;background:${r.catMeta.color}22;color:${r.catMeta.color}">${r.catMeta.icon} ${r.catMeta.name}</span></td>
       <td style="font-size:11px">${r.name}</td>
       <td style="font-size:10px;color:var(--g1)">${r.sub}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g2)">${r.doneAt?new Date(r.doneAt).toLocaleDateString('ko-KR'):'—'}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:${r.expired?'var(--g3)':r.doneAgo<=3?'var(--ok)':'var(--g1)'}">${r.doneAgo!==null?r.doneAgo+'일 전':'—'}${r.expired?' 🗂️':''}</td>
       <td><span style="font-size:9px;padding:2px 7px;border-radius:8px;background:rgba(255,255,255,.06);color:var(--g2)">${r.source}</span></td>
-    </tr>`).join(''):`<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--g2)">완료된 업무가 없습니다</td></tr>`;
+    </tr>`).join(''):`<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--g2)">완료된 업무가 없습니다</td></tr>`;
 
   // 히스토리 카운트 업데이트
   const hc=document.getElementById('sb-history-cnt');
