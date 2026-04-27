@@ -190,6 +190,14 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
 .work-item-expired{display:none !important}
 .gantt-row-expired{display:none !important}
 .gantt-cli-expired{display:none !important}
+/* 페이지네이션 */
+.pagination{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:14px;flex-wrap:wrap}
+.pg-btn{padding:5px 10px;border:1px solid rgba(255,255,255,.1);border-radius:6px;background:rgba(255,255,255,.04);color:var(--g1);font-size:11px;cursor:pointer;font-family:'JetBrains Mono',monospace;transition:all .15s;min-width:32px;text-align:center;border:none}
+.pg-btn:hover{background:rgba(255,255,255,.1);color:var(--white)}
+.pg-btn.active{background:var(--blue);color:#fff}
+.pg-btn:disabled{opacity:.3;cursor:default}
+.pg-info{font-size:10px;color:var(--g2);font-family:'JetBrains Mono',monospace;padding:0 8px}
+
 @media(max-width:900px){
   #sidebar{width:56px;min-width:56px}
   .sb-menu span:not(.sb-ico){display:none}
@@ -290,9 +298,27 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
             <span style="font-size:14px;font-weight:500">업체별 진행 분야 현황</span>
             <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g1);background:rgba(255,255,255,.06);padding:2px 8px;border-radius:10px" id="ov-cli-cnt">0개</span>
           </div>
-          <button class="btn btn-primary btn-sm" onclick="openCompanyModal()">+ 기업 등록</button>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <div id="cli-group-filter-ov" style="display:flex;gap:4px;flex-wrap:wrap">
+              <button class="pg-btn active" onclick="setCliGroupFilter('all','ov')">전체</button>
+              <button class="pg-btn" onclick="setCliGroupFilter('주요고객','ov')">⭐ 주요</button>
+              <button class="pg-btn" onclick="setCliGroupFilter('일반고객','ov')">🏢 일반</button>
+              <button class="pg-btn" onclick="setCliGroupFilter('잠재고객','ov')">🔍 잠재</button>
+              <button class="pg-btn" onclick="setCliGroupFilter('휴면','ov')">💤 휴면</button>
+              <button class="pg-btn" onclick="setCliGroupFilter('계약종료','ov')">🔚 종료</button>
+              <button class="pg-btn" onclick="setCliGroupFilter('inactive','ov')" style="border-color:rgba(239,68,68,.3);color:#FCA5A5">🚫 비활성</button>
+            </div>
+            <div class="search-wrap" style="margin-bottom:0;width:160px">
+              <span class="search-ico">🔍</span>
+              <input class="search-inp" id="cli-search-ov" placeholder="업체명 검색..." oninput="cliPageOv=1;setCliPageOv(1)">
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openCompanyModal()">+ 기업 등록</button>
+          </div>
         </div>
-        <div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr id="cli-head-ov"></tr></thead><tbody id="cli-body-ov"></tbody></table></div></div>
+        <div class="card">
+          <div class="tbl-wrap"><table class="tbl"><thead><tr id="cli-head-ov"></tr></thead><tbody id="cli-body-ov"></tbody></table></div>
+          <div id="pg-cli-ov" style="padding:8px 16px;border-top:1px solid rgba(255,255,255,.06)"></div>
+        </div>
       </div>
       <div style="margin-bottom:24px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
@@ -342,11 +368,25 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
 
     <!-- PAGE: CLIENTS -->
     <div class="page-section" id="page-clients">
+      <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+        <div id="cli-group-filter-sub" style="display:flex;gap:4px;flex-wrap:wrap">
+          <button class="pg-btn active" onclick="setCliGroupFilter('all','sub')">전체</button>
+          <button class="pg-btn" onclick="setCliGroupFilter('주요고객','sub')">⭐ 주요</button>
+          <button class="pg-btn" onclick="setCliGroupFilter('일반고객','sub')">🏢 일반</button>
+          <button class="pg-btn" onclick="setCliGroupFilter('잠재고객','sub')">🔍 잠재</button>
+          <button class="pg-btn" onclick="setCliGroupFilter('휴면','sub')">💤 휴면</button>
+          <button class="pg-btn" onclick="setCliGroupFilter('계약종료','sub')">🔚 종료</button>
+          <button class="pg-btn" onclick="setCliGroupFilter('inactive','sub')" style="color:#FCA5A5">🚫 비활성</button>
+        </div>
+      </div>
       <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center">
-        <div class="search-wrap" style="flex:1;margin-bottom:0"><span class="search-ico">🔍</span><input class="search-inp" id="cli-search" placeholder="업체명 검색..." oninput="renderClientsPage()"></div>
+        <div class="search-wrap" style="flex:1;margin-bottom:0"><span class="search-ico">🔍</span><input class="search-inp" id="cli-search" placeholder="업체명 검색..." oninput="cliPageSub=1;renderClientsPage()"></div>
         <button class="btn btn-primary" onclick="openCompanyModal()">+ 기업 등록</button>
       </div>
-      <div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr id="cli-head-sub"></tr></thead><tbody id="cli-body-sub"></tbody></table></div></div>
+      <div class="card">
+        <div class="tbl-wrap"><table class="tbl"><thead><tr id="cli-head-sub"></tr></thead><tbody id="cli-body-sub"></tbody></table></div>
+        <div id="pg-cli-sub" style="padding:8px 16px;border-top:1px solid rgba(255,255,255,.06)"></div>
+      </div>
     </div>
 
     <!-- PAGE: STATS -->
@@ -387,7 +427,7 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
         <button class="btn btn-primary" onclick="openCompanyModal()">+ 기업 등록</button>
       </div>
       <div class="card"><div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>기업명</th><th>대표자</th><th>생년월일</th><th>업종</th><th>사업자번호</th><th>법인번호</th><th>연락처</th><th>신청금액</th><th>등록일</th><th style="width:60px">관리</th></tr></thead>
+        <thead><tr><th>기업명</th><th>그룹</th><th>대표자</th><th>생년월일</th><th>업종</th><th>사업자번호</th><th>법인번호</th><th>연락처</th><th>신청금액</th><th>등록일</th><th style="width:60px">관리</th></tr></thead>
         <tbody id="corp-tbody"></tbody>
       </table></div></div>
     </div>
@@ -419,9 +459,27 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
       <div class="fg"><label class="fl">연락처</label><input class="fi" id="comp-tel" placeholder="010-0000-0000"></div>
       <div class="fg"><label class="fl">이메일</label><input class="fi" id="comp-email" placeholder="example@company.com"></div>
     </div>
+    <div class="frow">
+      <div class="fg"><label class="fl">고객 그룹</label>
+        <select class="fs" id="comp-group">
+          <option value="주요고객">⭐ 주요고객</option>
+          <option value="일반고객">🏢 일반고객</option>
+          <option value="잠재고객">🔍 잠재고객</option>
+          <option value="휴면">💤 휴면</option>
+          <option value="계약종료">🔚 계약종료</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">활성 상태</label>
+        <select class="fs" id="comp-active">
+          <option value="Y">✅ 활성 (화면 표시)</option>
+          <option value="N">🚫 비활성 (숨김)</option>
+        </select>
+      </div>
+    </div>
     <div class="fg"><label class="fl">주소</label><input class="fi" id="comp-addr" placeholder="서울시 강남구..."></div>
     <div class="fg"><label class="fl">메모</label><textarea class="fta" id="comp-memo"></textarea></div>
     <div class="modal-btns">
+      <button class="btn btn-danger btn-sm" id="comp-del-btn" style="display:none;margin-right:auto" onclick="deleteCompany()">삭제</button>
       <button class="btn btn-ghost" onclick="closeModal('company-modal')">취소</button>
       <button class="btn btn-primary" onclick="saveCompany()">저장</button>
     </div>
@@ -598,6 +656,12 @@ let tempConsCompanies = []; // 모달 임시 업체 목록
 let _tempBiznoCounter = 1;
 let ganttFilter = 'active';  // 'active'=완료제외, 'all'=전체
 let workFilter = 'active';   // 'active'=완료제외, 'all'=전체
+let cliPageOv = 1;   // 전체화면 업체 현재 페이지
+let cliPageSub = 1;  // 상세메뉴 업체 현재 페이지
+const CLI_PER_PAGE_OV = 10;   // 전체화면: 10개씩
+const CLI_PER_PAGE_SUB = 20;  // 상세메뉴: 20개씩
+let cliGroupFilterOv = 'all';  // 전체화면 그룹 필터
+let cliGroupFilterSub = 'all'; // 상세메뉴 그룹 필터
 
 function setGanttFilter(val){
   ganttFilter=val;
@@ -776,7 +840,7 @@ function renderOverview(){
   renderGantt('');
   renderTodo('');
   renderWork('work-grid');
-  renderClientsTable('cli-head-ov','cli-body-ov','');
+  renderClientsTable('cli-head-ov','cli-body-ov','',cliPageOv,CLI_PER_PAGE_OV,'pg-cli-ov',cliGroupFilterOv);
   renderStatsCards('stats-ov');
   const gc=document.getElementById('ov-gantt-cnt');if(gc)gc.textContent=consulting.length+'건';
   const tc=document.getElementById('ov-todo-cnt');if(tc)tc.textContent=todos.filter(x=>x.status==='ing').length+'건';
@@ -1179,27 +1243,115 @@ function getCompanyDomains(bizno){
   return result;
 }
 function stHigher(a,b){const o={done:3,ing:2,wait:1,'':0};return o[a]>=o[b]?a:b;}
-function renderClientsTable(headId,bodyId,searchVal){
-  const headEl=document.getElementById(headId);const bodyEl=document.getElementById(bodyId);
+// 페이지네이션 HTML 생성 함수
+function makePagination(currentPage, totalPages, onClickFn){
+  if(totalPages<=1)return '';
+  let html='<div class="pagination">';
+  // 이전 버튼
+  html+=`<button class="pg-btn" ${currentPage===1?'disabled':''} onclick="${onClickFn}(${currentPage-1})">‹</button>`;
+  // 페이지 번호 (최대 5개 표시)
+  const start=Math.max(1,currentPage-2);
+  const end=Math.min(totalPages,start+4);
+  if(start>1)html+=`<button class="pg-btn" onclick="${onClickFn}(1)">1</button>${start>2?'<span class="pg-info">…</span>':''}`;
+  for(let i=start;i<=end;i++){
+    html+=`<button class="pg-btn${i===currentPage?' active':''}" onclick="${onClickFn}(${i})">${i}</button>`;
+  }
+  if(end<totalPages)html+=`${end<totalPages-1?'<span class="pg-info">…</span>':''}<button class="pg-btn" onclick="${onClickFn}(${totalPages})">${totalPages}</button>`;
+  // 다음 버튼
+  html+=`<button class="pg-btn" ${currentPage===totalPages?'disabled':''} onclick="${onClickFn}(${currentPage+1})">›</button>`;
+  html+=`<span class="pg-info">${currentPage}/${totalPages} 페이지 · 총 </span>`;
+  html+='</div>';
+  return html;
+}
+
+function renderClientsTable(headId, bodyId, searchVal, page, perPage, paginationId, groupFilter){
+  const headEl=document.getElementById(headId);
+  const bodyEl=document.getElementById(bodyId);
   if(!headEl||!bodyEl)return;
-  const SHOW=CAT_IDS.filter(c=>c!=='etc');
-  headEl.innerHTML=`<th>업체명</th>${SHOW.map(c=>`<th title="${CAT_META[c].name}">${CAT_META[c].icon} ${CAT_META[c].name.length>5?CAT_META[c].name.slice(0,5)+'…':CAT_META[c].name}</th>`).join('')}<th>관리</th>`;
+  const SHOW=CAT_IDS; // 기타·행정 포함 전체 분야 표시
+  headEl.innerHTML=`<th>업체명</th><th>그룹</th>${SHOW.map(c=>`<th title="${CAT_META[c].name}">${CAT_META[c].icon} ${CAT_META[c].name.length>5?CAT_META[c].name.slice(0,5)+'…':CAT_META[c].name}</th>`).join('')}<th>관리</th>`;
   const q=(searchVal||'').toLowerCase();
-  const filtered=companies.filter(c=>!q||c.name.toLowerCase().includes(q));
-  bodyEl.innerHTML=filtered.length?filtered.map(comp=>{
+  const gf=groupFilter||'all';
+
+  // 필터링 로직
+  let filtered=companies.filter(c=>{
+    const nameMatch=!q||c.name.toLowerCase().includes(q);
+    if(!nameMatch)return false;
+    if(gf==='inactive') return c.active==='N'; // 비활성만
+    if(gf==='all') return c.active!=='N';       // 기본: 활성만
+    return c.active!=='N' && c.group===gf;      // 특정 그룹 (활성만)
+  });
+
+  // 주요고객 상단 고정 (전체 보기 시)
+  if(gf==='all'){
+    filtered.sort((a,b)=>{
+      const aKey=a.group==='주요고객'?0:1;
+      const bKey=b.group==='주요고객'?0:1;
+      return aKey-bKey||a.name.localeCompare(b.name,'ko');
+    });
+  }
+
+  const total=filtered.length;
+  const totalPages=Math.ceil(total/perPage)||1;
+  const safePage=Math.min(Math.max(1,page),totalPages);
+  const startIdx=(safePage-1)*perPage;
+  const pageData=filtered.slice(startIdx,startIdx+perPage);
+
+  const GROUP_BADGE={
+    '주요고객':'⭐','일반고객':'🏢','잠재고객':'🔍','휴면':'💤','계약종료':'🔚'
+  };
+
+  bodyEl.innerHTML=pageData.length?pageData.map(comp=>{
     const domains=getCompanyDomains(comp._id);
-    return `<tr>
-      <td><div style="font-size:12px;font-weight:500">${comp.name}</div></td>
-      ${SHOW.map(c=>`<td>${domains[c]?badge(domains[c]):'<span style="color:var(--g3);font-size:10px">—</span>'}</td>`).join('')}
+    const grpIcon=GROUP_BADGE[comp.group]||'🏢';
+    const isInactive=comp.active==='N';
+    return `<tr style="${isInactive?'opacity:.4':''}">
       <td>
-        <button onclick="openCompanyModal('${comp._id}')" style="background:none;border:none;color:var(--g2);font-size:12px;cursor:pointer;padding:2px">✏️</button>
+        <div style="font-size:12px;font-weight:500;cursor:pointer;color:var(--blue-l)" onclick="openCompanyModal('${comp._id}')">${comp.name}</div>
+        ${isInactive?'<div style="font-size:9px;color:var(--danger)">비활성</div>':''}
       </td>
+      <td><span style="font-size:10px;color:var(--g1)">${grpIcon} ${comp.group||'일반고객'}</span></td>
+      ${SHOW.map(c=>`<td>${domains[c]?badge(domains[c]):'<span style="color:var(--g3);font-size:10px">—</span>'}</td>`).join('')}
+      <td><button onclick="openCompanyModal('${comp._id}')" style="background:none;border:none;color:var(--g2);font-size:12px;cursor:pointer;padding:2px">✏️</button></td>
     </tr>`;
   }).join(''):`<tr><td colspan="99" style="text-align:center;padding:30px;color:var(--g2)">등록된 업체가 없습니다</td></tr>`;
+
+  // 페이지네이션
+  const pgEl=document.getElementById(paginationId);
+  if(pgEl){
+    const onClickFn=paginationId==='pg-cli-ov'?'setCliPageOv':'setCliPageSub';
+    pgEl.innerHTML=total>perPage?makePagination(safePage,totalPages,onClickFn):`<div class="pg-info" style="text-align:center;padding:6px 0">총 ${total}개 업체</div>`;
+  }
+}
+
+// 그룹 필터 변경
+function setCliGroupFilter(group, ctx){
+  const isOv=ctx==='ov';
+  if(isOv) cliGroupFilterOv=group;
+  else cliGroupFilterSub=group;
+  // 버튼 활성화 상태 업데이트
+  const filterId=isOv?'cli-group-filter-ov':'cli-group-filter-sub';
+  document.querySelectorAll(`#${filterId} .pg-btn`).forEach(btn=>{
+    btn.classList.toggle('active',btn.textContent.includes(group==='all'?'전체':group==='inactive'?'비활성':group));
+  });
+  // 첫 페이지로 초기화 후 렌더
+  if(isOv){cliPageOv=1;setCliPageOv(1);}
+  else{cliPageSub=1;setCliPageSub(1);}
+}
+function setCliPageOv(page){
+  cliPageOv=page;
+  const q=document.getElementById('cli-search-ov')?.value||'';
+  renderClientsTable('cli-head-ov','cli-body-ov',q,cliPageOv,CLI_PER_PAGE_OV,'pg-cli-ov',cliGroupFilterOv);
+}
+function setCliPageSub(page){
+  cliPageSub=page;
+  const q=document.getElementById('cli-search')?.value||'';
+  renderClientsTable('cli-head-sub','cli-body-sub',q,cliPageSub,CLI_PER_PAGE_SUB,'pg-cli-sub',cliGroupFilterSub);
 }
 function renderClientsPage(){
+  cliPageSub=1;
   const q=document.getElementById('cli-search')?.value||'';
-  renderClientsTable('cli-head-sub','cli-body-sub',q);
+  renderClientsTable('cli-head-sub','cli-body-sub',q,cliPageSub,CLI_PER_PAGE_SUB,'pg-cli-sub',cliGroupFilterSub);
 }
 
 // ── STATS ──
@@ -1277,11 +1429,17 @@ function openCompanyModal(bizno){
     document.getElementById('comp-email').value=c.email||'';
     document.getElementById('comp-addr').value=c.addr||'';
     document.getElementById('comp-memo').value=c.memo||'';
+    document.getElementById('comp-group').value=c.group||'일반고객';
+    document.getElementById('comp-active').value=c.active||'Y';
+    document.getElementById('comp-del-btn').style.display='';
   } else {
     document.getElementById('company-modal-title').textContent='🏛️ 기업 등록';
     document.getElementById('comp-edit-bizno').value='';
     ['comp-name','comp-ceo','comp-ceo-birth','comp-corp-no','comp-bizno','comp-biztype','comp-tel','comp-email','comp-addr','comp-memo'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('comp-bizno-auto').textContent='';
+    document.getElementById('comp-group').value='일반고객';
+    document.getElementById('comp-active').value='Y';
+    document.getElementById('comp-del-btn').style.display='none';
   }
   openModal('company-modal');
 }
@@ -1307,6 +1465,8 @@ async function saveCompany(){
     email:document.getElementById('comp-email').value,
     addr:document.getElementById('comp-addr').value,
     memo:document.getElementById('comp-memo').value,
+    group:document.getElementById('comp-group').value||'일반고객',
+    active:document.getElementById('comp-active').value||'Y',
     joinDate:new Date().toISOString().slice(0,10),
     updatedAt:Date.now()
   };
@@ -1320,17 +1480,34 @@ async function saveCompany(){
     }
     setBadge('✅ 저장됨',2000);
     closeModal('company-modal');
+    // 기업 등록/수정 후 업체현황 페이지 초기화
+    cliPageOv=1; cliPageSub=1;
   }catch(e){console.error(e);setBadge('⚠️ 저장 실패');}
+}
+async function deleteCompany(){
+  const bizno=document.getElementById('comp-edit-bizno').value;
+  if(!bizno||!confirm('정말 삭제하시겠습니까?\n관련 컨설팅 이력은 유지됩니다.'))return;
+  try{
+    await deleteDoc(doc(db,'companies',bizno));
+    closeModal('company-modal');
+    setBadge('✅ 삭제됨',2000);
+  }catch(e){alert('삭제 실패');}
 }
 function renderCompaniesPage(){
   const q=(document.getElementById('corp-search')?.value||'').toLowerCase();
   const filtered=companies.filter(c=>!q||c.name.toLowerCase().includes(q)||(c.ceo||'').toLowerCase().includes(q));
-  const totalAmt=consulting.reduce((s,c)=>s+(+c.amount||0),0);
+  const GROUP_BADGE={'주요고객':'⭐','일반고객':'🏢','잠재고객':'🔍','휴면':'💤','계약종료':'🔚'};
   document.getElementById('corp-tbody').innerHTML=filtered.length?filtered.map(c=>{
     const mycons=consulting.filter(x=>x.companies?.some(cm=>cm.bizno===c._id));
     const amt=mycons.reduce((s,x)=>s+(+x.amount||0),0);
-    return `<tr>
-      <td><div style="font-size:12px;font-weight:500">${c.name}</div></td>
+    const isInactive=c.active==='N';
+    const grpIcon=GROUP_BADGE[c.group]||'🏢';
+    return `<tr style="${isInactive?'opacity:.5':''}">
+      <td>
+        <div style="font-size:12px;font-weight:500">${c.name}</div>
+        ${isInactive?'<span style="font-size:9px;color:var(--danger)">비활성</span>':''}
+      </td>
+      <td><span style="font-size:10px">${grpIcon} ${c.group||'일반고객'}</span></td>
       <td>${c.ceo||'—'}</td>
       <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g2)">${c.ceoBirth||'—'}</td>
       <td style="color:var(--g1)">${c.biztype||'—'}</td>
@@ -1341,7 +1518,7 @@ function renderCompaniesPage(){
       <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g2)">${c.joinDate||'—'}</td>
       <td><button onclick="openCompanyModal('${c._id}')" style="background:none;border:none;color:var(--g2);font-size:13px;cursor:pointer;padding:2px">✏️</button></td>
     </tr>`;
-  }).join(''):`<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--g2)">등록된 기업이 없습니다</td></tr>`;
+  }).join(''):`<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--g2)">등록된 기업이 없습니다</td></tr>`;
 }
 
 // ── HISTORY PAGE (완료 업무 이력) ──
@@ -1462,10 +1639,10 @@ Object.assign(window,{
   openConsultingModal,saveConsulting,deleteConsulting,addConsCompany,renderConsCompaniesList,updateConsCompanyStatus,removeConsCompany,
   openTodoModal,saveTodo,cycleTodo,deleteTodoItem,
   renderWork,openWorkModal,saveWork,confirmDeleteWork,cycleWork,
-  renderClientsPage,
+  renderClientsPage,setCliPageOv,setCliPageSub,setCliGroupFilter,
   renderStatsPage,
   renderHistoryPage,
-  openCompanyModal,saveCompany,checkBizno,renderCompaniesPage,
+  openCompanyModal,saveCompany,deleteCompany,checkBizno,renderCompaniesPage,
   showCorpDrop,hideCorpDrop,selectCorpDrop,
 });
 </script>
