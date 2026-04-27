@@ -1374,42 +1374,66 @@ async function runMigration(){
     const oldCfg=await getDoc(doc(db,'app_state','config'));
     const oldData=oldCfg.exists()?oldCfg.data():{};
     const oldWorkItems=oldData.workItems||{};
-    // 2. 기존 consulting에서 companies 배열 로드
+    // 2. 기존 consulting 로드
     const oldConsSnap=await getDocs(COL.consulting());
     const oldCons=oldConsSnap.docs.map(d=>({id:d.id,...d.data()}));
     addLog(`✅ 기존 consulting ${oldCons.length}건 로드`);
-    // 3. work_items 컬렉션으로 이전
+
+    // 3. work_items 컬렉션으로 이전 (배치1)
     let wiCount=0;
     const wiBatch=writeBatch(db);
     CAT_IDS.forEach(cat=>{
       const items=oldWorkItems[cat]||[];
       items.forEach(it=>{
         const newRef=doc(COL.work_items());
-        wiBatch.set(newRef,{category:cat,name:it.name||'',client:it.client||'',clientBizno:it.clientBizno||'',status:it.status||'wait',sub:it.sub||'',doneAt:it.doneAt||null,createdAt:it.createdAt||Date.now(),updatedAt:Date.now()});
+        wiBatch.set(newRef,{
+          category:cat,name:it.name||'',client:it.client||'',
+          clientBizno:it.clientBizno||'',status:it.status||'wait',
+          sub:it.sub||'',doneAt:it.doneAt||null,
+          createdAt:it.createdAt||Date.now(),updatedAt:Date.now()
+        });
         wiCount++;
       });
     });
     await wiBatch.commit();
     addLog(`✅ work_items ${wiCount}건 이전 완료`);
-    // 4. consulting_company 컬렉션으로 이전
+
+    // 4. consulting_company 컬렉션으로 이전 (배치2 - 별도 배치)
     let ccCount=0;
     const ccBatch=writeBatch(db);
     oldCons.forEach(c=>{
       const comps=c.companies||[];
       comps.forEach(cm=>{
         const newRef=doc(COL.consulting_company());
-        ccBatch.set(newRef,{consId:c.id,bizno:cm.bizno||cm.id||'UNKNOWN',companyName:cm.name||'',status:cm.status||'wait',doneAt:cm.doneAt||null,createdAt:Date.now(),updatedAt:Date.now()});
+        ccBatch.set(newRef,{
+          consId:c.id,bizno:cm.bizno||'UNKNOWN',
+          companyName:cm.name||'',status:cm.status||'wait',
+          doneAt:cm.doneAt||null,createdAt:Date.now(),updatedAt:Date.now()
+        });
         ccCount++;
       });
-      // consulting에서 companies 배열 제거
-      wiBatch.update(doc(db,'consulting',c.id),{companies:[]});
     });
     await ccBatch.commit();
     addLog(`✅ consulting_company ${ccCount}건 이전 완료`);
-    // 5. app_state에서 workItems 제거 (UI 설정만 남김)
-    await setDoc(COL.app_state(),{calY:oldData.calY||new Date().getFullYear(),calM:oldData.calM||new Date().getMonth(),expandedCats:oldData.expandedCats||[],tempBiznoCounter:oldData.tempBiznoCounter||1,updatedAt:Date.now()});
+
+    // 5. consulting에서 companies 배열 제거 (배치3 - 별도 배치)
+    const cleanBatch=writeBatch(db);
+    oldCons.forEach(c=>{
+      cleanBatch.update(doc(db,'consulting',c.id),{companies:[]});
+    });
+    await cleanBatch.commit();
+    addLog(`✅ consulting 정리 완료`);
+
+    // 6. app_state 정리 (workItems 제거, UI 설정만 유지)
+    await setDoc(COL.app_state(),{
+      calY:oldData.calY||new Date().getFullYear(),
+      calM:oldData.calM||new Date().getMonth(),
+      expandedCats:oldData.expandedCats||[],
+      tempBiznoCounter:oldData.tempBiznoCounter||1,
+      updatedAt:Date.now()
+    });
     addLog('✅ app_state 정리 완료 (workItems 제거)');
-    addLog('🎉 마이그레이션 완료! 페이지를 새로고침하세요.');
+    addLog('🎉 마이그레이션 완료! 2초 후 새로고침...');
     setTimeout(()=>location.reload(),2000);
   }catch(e){addLog('❌ 오류: '+e.message);console.error(e);}
 }
