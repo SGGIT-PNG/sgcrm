@@ -192,7 +192,7 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
   <div class="sb-section">메인 메뉴</div>
   <div class="sb-menu active" id="nav-overview" onclick="navTo('overview')"><span class="sb-ico">🏠</span><span>전체 현황</span></div>
   <div class="sb-menu" id="nav-gantt" onclick="navTo('gantt')"><span class="sb-ico">📅</span><span>지원사업·정책자금</span><span class="sb-cnt" id="sb-gantt-cnt">0</span></div>
-  <div class="sb-menu" id="nav-todo" onclick="navTo('todo')"><span class="sb-ico">✅</span><span>수시처리 To-Do</span><span class="sb-cnt" id="sb-todo-cnt">0</span></div>
+  <div class="sb-menu" id="nav-todo" onclick="navTo('todo')"><span class="sb-ico">✅</span><span>수시처리 To Do List</span><span class="sb-cnt" id="sb-todo-cnt">0</span></div>
   <div class="sb-menu" id="nav-work" onclick="navTo('work')"><span class="sb-ico">📊</span><span>업무 영역별 현황</span></div>
   <div class="sb-menu" id="nav-clients" onclick="navTo('clients')"><span class="sb-ico">🏢</span><span>업체별 진행현황</span><span class="sb-cnt" id="sb-cli-cnt">0</span></div>
   <div class="sb-menu" id="nav-stats" onclick="navTo('stats')"><span class="sb-ico">📈</span><span>누적 통계 데이터</span></div>
@@ -247,7 +247,7 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
       <div style="margin-bottom:24px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
           <div style="width:28px;height:28px;border-radius:8px;background:rgba(16,185,129,.2);display:flex;align-items:center;justify-content:center">✅</div>
-          <span style="font-size:14px;font-weight:500">수시처리 To-Do List</span>
+          <span style="font-size:14px;font-weight:500">수시처리 To Do List</span>
           <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g1);background:rgba(255,255,255,.06);padding:2px 8px;border-radius:10px" id="ov-todo-cnt">0건</span>
         </div>
         <div class="todo-wrap" id="todo-grid"></div>
@@ -258,9 +258,12 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
             <div style="width:28px;height:28px;border-radius:8px;background:rgba(139,92,246,.2);display:flex;align-items:center;justify-content:center">📊</div>
             <span style="font-size:14px;font-weight:500">업무 영역별 진행 현황</span>
           </div>
-          <div class="toggle-btn" id="work-filter-toggle">
-            <button class="toggle-opt active" onclick="setWorkFilter('active')">진행중만</button>
-            <button class="toggle-opt" onclick="setWorkFilter('all')">전체보기</button>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div class="toggle-btn" id="work-filter-toggle">
+              <button class="toggle-opt active" onclick="setWorkFilter('active')">진행중만</button>
+              <button class="toggle-opt" onclick="setWorkFilter('all')">전체보기</button>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openCatAddModal()">+ 업무 추가</button>
           </div>
         </div>
         <div class="grid3" id="work-grid"></div>
@@ -347,6 +350,7 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
             <option value="etc">📋 기타·행정</option>
           </select>
           <button class="btn btn-primary" onclick="openWorkModal(document.getElementById('work-add-cat').value, null)">+ 항목 추가</button>
+          <button class="btn btn-ghost" onclick="openCatAddModal()">+ 업무 추가</button>
         </div>
       </div>
       <div class="grid3" id="work-grid-sub"></div>
@@ -513,6 +517,27 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
   </div>
 </div>
 
+<!-- MODAL: 업무 분야 추가 -->
+<div class="ov" id="cat-add-modal">
+  <div class="modal" style="width:400px">
+    <div class="modal-title">➕ 업무 분야 추가<button class="modal-close" onclick="closeModal('cat-add-modal')">×</button></div>
+    <div class="fg"><label class="fl">분야명 *</label><input class="fi" id="cat-add-name" placeholder="예: 경영자문, R&D지원"></div>
+    <div class="frow">
+      <div class="fg"><label class="fl">아이콘 (이모지)</label><input class="fi" id="cat-add-icon" placeholder="📋" style="font-size:18px"></div>
+      <div class="fg"><label class="fl">색상</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="color" id="cat-add-color" value="#64748B" style="width:40px;height:38px;border:1px solid rgba(255,255,255,.1);border-radius:8px;background:none;cursor:pointer;padding:2px">
+          <div style="font-size:10px;color:var(--g1)">카드 색상</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModal('cat-add-modal')">취소</button>
+      <button class="btn btn-primary" onclick="saveCatAdd()">추가</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: 업무 항목 -->
 <div class="ov" id="work-modal">
   <div class="modal" style="width:480px">
@@ -578,16 +603,18 @@ const db = getFirestore(app);
 
 // ── COLLECTIONS (= Oracle Tables) ──
 const COL = {
-  companies:          ()=>collection(db,'companies'),          // 기업 마스터 (PK: bizno)
-  consulting:         ()=>collection(db,'consulting'),         // 지원사업·정책자금 대분류
-  consulting_company: ()=>collection(db,'consulting_company'), // 대분류-업체 중간테이블
-  work_items:         ()=>collection(db,'work_items'),         // 업무 항목
-  todos:              ()=>collection(db,'todos'),              // 수시처리 할일
-  app_state:          ()=>doc(db,'app_state','config'),        // UI 설정값만
+  companies:          ()=>collection(db,'companies'),
+  consulting:         ()=>collection(db,'consulting'),
+  consulting_company: ()=>collection(db,'consulting_company'),
+  work_items:         ()=>collection(db,'work_items'),
+  todos:              ()=>collection(db,'todos'),
+  categories:         ()=>collection(db,'categories'),   // 사용자 추가 업무 분야
+  app_state:          ()=>doc(db,'app_state','config'),
 };
 
 // ── CONSTANTS ──
-const CAT_META = {
+// 기본 업무 분야 (고정값 - 항상 유지)
+const DEFAULT_CAT_META = {
   policy:{name:'정책자금',icon:'💰',color:'#3B82F6'},
   support:{name:'지원사업',icon:'🏆',color:'#8B5CF6'},
   ven:{name:'벤처·이노비즈',icon:'🚀',color:'#0D9488'},
@@ -597,7 +624,9 @@ const CAT_META = {
   fund:{name:'일반자금조달',icon:'🏦',color:'#D4A843'},
   etc:{name:'기타·행정',icon:'📋',color:'#64748B'},
 };
-const CAT_IDS = Object.keys(CAT_META);
+// 동적 CAT_META (기본 + 사용자 추가 분야)
+let CAT_META = {...DEFAULT_CAT_META};
+let CAT_IDS = Object.keys(CAT_META);
 const CAT_COLORS = ['#3B82F6','#8B5CF6','#0D9488','#D4A843','#10B981','#F59E0B','#EC4899','#EF4444'];
 const ST = {
   wait:{label:'대기',bg:'rgba(148,163,184,.2)',tx:'#CBD5E1',dot:'#64748B'},
@@ -606,7 +635,7 @@ const ST = {
 };
 const PAGE_TITLES={
   overview:'전체 현황',gantt:'지원사업·정책자금 일정 관리',
-  todo:'수시처리 To-Do List',work:'업무 영역별 진행 현황',
+  todo:'수시처리 To Do List',work:'업무 영역별 진행 현황',
   clients:'업체별 진행 분야 현황',stats:'누적 통계 데이터',
   history:'📁 완료 업무 이력',companies:'기업 관리'
 };
@@ -667,19 +696,22 @@ async function loadAll(){
       tempBiznoCounter=d.tempBiznoCounter||1;
       expandedCats=new Set(d.expandedCats||[]);
     }
-    // 5개 컬렉션 병렬 로드 (오라클 병렬 쿼리와 동일)
-    const [cSnap,conSnap,ccSnap,wiSnap,tSnap]=await Promise.all([
+    // 6개 컬렉션 병렬 로드
+    const [cSnap,conSnap,ccSnap,wiSnap,tSnap,catSnap]=await Promise.all([
       getDocs(COL.companies()),
       getDocs(COL.consulting()),
       getDocs(COL.consulting_company()),
       getDocs(COL.work_items()),
       getDocs(COL.todos()),
+      getDocs(COL.categories()),
     ]);
-    companies   = cSnap.docs.map(d=>({_id:d.id,...d.data()}));
-    consulting  = conSnap.docs.map(d=>({id:d.id,...d.data()}));
+    companies     = cSnap.docs.map(d=>({_id:d.id,...d.data()}));
+    consulting    = conSnap.docs.map(d=>({id:d.id,...d.data()}));
     consCompanies = ccSnap.docs.map(d=>({id:d.id,...d.data()}));
-    workItems   = wiSnap.docs.map(d=>({id:d.id,...d.data()}));
-    todos       = tSnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+    workItems     = wiSnap.docs.map(d=>({id:d.id,...d.data()}));
+    todos         = tSnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+    // 사용자 추가 분야를 CAT_META에 병합
+    applyCategories(catSnap.docs.map(d=>({id:d.id,...d.data()})));
     renderAll(); updateCounts();
     setBadge('✅ 로드 완료',2000);
     startRealtimeSync();
@@ -693,9 +725,37 @@ function startRealtimeSync(){
   onSnapshot(COL.consulting_company(),(s)=>{consCompanies=s.docs.map(d=>({id:d.id,...d.data()}));renderAll();});
   onSnapshot(COL.work_items(),(s)=>{workItems=s.docs.map(d=>({id:d.id,...d.data()}));renderAll();updateCounts();});
   onSnapshot(COL.todos(),(s)=>{todos=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));renderAll();updateCounts();});
+  onSnapshot(COL.categories(),(s)=>{applyCategories(s.docs.map(d=>({id:d.id,...d.data()})));renderAll();});
 }
 
-// ── APP STATE SAVE (UI 설정만) ──
+// 사용자 추가 분야를 CAT_META에 병합
+function applyCategories(catDocs){
+  CAT_META = {...DEFAULT_CAT_META};
+  catDocs.sort((a,b)=>(a.order||99)-(b.order||99)).forEach(c=>{
+    CAT_META[c.id]={name:c.name,icon:c.icon||'📋',color:c.color||'#64748B',custom:true};
+  });
+  CAT_IDS = Object.keys(CAT_META);
+}
+
+// 업무 분야 추가 모달
+function openCatAddModal(){
+  document.getElementById('cat-add-name').value='';
+  document.getElementById('cat-add-icon').value='📋';
+  document.getElementById('cat-add-color').value='#64748B';
+  openModal('cat-add-modal');
+}
+async function saveCatAdd(){
+  const name=document.getElementById('cat-add-name').value.trim();
+  if(!name){alert('분야명을 입력하세요');return;}
+  const icon=document.getElementById('cat-add-icon').value.trim()||'📋';
+  const color=document.getElementById('cat-add-color').value||'#64748B';
+  // ID는 한글 분야명을 영문화 or 타임스탬프로 생성
+  const id='custom_'+Date.now();
+  try{
+    await setDoc(doc(db,'categories',id),{name,icon,color,order:100+Date.now()%1000,createdAt:Date.now()});
+    closeModal('cat-add-modal');
+  }catch(e){alert('저장 실패: '+e.message);}
+}
 let _saveTimer=null;
 function saveAppState(){
   if(_saveTimer)clearTimeout(_saveTimer);
@@ -1381,6 +1441,7 @@ Object.assign(window,{
   navTo,manualSave,closeModal,
   prevMonth,nextMonth,goToday,toggleCat,
   setGanttFilter,setWorkFilter,
+  openCatAddModal,saveCatAdd,
   openConsultingModal,saveConsulting,deleteConsulting,addConsCompany,renderConsCompaniesList,updateConsCompanyStatus,removeConsCompany,
   openTodoModal,saveTodo,cycleTodo,deleteTodoItem,
   renderWork,openWorkModal,saveWork,confirmDeleteWork,cycleWork,
