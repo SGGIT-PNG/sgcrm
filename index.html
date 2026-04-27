@@ -172,8 +172,6 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
 .work-item-expired{display:none !important}
 .gantt-row-expired{display:none !important}
 .gantt-cli-expired{display:none !important}
-/* MIGRATION TOOL */
-.migration-box{background:rgba(212,168,67,.08);border:1px solid rgba(212,168,67,.3);border-radius:var(--r);padding:20px;margin-bottom:20px}
 @media(max-width:900px){
   #sidebar{width:56px;min-width:56px}
   .sb-menu span:not(.sb-ico){display:none}
@@ -220,16 +218,6 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
 
     <!-- PAGE: OVERVIEW -->
     <div class="page-section active" id="page-overview">
-      <!-- 마이그레이션 도구 (완료 후 삭제) -->
-      <div class="migration-box" id="migration-box">
-        <div style="font-size:13px;font-weight:500;color:var(--gold-l);margin-bottom:8px">⚙️ DB 구조 마이그레이션 도구</div>
-        <div style="font-size:11px;color:var(--g1);margin-bottom:12px">기존 데이터(v2)를 새 컬렉션 구조(v3)로 변환합니다. <b style="color:var(--warn)">한 번만 실행하세요.</b></div>
-        <div id="migration-log" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g1);background:rgba(0,0,0,.3);border-radius:8px;padding:10px;min-height:40px;margin-bottom:10px;max-height:120px;overflow-y:auto"></div>
-        <div style="display:flex;gap:8px">
-          <button class="btn btn-primary btn-sm" onclick="runMigration()">🚀 마이그레이션 실행</button>
-          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('migration-box').style.display='none'">숨기기</button>
-        </div>
-      </div>
       <div class="grid5" id="ov-stats" style="margin-bottom:24px"></div>
       <div style="margin-bottom:24px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
@@ -1138,9 +1126,14 @@ function renderClientsTable(headId,bodyId,searchVal,page,perPage,paginationId,gr
   const q=(searchVal||'').toLowerCase();const gf=groupFilter||'all';
   let filtered=companies.filter(c=>{
     const nm=!q||c.name.toLowerCase().includes(q);if(!nm)return false;
-    if(gf==='inactive')return c.active==='N';
-    if(gf==='all')return c.active!=='N';
-    return c.active!=='N'&&c.group===gf;
+    if(gf==='inactive') return c.active==='N';
+    if(gf==='all') return (c.active||'Y')!=='N';
+    // group 필드가 없거나 빈 기업은 '일반고객'으로 간주
+    const compGroup=c.group||'일반고객';
+    const isActive=(c.active||'Y')!=='N';
+    if(!isActive) return false;
+    // 정확한 그룹명 비교
+    return compGroup===gf;
   });
   if(gf==='all')filtered.sort((a,b)=>{const ak=a.group==='주요고객'?0:1;const bk=b.group==='주요고객'?0:1;return ak-bk||a.name.localeCompare(b.name,'ko');});
   const total=filtered.length;const totalPages=Math.ceil(total/perPage)||1;
@@ -1160,12 +1153,15 @@ function renderClientsTable(headId,bodyId,searchVal,page,perPage,paginationId,gr
   if(pgEl){const fn=paginationId==='pg-cli-ov'?'setCliPageOv':'setCliPageSub';pgEl.innerHTML=total>perPage?makePagination(safePage,totalPages,fn):`<div class="pg-info" style="text-align:center;padding:6px 0">총 ${total}개 업체</div>`;}
 }
 function setCliGroupFilter(group,ctx){
-  const isOv=ctx==='ov';if(isOv)cliGroupFilterOv=group;else cliGroupFilterSub=group;
+  const isOv=ctx==='ov';
+  if(isOv)cliGroupFilterOv=group;else cliGroupFilterSub=group;
   const filterId=isOv?'cli-group-filter-ov':'cli-group-filter-sub';
+  // 각 버튼의 onclick 속성에서 그룹값 추출해서 정확히 비교
   document.querySelectorAll(`#${filterId} .pg-btn`).forEach(btn=>{
-    const txt=btn.textContent.trim();
-    const isActive=(group==='all'&&txt==='전체')||(group==='inactive'&&txt.includes('비활성'))||(group!=='all'&&group!=='inactive'&&txt.includes(group.slice(0,2)));
-    btn.classList.toggle('active',isActive);
+    const onclickVal=btn.getAttribute('onclick')||'';
+    const match=onclickVal.match(/'([^']+)','(ov|sub)'\)/);
+    const btnGroup=match?match[1]:'';
+    btn.classList.toggle('active',btnGroup===group);
   });
   if(isOv){cliPageOv=1;setCliPageOv(1);}else{cliPageSub=1;setCliPageSub(1);}
 }
@@ -1363,80 +1359,7 @@ function hideCorpDrop(id){document.getElementById('dd-'+id)?.classList.remove('o
 function selectCorpDrop(inputId,name){const inp=document.getElementById(inputId);if(inp)inp.value=name;hideCorpDrop(inputId);}
 document.addEventListener('click',(e)=>{document.querySelectorAll('.corp-dropdown.open').forEach(dd=>{if(!dd.parentElement.contains(e.target))dd.classList.remove('open');});},{passive:true});
 
-// ── MIGRATION TOOL (기존 v2 → v3 데이터 변환) ──
-async function runMigration(){
-  const log=document.getElementById('migration-log');
-  const addLog=(msg)=>{log.innerHTML+=msg+'<br>';log.scrollTop=log.scrollHeight;};
-  addLog('🚀 마이그레이션 시작...');
-  try{
-    // 1. 기존 app_state에서 workItems 로드
-    addLog('📂 기존 데이터 로드 중...');
-    const oldCfg=await getDoc(doc(db,'app_state','config'));
-    const oldData=oldCfg.exists()?oldCfg.data():{};
-    const oldWorkItems=oldData.workItems||{};
-    // 2. 기존 consulting 로드
-    const oldConsSnap=await getDocs(COL.consulting());
-    const oldCons=oldConsSnap.docs.map(d=>({id:d.id,...d.data()}));
-    addLog(`✅ 기존 consulting ${oldCons.length}건 로드`);
 
-    // 3. work_items 컬렉션으로 이전 (배치1)
-    let wiCount=0;
-    const wiBatch=writeBatch(db);
-    CAT_IDS.forEach(cat=>{
-      const items=oldWorkItems[cat]||[];
-      items.forEach(it=>{
-        const newRef=doc(COL.work_items());
-        wiBatch.set(newRef,{
-          category:cat,name:it.name||'',client:it.client||'',
-          clientBizno:it.clientBizno||'',status:it.status||'wait',
-          sub:it.sub||'',doneAt:it.doneAt||null,
-          createdAt:it.createdAt||Date.now(),updatedAt:Date.now()
-        });
-        wiCount++;
-      });
-    });
-    await wiBatch.commit();
-    addLog(`✅ work_items ${wiCount}건 이전 완료`);
-
-    // 4. consulting_company 컬렉션으로 이전 (배치2 - 별도 배치)
-    let ccCount=0;
-    const ccBatch=writeBatch(db);
-    oldCons.forEach(c=>{
-      const comps=c.companies||[];
-      comps.forEach(cm=>{
-        const newRef=doc(COL.consulting_company());
-        ccBatch.set(newRef,{
-          consId:c.id,bizno:cm.bizno||'UNKNOWN',
-          companyName:cm.name||'',status:cm.status||'wait',
-          doneAt:cm.doneAt||null,createdAt:Date.now(),updatedAt:Date.now()
-        });
-        ccCount++;
-      });
-    });
-    await ccBatch.commit();
-    addLog(`✅ consulting_company ${ccCount}건 이전 완료`);
-
-    // 5. consulting에서 companies 배열 제거 (배치3 - 별도 배치)
-    const cleanBatch=writeBatch(db);
-    oldCons.forEach(c=>{
-      cleanBatch.update(doc(db,'consulting',c.id),{companies:[]});
-    });
-    await cleanBatch.commit();
-    addLog(`✅ consulting 정리 완료`);
-
-    // 6. app_state 정리 (workItems 제거, UI 설정만 유지)
-    await setDoc(COL.app_state(),{
-      calY:oldData.calY||new Date().getFullYear(),
-      calM:oldData.calM||new Date().getMonth(),
-      expandedCats:oldData.expandedCats||[],
-      tempBiznoCounter:oldData.tempBiznoCounter||1,
-      updatedAt:Date.now()
-    });
-    addLog('✅ app_state 정리 완료 (workItems 제거)');
-    addLog('🎉 마이그레이션 완료! 2초 후 새로고침...');
-    setTimeout(()=>location.reload(),2000);
-  }catch(e){addLog('❌ 오류: '+e.message);console.error(e);}
-}
 
 // ── INIT ──
 loadAll();
@@ -1453,7 +1376,6 @@ Object.assign(window,{
   renderStatsPage,renderHistoryPage,
   openCompanyModal,saveCompany,deleteCompany,checkBizno,renderCompaniesPage,
   showCorpDrop,hideCorpDrop,selectCorpDrop,
-  runMigration,
 });
 </script>
 </body>
