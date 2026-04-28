@@ -384,9 +384,13 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
 
     <!-- PAGE: HISTORY -->
     <div class="page-section" id="page-history">
-      <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap">
-        <div class="search-wrap" style="flex:1;margin-bottom:0;min-width:180px"><span class="search-ico">🔍</span><input class="search-inp" id="hist-search" placeholder="업체명, 업무명 검색..." oninput="renderHistoryPage()"></div>
-        <select class="fs" id="hist-cat-filter" onchange="renderHistoryPage()" style="width:130px">
+      <!-- 상단 검색/필터 (기존 유지) -->
+      <div style="display:flex;gap:10px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
+        <div class="search-wrap" style="flex:1;margin-bottom:0;min-width:180px">
+          <span class="search-ico">🔍</span>
+          <input class="search-inp" id="hist-search" placeholder="업체명, 업무명 검색..." oninput="histPage=1;renderHistoryPage()">
+        </div>
+        <select class="fs" id="hist-cat-filter" onchange="histPage=1;renderHistoryPage()" style="width:130px">
           <option value="">전체 분야</option>
           <option value="policy">💰 정책자금</option><option value="support">🏆 지원사업</option>
           <option value="ven">🚀 벤처·이노비즈</option><option value="lab">🔬 기업부설연구소</option>
@@ -394,11 +398,35 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
           <option value="fund">🏦 일반자금조달</option><option value="etc">📋 기타·행정</option>
         </select>
       </div>
+      <!-- 상태 토글 (신규) -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+        <div class="toggle-btn" id="hist-status-toggle">
+          <button class="toggle-opt active" onclick="setHistStatus('done')">완료</button>
+          <button class="toggle-opt" onclick="setHistStatus('ing')">진행</button>
+          <button class="toggle-opt" onclick="setHistStatus('wait')">대기</button>
+          <button class="toggle-opt" onclick="setHistStatus('all')">전체</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;color:var(--g1)">페이지당</span>
+          <select class="fs" id="hist-per-page" onchange="histPage=1;renderHistoryPage()" style="width:70px;padding:5px 8px">
+            <option value="10">10개</option>
+            <option value="20" selected>20개</option>
+            <option value="50">50개</option>
+            <option value="100">100개</option>
+          </select>
+        </div>
+      </div>
+      <!-- 요약 카운팅 (기존 유지) -->
       <div id="hist-summary" style="margin-bottom:14px"></div>
-      <div class="card"><div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>업체명</th><th>분야</th><th>업무내용</th><th>세부구분</th><th>완료일</th><th>경과</th><th>출처</th></tr></thead>
-        <tbody id="hist-body"></tbody>
-      </table></div></div>
+      <!-- 테이블 -->
+      <div class="card">
+        <div class="tbl-wrap"><table class="tbl">
+          <thead><tr id="hist-head"></tr></thead>
+          <tbody id="hist-body"></tbody>
+        </table></div>
+      </div>
+      <!-- 페이지네이션 -->
+      <div id="hist-pagination" style="margin-top:8px"></div>
     </div>
 
     <!-- PAGE: COMPANIES -->
@@ -517,10 +545,11 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
   </div>
 </div>
 
-<!-- MODAL: 업무 분야 추가 -->
+<!-- MODAL: 업무 분야 추가/수정 -->
 <div class="ov" id="cat-add-modal">
   <div class="modal" style="width:400px">
-    <div class="modal-title">➕ 업무 분야 추가<button class="modal-close" onclick="closeModal('cat-add-modal')">×</button></div>
+    <div class="modal-title"><span id="cat-modal-title">➕ 업무 분야 추가</span><button class="modal-close" onclick="closeModal('cat-add-modal')">×</button></div>
+    <input type="hidden" id="cat-edit-id">
     <div class="fg"><label class="fl">분야명 *</label><input class="fi" id="cat-add-name" placeholder="예: 경영자문, R&D지원"></div>
     <div class="frow">
       <div class="fg"><label class="fl">아이콘 (이모지)</label><input class="fi" id="cat-add-icon" placeholder="📋" style="font-size:18px"></div>
@@ -532,8 +561,9 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
       </div>
     </div>
     <div class="modal-btns">
+      <button class="btn btn-danger btn-sm" id="cat-del-btn" style="display:none;margin-right:auto" onclick="deleteCatAdd()">삭제</button>
       <button class="btn btn-ghost" onclick="closeModal('cat-add-modal')">취소</button>
-      <button class="btn btn-primary" onclick="saveCatAdd()">추가</button>
+      <button class="btn btn-primary" onclick="saveCatAdd()">저장</button>
     </div>
   </div>
 </div>
@@ -660,6 +690,8 @@ let workFilter = 'active';
 let cliPageOv=1, cliPageSub=1;
 const CLI_PER_PAGE_OV=10, CLI_PER_PAGE_SUB=20;
 let cliGroupFilterOv='all', cliGroupFilterSub='all';
+let histPage=1;          // 완료이력 현재 페이지
+let histStatusFilter='done'; // 완료이력 상태 필터
 
 // ── UTILS ──
 function p2(v){return String(v).padStart(2,'0')}
@@ -737,11 +769,26 @@ function applyCategories(catDocs){
   CAT_IDS = Object.keys(CAT_META);
 }
 
-// 업무 분야 추가 모달
-function openCatAddModal(){
-  document.getElementById('cat-add-name').value='';
-  document.getElementById('cat-add-icon').value='📋';
-  document.getElementById('cat-add-color').value='#64748B';
+// 업무 분야 추가/수정 모달
+function openCatAddModal(catId){
+  document.getElementById('cat-edit-id').value = catId||'';
+  if(catId){
+    // 수정 모드 - 기본 8개는 수정 불가
+    if(DEFAULT_CAT_META[catId]){alert('기본 분야는 수정할 수 없습니다.');return;}
+    const m=CAT_META[catId];
+    document.getElementById('cat-modal-title').textContent='✏️ 업무 분야 수정';
+    document.getElementById('cat-add-name').value=m.name||'';
+    document.getElementById('cat-add-icon').value=m.icon||'📋';
+    document.getElementById('cat-add-color').value=m.color||'#64748B';
+    document.getElementById('cat-del-btn').style.display='';
+  } else {
+    // 추가 모드
+    document.getElementById('cat-modal-title').textContent='➕ 업무 분야 추가';
+    document.getElementById('cat-add-name').value='';
+    document.getElementById('cat-add-icon').value='📋';
+    document.getElementById('cat-add-color').value='#64748B';
+    document.getElementById('cat-del-btn').style.display='none';
+  }
   openModal('cat-add-modal');
 }
 async function saveCatAdd(){
@@ -749,12 +796,33 @@ async function saveCatAdd(){
   if(!name){alert('분야명을 입력하세요');return;}
   const icon=document.getElementById('cat-add-icon').value.trim()||'📋';
   const color=document.getElementById('cat-add-color').value||'#64748B';
-  // ID는 한글 분야명을 영문화 or 타임스탬프로 생성
-  const id='custom_'+Date.now();
+  const editId=document.getElementById('cat-edit-id').value;
   try{
-    await setDoc(doc(db,'categories',id),{name,icon,color,order:100+Date.now()%1000,createdAt:Date.now()});
+    if(editId){
+      await updateDoc(doc(db,'categories',editId),{name,icon,color,updatedAt:Date.now()});
+    } else {
+      const id='custom_'+Date.now();
+      await setDoc(doc(db,'categories',id),{name,icon,color,order:100+Date.now()%1000,createdAt:Date.now()});
+    }
     closeModal('cat-add-modal');
   }catch(e){alert('저장 실패: '+e.message);}
+}
+async function deleteCatAdd(){
+  const editId=document.getElementById('cat-edit-id').value;
+  if(!editId)return;
+  if(DEFAULT_CAT_META[editId]){alert('기본 분야는 삭제할 수 없습니다.');return;}
+  const m=CAT_META[editId];
+  // 해당 분야에 업무 항목이 있는지 확인
+  const relatedWork=workItems.filter(w=>w.category===editId);
+  if(relatedWork.length>0){
+    if(!confirm(`'${m?.name}' 분야에 업무 항목 ${relatedWork.length}건이 있습니다.\n분야를 삭제하면 해당 항목들이 조회되지 않을 수 있습니다.\n정말 삭제하시겠습니까?`))return;
+  } else {
+    if(!confirm(`'${m?.name}' 분야를 삭제하시겠습니까?`))return;
+  }
+  try{
+    await deleteDoc(doc(db,'categories',editId));
+    closeModal('cat-add-modal');
+  }catch(e){alert('삭제 실패: '+e.message);}
 }
 let _saveTimer=null;
 function saveAppState(){
@@ -1090,12 +1158,14 @@ function renderWork(gridId){
     const allCatItems=getConsWorkItems(cat);
     const allFull=[...allItems,...allCatItems];
     const m=CAT_META[cat];
+    const isCustom=m.custom===true; // 사용자 추가 분야만 수정 버튼 표시
     const tot=allFull.length,dn=allFull.filter(i=>i.status==='done').length,pct=tot?Math.round(dn/tot*100):0;
     return `<div class="card">
       <div class="card-hd" style="border-bottom:2px solid ${m.color}33">
         <div style="width:30px;height:30px;border-radius:8px;background:${m.color}22;display:flex;align-items:center;justify-content:center;font-size:14px">${m.icon}</div>
         <div style="flex:1"><div class="card-hd-title">${m.name}</div>
         <div class="card-hd-sub">${tot}건 · 완료 ${dn}건 (${pct}%)${dn>0?`<span class="done-hint" style="color:var(--ok);font-size:9px"> · 완료 ${dn}건 숨김중</span>`:''}</div></div>
+        ${isCustom?`<button onclick="openCatAddModal('${cat}')" style="background:none;border:none;color:var(--g2);font-size:12px;cursor:pointer;padding:2px 4px" title="분야 수정/삭제">⚙️</button>`:''}
       </div>
       <div style="height:3px;background:rgba(255,255,255,.05)"><div style="height:100%;width:${pct}%;background:${m.color};transition:width .6s ease"></div></div>
       <div style="padding:10px 12px;max-height:220px;overflow-y:auto">
@@ -1290,62 +1360,106 @@ function renderStatsCards(targetId){
 function renderStatsPage(){renderStatsCards('stats-page');}
 
 // ── HISTORY ──
+// 히스토리 상태 토글
+function setHistStatus(status){
+  histStatusFilter=status;histPage=1;
+  document.querySelectorAll('#hist-status-toggle .toggle-opt').forEach(btn=>{
+    const map={done:'완료',ing:'진행',wait:'대기',all:'전체'};
+    btn.classList.toggle('active',btn.textContent.trim()===map[status]);
+  });
+  renderHistoryPage();
+}
+
 function renderHistoryPage(){
   const q=(document.getElementById('hist-search')?.value||'').toLowerCase();
   const catF=document.getElementById('hist-cat-filter')?.value||'';
-  let workDone=workItems.filter(it=>it.status==='done');
-  if(catF)workDone=workDone.filter(it=>it.category===catF);
-  if(q)workDone=workDone.filter(it=>it.client.toLowerCase().includes(q)||it.name.toLowerCase().includes(q));
-  const workRows=workDone.map(it=>{
+  const perPage=+document.getElementById('hist-per-page')?.value||20;
+  const stF=histStatusFilter;
+
+  // work_items 수집
+  let workRows=[];
+  workItems.forEach(it=>{
+    if(stF!=='all'&&it.status!==stF)return;
+    if(catF&&it.category!==catF)return;
+    if(q&&!(it.client||'').toLowerCase().includes(q)&&!it.name.toLowerCase().includes(q))return;
     const m=CAT_META[it.category]||CAT_META.etc;
     const doneAgo=it.doneAt?Math.floor((Date.now()-it.doneAt)/(1000*60*60*24)):null;
-    return {client:it.client||'—',catMeta:m,name:it.name,sub:it.sub||'—',doneAt:it.doneAt,doneAgo,expired:isDoneExpired(it),source:'업무항목'};
+    workRows.push({client:it.client||'—',catMeta:m,name:it.name,sub:it.sub||'—',status:it.status,doneAt:it.doneAt,doneAgo,expired:isDoneExpired(it),source:'업무항목'});
   });
-  let consDone=consulting.filter(c=>c.status==='done');
-  if(catF)consDone=consDone.filter(c=>c.category===catF);
-  const consRows=[];
-  consDone.forEach(c=>{
+
+  // consulting + consulting_company 수집
+  let consRows=[];
+  consulting.forEach(c=>{
+    if(catF&&c.category!==catF)return;
     const m=CAT_META[c.category]||CAT_META.etc;
-    const ccs=getConsCompanies(c.id).filter(cc=>cc.status==='done');
+    const ccs=getConsCompanies(c.id);
     if(!ccs.length){
+      if(stF!=='all'&&c.status!==stF)return;
+      if(q&&!c.title.toLowerCase().includes(q))return;
       const doneAgo=c.doneAt?Math.floor((Date.now()-c.doneAt)/(1000*60*60*24)):null;
-      consRows.push({client:'—',catMeta:m,name:c.title,sub:'—',doneAt:c.doneAt,doneAgo,expired:isDoneExpired({status:c.status,doneAt:c.doneAt}),source:'간트(대분류)',amount:c.amount});
+      consRows.push({client:'—',catMeta:m,name:c.title,sub:'—',status:c.status||'wait',doneAt:c.doneAt,doneAgo,expired:isDoneExpired({status:c.status,doneAt:c.doneAt}),source:'간트(대분류)',amount:c.amount});
     } else {
       ccs.forEach(cc=>{
+        if(stF!=='all'&&cc.status!==stF)return;
         if(q&&!cc.companyName.toLowerCase().includes(q)&&!c.title.toLowerCase().includes(q))return;
         const doneAgo=cc.doneAt?Math.floor((Date.now()-cc.doneAt)/(1000*60*60*24)):null;
-        consRows.push({client:cc.companyName,catMeta:m,name:c.title,sub:'—',doneAt:cc.doneAt,doneAgo,expired:isDoneExpired({status:cc.status,doneAt:cc.doneAt}),source:'간트(대분류)',amount:c.amount});
+        consRows.push({client:cc.companyName,catMeta:m,name:c.title,sub:'—',status:cc.status||'wait',doneAt:cc.doneAt,doneAgo,expired:isDoneExpired({status:cc.status,doneAt:cc.doneAt}),source:'간트(대분류)',amount:c.amount});
       });
     }
   });
+
   const all=[...workRows,...consRows];
+
+  // 요약 카운팅 (항상 전체 기준)
   const summaryEl=document.getElementById('hist-summary');
   if(summaryEl){
-    const totalAmt=consRows.reduce((s,r)=>s+(+r.amount||0),0);
-    const expCnt=all.filter(r=>r.expired).length;
-    summaryEl.innerHTML=`<div style="display:flex;gap:12px;flex-wrap:wrap">
-      <div class="stat-mini" style="padding:10px 14px;flex:1;min-width:100px"><div class="stat-mini-val" style="font-size:20px;color:var(--ok)">${all.length}</div><div class="stat-mini-label">완료 건수</div></div>
-      <div class="stat-mini" style="padding:10px 14px;flex:1;min-width:100px"><div class="stat-mini-val" style="font-size:20px;color:var(--blue-l)">${workRows.length}</div><div class="stat-mini-label">업무항목 완료</div></div>
-      <div class="stat-mini" style="padding:10px 14px;flex:1;min-width:100px"><div class="stat-mini-val" style="font-size:20px;color:var(--gold-l)">${consRows.length}</div><div class="stat-mini-label">간트 완료</div></div>
-      <div class="stat-mini" style="padding:10px 14px;flex:1;min-width:100px"><div class="stat-mini-val" style="font-size:20px;color:var(--g2)">${expCnt}</div><div class="stat-mini-label">7일+ 경과</div></div>
-      <div class="stat-mini" style="padding:10px 14px;flex:1;min-width:100px"><div class="stat-mini-val" style="font-size:20px;color:var(--gold)">${totalAmt?fmtAmt(totalAmt):'—'}</div><div class="stat-mini-label">완료 신청금액</div></div>
+    const totalAmt=consulting.filter(c=>c.status==='done').reduce((s,c)=>s+(+c.amount||0),0);
+    const expCnt=workItems.filter(i=>isDoneExpired(i)).length;
+    summaryEl.innerHTML=`<div style="display:flex;gap:10px;flex-wrap:wrap">
+      <div class="stat-mini" style="padding:10px 14px;flex:1;min-width:90px"><div class="stat-mini-val" style="font-size:18px;color:var(--ok)">${workItems.filter(i=>i.status==='done').length+consulting.filter(c=>c.status==='done').length}</div><div class="stat-mini-label">완료 건수</div></div>
+      <div class="stat-mini" style="padding:10px 14px;flex:1;min-width:90px"><div class="stat-mini-val" style="font-size:18px;color:var(--warn)">${workItems.filter(i=>i.status==='ing').length}</div><div class="stat-mini-label">진행중</div></div>
+      <div class="stat-mini" style="padding:10px 14px;flex:1;min-width:90px"><div class="stat-mini-val" style="font-size:18px;color:var(--g1)">${workItems.filter(i=>i.status==='wait').length}</div><div class="stat-mini-label">대기중</div></div>
+      <div class="stat-mini" style="padding:10px 14px;flex:1;min-width:90px"><div class="stat-mini-val" style="font-size:18px;color:var(--g2)">${expCnt}</div><div class="stat-mini-label">7일+ 경과</div></div>
+      <div class="stat-mini" style="padding:10px 14px;flex:1;min-width:90px"><div class="stat-mini-val" style="font-size:18px;color:var(--gold)">${totalAmt?fmtAmt(totalAmt):'—'}</div><div class="stat-mini-label">완료 신청금액</div></div>
     </div>`;
   }
-  const headRow=document.querySelector('#page-history table thead tr');
-  if(headRow)headRow.innerHTML='<th>업체명</th><th>분야</th><th>업무내용</th><th>세부구분</th><th>완료일</th><th>경과</th><th>출처</th>';
+
+  // 테이블 헤더
+  const headEl=document.getElementById('hist-head');
+  const showDateCol=(stF==='done'||stF==='all');
+  if(headEl)headEl.innerHTML='<th>업체명</th><th>분야</th><th>업무내용</th><th>세부구분</th><th>상태</th>'+(showDateCol?'<th>완료일</th><th>경과</th>':'')+'<th>출처</th>';
+
+  // 페이지네이션
+  const total=all.length;
+  const totalPages=Math.ceil(total/perPage)||1;
+  const safePage=Math.min(Math.max(1,histPage),totalPages);
+  const pageData=all.slice((safePage-1)*perPage,safePage*perPage);
+
+  // 테이블 바디
   const bodyEl=document.getElementById('hist-body');
-  if(!bodyEl)return;
-  bodyEl.innerHTML=all.length?all.map(r=>`<tr>
-    <td><div style="font-size:12px;font-weight:500">${r.client}</div></td>
-    <td><span style="font-size:10px;padding:2px 7px;border-radius:8px;background:${r.catMeta.color}22;color:${r.catMeta.color}">${r.catMeta.icon} ${r.catMeta.name}</span></td>
-    <td style="font-size:11px">${r.name}</td>
-    <td style="font-size:10px;color:var(--g1)">${r.sub}</td>
-    <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g2)">${r.doneAt?new Date(r.doneAt).toLocaleDateString('ko-KR'):'—'}</td>
-    <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:${r.expired?'var(--g3)':r.doneAgo<=3?'var(--ok)':'var(--g1)'}">${r.doneAgo!==null?r.doneAgo+'일 전':'—'}${r.expired?' 🗂️':''}</td>
-    <td><span style="font-size:9px;padding:2px 7px;border-radius:8px;background:rgba(255,255,255,.06);color:var(--g2)">${r.source}</span></td>
-  </tr>`).join(''):`<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--g2)">완료된 업무가 없습니다</td></tr>`;
-  const hc=document.getElementById('sb-history-cnt');if(hc)hc.textContent=all.length;
+  if(bodyEl){
+    bodyEl.innerHTML=pageData.length?pageData.map(r=>`<tr>
+      <td><div style="font-size:12px;font-weight:500">${r.client}</div></td>
+      <td><span style="font-size:10px;padding:2px 7px;border-radius:8px;background:${r.catMeta.color}22;color:${r.catMeta.color}">${r.catMeta.icon} ${r.catMeta.name}</span></td>
+      <td style="font-size:11px">${r.name}</td>
+      <td style="font-size:10px;color:var(--g1)">${r.sub}</td>
+      <td>${badge(r.status)}</td>
+      ${showDateCol?`<td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g2)">${r.doneAt?new Date(r.doneAt).toLocaleDateString('ko-KR'):'—'}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:${r.expired?'var(--g3)':r.doneAgo!==null&&r.doneAgo<=3?'var(--ok)':'var(--g1)'}">${r.doneAgo!==null?r.doneAgo+'일 전':'—'}${r.expired?' 🗂️':''}</td>`:''}
+      <td><span style="font-size:9px;padding:2px 7px;border-radius:8px;background:rgba(255,255,255,.06);color:var(--g2)">${r.source}</span></td>
+    </tr>`).join(''):`<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--g2)">해당 항목이 없습니다</td></tr>`;
+  }
+
+  // 페이지네이션 렌더
+  const pgEl=document.getElementById('hist-pagination');
+  if(pgEl){
+    pgEl.innerHTML=(total>perPage?makePagination(safePage,totalPages,'setHistPage'):'')
+      +`<div style="text-align:center;font-size:10px;color:var(--g2);padding:4px">총 ${total}건${total>perPage?' 중 '+(((safePage-1)*perPage+1))+'~'+Math.min(safePage*perPage,total)+'건':''}</div>`;
+  }
+  const hc=document.getElementById('sb-history-cnt');if(hc)hc.textContent=workItems.filter(i=>i.status==='done').length+consulting.filter(c=>c.status==='done').length;
 }
+function setHistPage(page){histPage=page;renderHistoryPage();}
+
 
 // ── COMPANIES ──
 function openCompanyModal(bizno){
@@ -1441,12 +1555,12 @@ Object.assign(window,{
   navTo,manualSave,closeModal,
   prevMonth,nextMonth,goToday,toggleCat,
   setGanttFilter,setWorkFilter,
-  openCatAddModal,saveCatAdd,
+  openCatAddModal,saveCatAdd,deleteCatAdd,
   openConsultingModal,saveConsulting,deleteConsulting,addConsCompany,renderConsCompaniesList,updateConsCompanyStatus,removeConsCompany,
   openTodoModal,saveTodo,cycleTodo,deleteTodoItem,
   renderWork,openWorkModal,saveWork,confirmDeleteWork,cycleWork,
   renderClientsPage,setCliPageOv,setCliPageSub,setCliGroupFilter,
-  renderStatsPage,renderHistoryPage,
+  renderStatsPage,renderHistoryPage,setHistStatus,setHistPage,
   openCompanyModal,saveCompany,deleteCompany,checkBizno,renderCompaniesPage,
   showCorpDrop,hideCorpDrop,selectCorpDrop,
 });
