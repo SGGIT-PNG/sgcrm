@@ -1616,11 +1616,31 @@ async function saveWork(){
   const comp=companies.find(c=>c.name===clientName);
   const newStatus=document.getElementById('wm-status').value;
   const prevItem=editId?workItems.find(x=>x.id===editId):null;
+
+  // 완료 → 대기/진행 변경 + 인증 연결된 경우 → 인증 삭제 확인
+  if(prevItem?.status==='done'&&newStatus!=='done'&&prevItem?.certId){
+    if(!confirm('업무 상태를 변경하면 연결된 인증 데이터도 삭제됩니다.\n계속하시겠습니까?')){
+      return;
+    }
+    try{
+      const batch=writeBatch(db);
+      batch.delete(doc(db,'certifications',prevItem.certId));
+      batch.update(doc(db,'work_items',editId),{
+        category:cat,name,client:clientName,clientBizno:comp?comp._id:'',
+        status:newStatus,sub:document.getElementById('wm-sub').value,
+        doneAt:null,certId:null,updatedAt:Date.now()
+      });
+      await batch.commit();
+      closeModal('work-modal');
+    }catch(e){console.error(e);alert('저장 실패');}
+    return;
+  }
+
   const data={
     category:cat,name,client:clientName,clientBizno:comp?comp._id:'',
     status:newStatus,sub:document.getElementById('wm-sub').value,
     doneAt:newStatus==='done'&&prevItem?.status!=='done'?Date.now():newStatus!=='done'?null:(prevItem?.doneAt||null),
-    certId:prevItem?.certId||null,
+    certId:newStatus!=='done'?null:(prevItem?.certId||null),
     updatedAt:Date.now()
   };
   try{
@@ -1662,16 +1682,40 @@ function getRelatedCertMasters(cat){
 async function cycleWork(itemId){
   const it=workItems.find(x=>x.id===itemId);if(!it)return;
   const cy={wait:'ing',ing:'done',done:'wait'};const newStatus=cy[it.status]||'wait';
-  // 인증 관련 카테고리이고 완료로 변경 시 → 인증 등록 팝업
+
+  // 완료 → 대기/진행 으로 변경 시 연결된 인증 데이터 삭제
+  if(it.status==='done'&&newStatus!=='done'&&it.certId){
+    if(confirm('업무 상태를 변경하면 연결된 인증 데이터도 삭제됩니다.\n계속하시겠습니까?')){
+      try{
+        const batch=writeBatch(db);
+        // certifications 레코드 삭제
+        batch.delete(doc(db,'certifications',it.certId));
+        // work_items certId 초기화
+        batch.update(doc(db,'work_items',itemId),{
+          status:newStatus,doneAt:null,certId:null,updatedAt:Date.now()
+        });
+        await batch.commit();
+      }catch(e){console.error(e);alert('처리 실패');}
+    }
+    return;
+  }
+
+  // 완료로 변경 시 → 인증 등록 팝업
   if(newStatus==='done'&&isCertCategory(it.category)&&!it.certId){
     try{await updateDoc(doc(db,'work_items',itemId),{status:'done',doneAt:Date.now(),updatedAt:Date.now()});}
     catch(e){console.error(e);return;}
-    // 인증 등록 유도 팝업
     openCertFromWork(itemId);
     return;
   }
-  try{await updateDoc(doc(db,'work_items',itemId),{status:newStatus,doneAt:newStatus==='done'?Date.now():null,updatedAt:Date.now()});}
-  catch(e){console.error(e);}
+
+  // 일반 상태 변경
+  try{
+    await updateDoc(doc(db,'work_items',itemId),{
+      status:newStatus,
+      doneAt:newStatus==='done'?Date.now():null,
+      updatedAt:Date.now()
+    });
+  }catch(e){console.error(e);}
 }
 
 // 업무 완료 → 인증 등록 연결 팝업
