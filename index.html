@@ -454,7 +454,16 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
       <div class="fg"><label class="fl">대표자</label><input class="fi" id="comp-ceo" placeholder="홍길동"></div>
     </div>
     <div class="frow">
-      <div class="fg"><label class="fl">대표자 생년월일</label><input class="fi" id="comp-ceo-birth" type="date"></div>
+      <div class="fg">
+        <label class="fl">대표자 생년월일</label>
+        <div style="display:flex;gap:4px;align-items:center">
+          <input class="fi" id="comp-birth-y" placeholder="YYYY" maxlength="4" style="width:64px;text-align:center" oninput="autoTabDate(this,'comp-birth-m',4)">
+          <span style="color:var(--g2)">-</span>
+          <input class="fi" id="comp-birth-m" placeholder="MM" maxlength="2" style="width:48px;text-align:center" oninput="autoTabDate(this,'comp-birth-d',2)">
+          <span style="color:var(--g2)">-</span>
+          <input class="fi" id="comp-birth-d" placeholder="DD" maxlength="2" style="width:48px;text-align:center">
+        </div>
+      </div>
       <div class="fg"><label class="fl">법인번호</label><input class="fi" id="comp-corp-no" placeholder="000000-0000000"></div>
     </div>
     <div class="frow">
@@ -463,8 +472,26 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
       <div class="fg"><label class="fl">업종</label><input class="fi" id="comp-biztype" placeholder="제조업"></div>
     </div>
     <div class="frow">
+      <div class="fg">
+        <label class="fl">설립일 <span style="font-size:9px;color:var(--g2)">(법인: 등기일 / 개인: 개업일)</span></label>
+        <div style="display:flex;gap:4px;align-items:center">
+          <input class="fi" id="comp-est-y" placeholder="YYYY" maxlength="4" style="width:64px;text-align:center" oninput="autoTabDate(this,'comp-est-m',4)">
+          <span style="color:var(--g2)">-</span>
+          <input class="fi" id="comp-est-m" placeholder="MM" maxlength="2" style="width:48px;text-align:center" oninput="autoTabDate(this,'comp-est-d',2)">
+          <span style="color:var(--g2)">-</span>
+          <input class="fi" id="comp-est-d" placeholder="DD" maxlength="2" style="width:48px;text-align:center">
+        </div>
+      </div>
       <div class="fg"><label class="fl">연락처</label><input class="fi" id="comp-tel" placeholder="010-0000-0000"></div>
+    </div>
+    <div class="frow">
       <div class="fg"><label class="fl">이메일</label><input class="fi" id="comp-email" placeholder="example@company.com"></div>
+      <div class="fg"><label class="fl">업체 구분</label>
+        <select class="fs" id="comp-bizclass">
+          <option value="법인">🏛️ 법인사업자</option>
+          <option value="개인">👤 개인사업자</option>
+        </select>
+      </div>
     </div>
     <div class="fg"><label class="fl">주소</label><input class="fi" id="comp-addr" placeholder="서울시 강남구..."></div>
     <div class="frow">
@@ -825,6 +852,28 @@ async function deleteCatAdd(){
   }catch(e){alert('삭제 실패: '+e.message);}
 }
 let _saveTimer=null;
+// 날짜 입력 자동 탭이동
+function autoTabDate(el,nextId,maxLen){
+  if(el.value.length>=maxLen){const next=document.getElementById(nextId);if(next)next.focus();}
+}
+// 날짜 3분할 필드 → YYYY-MM-DD
+function getDateFields(yId,mId,dId){
+  const y=document.getElementById(yId)?.value.trim()||'';
+  const m=document.getElementById(mId)?.value.trim()||'';
+  const d=document.getElementById(dId)?.value.trim()||'';
+  if(!y&&!m&&!d)return '';
+  return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+}
+// YYYY-MM-DD → 3분할 필드 세팅
+function setDateFields(yId,mId,dId,dateStr){
+  const yEl=document.getElementById(yId);const mEl=document.getElementById(mId);const dEl=document.getElementById(dId);
+  if(!dateStr){if(yEl)yEl.value='';if(mEl)mEl.value='';if(dEl)dEl.value='';return;}
+  const parts=(dateStr||'').split('-');
+  if(yEl)yEl.value=parts[0]||'';
+  if(mEl)mEl.value=parts[1]||'';
+  if(dEl)dEl.value=parts[2]||'';
+}
+
 function saveAppState(){
   if(_saveTimer)clearTimeout(_saveTimer);
   _saveTimer=setTimeout(async()=>{
@@ -1485,7 +1534,7 @@ function openCompanyModal(bizno){
     document.getElementById('comp-edit-bizno').value=bizno;
     document.getElementById('comp-name').value=c.name||'';
     document.getElementById('comp-ceo').value=c.ceo||'';
-    document.getElementById('comp-ceo-birth').value=c.ceoBirth||'';
+    setDateFields('comp-birth-y','comp-birth-m','comp-birth-d',c.ceoBirth||'');
     document.getElementById('comp-corp-no').value=c.corpNo||'';
     document.getElementById('comp-bizno').value=c._id||'';
     document.getElementById('comp-bizno-auto').textContent='';
@@ -1495,26 +1544,25 @@ function openCompanyModal(bizno){
     document.getElementById('comp-addr').value=c.addr||'';
     document.getElementById('comp-group').value=c.group||'일반고객';
     document.getElementById('comp-active').value=c.active||'Y';
+    document.getElementById('comp-bizclass').value=c.bizclass||'법인';
+    setDateFields('comp-est-y','comp-est-m','comp-est-d',c.estDate||'');
     document.getElementById('comp-memo').value=c.memo||'';
-    // 비활성 업체면 버튼 텍스트 변경
     const delBtn=document.getElementById('comp-del-btn');
     delBtn.style.display='';
     if(c.active==='N'){
-      delBtn.textContent='↩️ 복구';
-      delBtn.className='btn btn-ghost btn-sm';
-      delBtn.onclick=()=>restoreCompany(bizno);
+      delBtn.textContent='↩️ 복구';delBtn.className='btn btn-ghost btn-sm';delBtn.onclick=()=>restoreCompany(bizno);
     } else {
-      delBtn.textContent='🚫 비활성화';
-      delBtn.className='btn btn-danger btn-sm';
-      delBtn.onclick=deleteCompany;
+      delBtn.textContent='🚫 비활성화';delBtn.className='btn btn-danger btn-sm';delBtn.onclick=deleteCompany;
     }
   } else {
     document.getElementById('company-modal-title').textContent='🏛️ 기업 등록';
     document.getElementById('comp-edit-bizno').value='';
-    ['comp-name','comp-ceo','comp-ceo-birth','comp-corp-no','comp-bizno','comp-biztype','comp-tel','comp-email','comp-addr','comp-memo'].forEach(id=>document.getElementById(id).value='');
+    ['comp-name','comp-ceo','comp-corp-no','comp-bizno','comp-biztype','comp-tel','comp-email','comp-addr','comp-memo'].forEach(id=>document.getElementById(id).value='');
+    ['comp-birth-y','comp-birth-m','comp-birth-d','comp-est-y','comp-est-m','comp-est-d'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('comp-bizno-auto').textContent='';
     document.getElementById('comp-group').value='일반고객';
     document.getElementById('comp-active').value='Y';
+    document.getElementById('comp-bizclass').value='법인';
     document.getElementById('comp-del-btn').style.display='none';
   }
   openModal('company-modal');
@@ -1525,7 +1573,23 @@ async function saveCompany(){
   let bizno=document.getElementById('comp-bizno').value.trim();
   const editBizno=document.getElementById('comp-edit-bizno').value;
   if(!bizno&&!editBizno)bizno=genTempBizno();
-  const data={name,ceo:document.getElementById('comp-ceo').value,ceoBirth:document.getElementById('comp-ceo-birth').value,corpNo:document.getElementById('comp-corp-no').value,biztype:document.getElementById('comp-biztype').value,tel:document.getElementById('comp-tel').value,email:document.getElementById('comp-email').value,addr:document.getElementById('comp-addr').value,memo:document.getElementById('comp-memo').value,group:document.getElementById('comp-group').value||'일반고객',active:document.getElementById('comp-active').value||'Y',joinDate:new Date().toISOString().slice(0,10),updatedAt:Date.now()};
+  const data={
+    name,
+    ceo:document.getElementById('comp-ceo').value,
+    ceoBirth:getDateFields('comp-birth-y','comp-birth-m','comp-birth-d'),
+    corpNo:document.getElementById('comp-corp-no').value,
+    biztype:document.getElementById('comp-biztype').value,
+    bizclass:document.getElementById('comp-bizclass').value||'법인',
+    estDate:getDateFields('comp-est-y','comp-est-m','comp-est-d'),
+    tel:document.getElementById('comp-tel').value,
+    email:document.getElementById('comp-email').value,
+    addr:document.getElementById('comp-addr').value,
+    memo:document.getElementById('comp-memo').value,
+    group:document.getElementById('comp-group').value||'일반고객',
+    active:document.getElementById('comp-active').value||'Y',
+    joinDate:new Date().toISOString().slice(0,10),
+    updatedAt:Date.now()
+  };
   try{
     setBadge('🔄 저장 중...');
     if(editBizno){await updateDoc(doc(db,'companies',editBizno),data);}
@@ -1643,7 +1707,7 @@ Object.assign(window,{
   renderWork,openWorkModal,saveWork,confirmDeleteWork,cycleWork,
   renderClientsPage,setCliPageOv,setCliPageSub,setCliGroupFilter,
   renderStatsPage,renderHistoryPage,setHistStatus,setHistPage,
-  openCompanyModal,saveCompany,deleteCompany,restoreCompany,checkBizno,renderCompaniesPage,
+  openCompanyModal,saveCompany,deleteCompany,restoreCompany,checkBizno,renderCompaniesPage,autoTabDate,
   showCorpDrop,hideCorpDrop,selectCorpDrop,
 });
 </script>
