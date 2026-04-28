@@ -219,9 +219,13 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
 
     <!-- PAGE: OVERVIEW -->
     <div class="page-section active" id="page-overview">
+      <!-- 1. 긴급 갱신 배너 -->
       <div id="cert-banner"></div>
-      <div id="cert-summary-ov" style="margin-bottom:16px"></div>
+      <!-- 2. 업무 진행 요약 통계 (5개 카드) -->
       <div class="grid5" id="ov-stats" style="margin-bottom:24px"></div>
+      <!-- 3. 인증·갱신 현황 요약 -->
+      <div id="cert-summary-ov" style="margin-bottom:24px"></div>
+      <!-- 4. 지원사업·정책자금 -->
       <div style="margin-bottom:24px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
           <div style="display:flex;align-items:center;gap:8px">
@@ -247,6 +251,7 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
           <div class="gantt-scroll"><table class="gantt-table" id="gantt-table"></table></div>
         </div>
       </div>
+      <!-- 5. 수시처리 To Do List -->
       <div style="margin-bottom:24px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
           <div style="width:28px;height:28px;border-radius:8px;background:rgba(16,185,129,.2);display:flex;align-items:center;justify-content:center">✅</div>
@@ -255,6 +260,7 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
         </div>
         <div class="todo-wrap" id="todo-grid"></div>
       </div>
+      <!-- 6. 업무 영역별 진행 현황 -->
       <div style="margin-bottom:24px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
           <div style="display:flex;align-items:center;gap:8px">
@@ -271,6 +277,7 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
         </div>
         <div class="grid3" id="work-grid"></div>
       </div>
+      <!-- 7. 업체별 진행 분야 현황 -->
       <div style="margin-bottom:24px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
           <div style="display:flex;align-items:center;gap:8px">
@@ -300,6 +307,7 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
           <div id="pg-cli-ov" style="padding:8px 16px;border-top:1px solid rgba(255,255,255,.06)"></div>
         </div>
       </div>
+      <!-- 8. 누적 통계 데이터 -->
       <div style="margin-bottom:24px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
           <div style="width:28px;height:28px;border-radius:8px;background:rgba(212,168,67,.2);display:flex;align-items:center;justify-content:center">📈</div>
@@ -392,6 +400,7 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
         <button class="toggle-opt active" id="cert-tab-alert" onclick="setCertTab('alert')">⚠️ 갱신 알림</button>
         <button class="toggle-opt" id="cert-tab-by-cert" onclick="setCertTab('by-cert')">📋 인증별 업체</button>
         <button class="toggle-opt" id="cert-tab-by-comp" onclick="setCertTab('by-comp')">🏢 업체별 인증</button>
+        <button class="toggle-opt" id="cert-tab-master" onclick="setCertTab('master')">⚙️ 인증 종류 관리</button>
       </div>
 
       <!-- 탭1: 갱신 알림 -->
@@ -427,6 +436,18 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
         <div class="card"><div class="tbl-wrap"><table class="tbl">
           <thead><tr><th>업체명</th><th>인증 종류</th><th>취득일</th><th>만료·갱신일</th><th>갱신주기</th><th>상태</th><th>D-Day</th><th>관리</th></tr></thead>
           <tbody id="cert-by-comp-body"></tbody>
+        </table></div></div>
+      </div>
+
+      <!-- 탭4: 인증 종류 관리 -->
+      <div id="cert-pane-master" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div style="font-size:12px;color:var(--g1)">⚙️ 인증 종류를 추가·수정·삭제할 수 있어요. 기본 제공 인증도 수정 가능해요.</div>
+          <button class="btn btn-primary" onclick="openCertMasterModal()">+ 인증 종류 추가</button>
+        </div>
+        <div class="card"><div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>아이콘</th><th>인증 종류명</th><th>구분</th><th>갱신주기</th><th>알림기준</th><th>설명</th><th style="width:80px">관리</th></tr></thead>
+          <tbody id="cert-master-body"></tbody>
         </table></div></div>
       </div>
     </div>
@@ -629,6 +650,51 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
         <button class="btn btn-ghost" onclick="closeModal('consulting-modal')">취소</button>
         <button class="btn btn-primary" onclick="saveConsulting()">저장</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 인증 종류 추가/수정 -->
+<div class="ov" id="cert-master-modal">
+  <div class="modal" style="width:500px">
+    <div class="modal-title"><span id="cert-master-modal-title">➕ 인증 종류 추가</span><button class="modal-close" onclick="closeModal('cert-master-modal')">×</button></div>
+    <input type="hidden" id="cm-edit-id">
+    <div class="frow">
+      <div class="fg"><label class="fl">인증 종류명 *</label><input class="fi" id="cm-name" placeholder="예: ISO 22301, ISMS-P"></div>
+      <div class="fg"><label class="fl">아이콘 (이모지)</label><input class="fi" id="cm-icon" placeholder="🏅" style="font-size:18px;width:80px"></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label class="fl">구분</label>
+        <select class="fs" id="cm-cycle-type" onchange="toggleCmCycleFields()">
+          <option value="fixed">고정주기 (벤처·ISO 등)</option>
+          <option value="complex">복합주기 (ISO 사후심사 등)</option>
+        </select>
+      </div>
+      <div class="fg" id="cm-cycle-months-wrap"><label class="fl">갱신주기 (개월)</label>
+        <select class="fs" id="cm-cycle-months">
+          <option value="12">12개월 (1년)</option>
+          <option value="24">24개월 (2년)</option>
+          <option value="36">36개월 (3년)</option>
+          <option value="60">60개월 (5년)</option>
+        </select>
+      </div>
+    </div>
+    <!-- complex 구조일 때 단계 설정 -->
+    <div id="cm-phases-wrap" style="display:none">
+      <label class="fl">심사 단계 설정</label>
+      <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:12px;margin-bottom:4px">
+        <div id="cm-phases-list"></div>
+        <button onclick="addCmPhase()" style="width:100%;padding:6px;background:none;border:1px dashed rgba(255,255,255,.1);border-radius:7px;color:var(--g2);font-size:11px;cursor:pointer;margin-top:6px;font-family:'Noto Sans KR',sans-serif">+ 단계 추가</button>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">알림 기준일 <span style="font-size:9px;color:var(--g2)">(쉼표로 구분, 예: 90,30,7)</span></label>
+      <input class="fi" id="cm-alert-days" placeholder="90,30,7" value="90,30,7">
+    </div>
+    <div class="fg"><label class="fl">설명</label><input class="fi" id="cm-description" placeholder="예: ISO 식품안전경영시스템 (3년 주기, 매년 사후심사)"></div>
+    <div class="modal-btns">
+      <button class="btn btn-danger btn-sm" id="cm-del-btn" style="display:none;margin-right:auto" onclick="deleteCertMaster()">삭제</button>
+      <button class="btn btn-ghost" onclick="closeModal('cert-master-modal')">취소</button>
+      <button class="btn btn-primary" onclick="saveCertMaster()">저장</button>
     </div>
   </div>
 </div>
@@ -1899,13 +1965,136 @@ let certTabCurrent='alert';
 
 function setCertTab(tab){
   certTabCurrent=tab;
-  ['alert','by-cert','by-comp'].forEach(t=>{
+  ['alert','by-cert','by-comp','master'].forEach(t=>{
     document.getElementById('cert-tab-'+t)?.classList.toggle('active',t===tab);
-    document.getElementById('cert-pane-'+t) && (document.getElementById('cert-pane-'+t).style.display=t===tab?'':'none');
+    const pane=document.getElementById('cert-pane-'+t);
+    if(pane)pane.style.display=t===tab?'':'none';
   });
   if(tab==='alert')renderCertAlert();
   else if(tab==='by-cert')renderCertByCert();
   else if(tab==='by-comp')renderCertByComp();
+  else if(tab==='master')renderCertMaster();
+}
+
+// ── CERT MASTER CRUD ──
+let cmPhases=[]; // 모달 임시 단계 목록
+
+function renderCertMaster(){
+  const el=document.getElementById('cert-master-body');if(!el)return;
+  el.innerHTML=certMaster.length?certMaster.map(m=>`<tr>
+    <td style="font-size:20px;text-align:center">${m.icon||'📋'}</td>
+    <td><div style="font-size:12px;font-weight:500">${m.certName}</div></td>
+    <td><span style="font-size:10px;padding:2px 7px;border-radius:8px;background:${m.cycleType==='complex'?'rgba(245,158,11,.2)':'rgba(59,130,246,.2)'};color:${m.cycleType==='complex'?'#FCD34D':'#93C5FD'}">${m.cycleType==='complex'?'복합주기':'고정주기'}</span></td>
+    <td style="font-size:11px;color:var(--g1)">${m.cycleType==='complex'?'사후심사':m.cycleMonths+'개월'}</td>
+    <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g2)">${(m.alertDays||[90,30,7]).join(', ')}일</td>
+    <td style="font-size:10px;color:var(--g2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.description||'—'}</td>
+    <td>
+      <button onclick="openCertMasterModal('${m.id}')" style="background:none;border:none;color:var(--g2);font-size:12px;cursor:pointer;padding:2px">✏️</button>
+    </td>
+  </tr>`).join(''):`<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--g2)">등록된 인증 종류가 없습니다</td></tr>`;
+}
+
+function toggleCmCycleFields(){
+  const type=document.getElementById('cm-cycle-type')?.value;
+  const cycleWrap=document.getElementById('cm-cycle-months-wrap');
+  const phasesWrap=document.getElementById('cm-phases-wrap');
+  if(type==='complex'){
+    if(cycleWrap)cycleWrap.style.display='none';
+    if(phasesWrap)phasesWrap.style.display='';
+  } else {
+    if(cycleWrap)cycleWrap.style.display='';
+    if(phasesWrap)phasesWrap.style.display='none';
+  }
+}
+
+function renderCmPhases(){
+  const el=document.getElementById('cm-phases-list');if(!el)return;
+  el.innerHTML=cmPhases.length?cmPhases.map((p,i)=>`
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+      <input class="fi" value="${p.name}" placeholder="단계명 (예: 최초인증)" style="flex:2" oninput="cmPhases[${i}].name=this.value">
+      <input class="fi" type="number" value="${p.months}" placeholder="개월" style="width:70px;text-align:center" oninput="cmPhases[${i}].months=+this.value">
+      <span style="font-size:10px;color:var(--g2);white-space:nowrap">개월</span>
+      <button onclick="cmPhases.splice(${i},1);renderCmPhases()" style="background:none;border:none;color:var(--g2);cursor:pointer;font-size:16px">×</button>
+    </div>`).join(''):'<div style="font-size:11px;color:var(--g2);padding:4px">단계를 추가해주세요</div>';
+}
+function addCmPhase(){
+  cmPhases.push({name:'',months:12});
+  renderCmPhases();
+}
+
+function openCertMasterModal(id){
+  cmPhases=[];
+  if(id){
+    const m=certMaster.find(x=>x.id===id);if(!m)return;
+    document.getElementById('cert-master-modal-title').textContent='✏️ 인증 종류 수정';
+    document.getElementById('cm-edit-id').value=id;
+    document.getElementById('cm-name').value=m.certName||'';
+    document.getElementById('cm-icon').value=m.icon||'📋';
+    document.getElementById('cm-cycle-type').value=m.cycleType||'fixed';
+    document.getElementById('cm-cycle-months').value=m.cycleMonths||36;
+    document.getElementById('cm-alert-days').value=(m.alertDays||[90,30,7]).join(',');
+    document.getElementById('cm-description').value=m.description||'';
+    cmPhases=[...(m.phases||[])];
+    document.getElementById('cm-del-btn').style.display='';
+  } else {
+    document.getElementById('cert-master-modal-title').textContent='➕ 인증 종류 추가';
+    document.getElementById('cm-edit-id').value='';
+    ['cm-name','cm-description'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('cm-icon').value='📋';
+    document.getElementById('cm-cycle-type').value='fixed';
+    document.getElementById('cm-cycle-months').value='36';
+    document.getElementById('cm-alert-days').value='90,30,7';
+    cmPhases=[];
+    document.getElementById('cm-del-btn').style.display='none';
+  }
+  toggleCmCycleFields();
+  renderCmPhases();
+  openModal('cert-master-modal');
+}
+
+async function saveCertMaster(){
+  const name=document.getElementById('cm-name').value.trim();
+  if(!name){alert('인증 종류명을 입력하세요');return;}
+  const cycleType=document.getElementById('cm-cycle-type').value;
+  const alertDays=(document.getElementById('cm-alert-days').value||'90,30,7')
+    .split(',').map(d=>+d.trim()).filter(d=>d>0);
+  const data={
+    certName:name,
+    icon:document.getElementById('cm-icon').value.trim()||'📋',
+    cycleType,
+    cycleMonths:cycleType==='fixed'?+document.getElementById('cm-cycle-months').value:36,
+    phases:cycleType==='complex'?cmPhases:[],
+    alertDays,
+    description:document.getElementById('cm-description').value,
+    sortOrder:100+Date.now()%1000,
+    updatedAt:Date.now()
+  };
+  const editId=document.getElementById('cm-edit-id').value;
+  try{
+    if(editId){
+      await updateDoc(doc(db,'cert_master',editId),data);
+    } else {
+      const id='custom_cert_'+Date.now();
+      data.createdAt=Date.now();
+      await setDoc(doc(db,'cert_master',id),data);
+    }
+    closeModal('cert-master-modal');
+  }catch(e){alert('저장 실패: '+e.message);}
+}
+
+async function deleteCertMaster(){
+  const id=document.getElementById('cm-edit-id').value;
+  if(!id)return;
+  const m=certMaster.find(x=>x.id===id);
+  // 해당 인증 종류로 등록된 certifications 확인
+  const used=certifications.filter(c=>c.certMasterId===id).length;
+  const confirmMsg=`'${m?.certName}' 인증 종류를 삭제하시겠습니까?`+
+    (used>0?`\n\n⚠️ 이미 ${used}건의 인증 데이터가 이 종류를 사용 중입니다.\n삭제해도 기존 등록된 인증 데이터는 유지됩니다.`:'');
+  if(!confirm(confirmMsg))return;
+  try{
+    await deleteDoc(doc(db,'cert_master',id));
+    closeModal('cert-master-modal');
+  }catch(e){alert('삭제 실패: '+e.message);}
 }
 
 function getCertDday(expDate){
@@ -2375,7 +2564,8 @@ Object.assign(window,{
   prevMonth,nextMonth,goToday,toggleCat,
   setGanttFilter,setWorkFilter,
   openCatAddModal,saveCatAdd,deleteCatAdd,
-  setCertTab,renderCertByCert,renderCertByComp,
+  setCertTab,renderCertByCert,renderCertByComp,renderCertMaster,
+  openCertMasterModal,saveCertMaster,deleteCertMaster,toggleCmCycleFields,addCmPhase,
   openCertModal,onCertTypeChange,saveCert,deleteCert,calcCertExpDate,
   openCertFromWork,onCfwTypeChange,cfwCalcExpDate,saveCertFromWork,skipCertFromWork,
   openConsultingModal,saveConsulting,deleteConsulting,addConsCompany,renderConsCompaniesList,updateConsCompanyStatus,removeConsCompany,
