@@ -484,7 +484,7 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
     </div>
     <div class="fg"><label class="fl">메모</label><textarea class="fta" id="comp-memo"></textarea></div>
     <div class="modal-btns">
-      <button class="btn btn-danger btn-sm" id="comp-del-btn" style="display:none;margin-right:auto" onclick="deleteCompany()">삭제</button>
+      <button class="btn btn-danger btn-sm" id="comp-del-btn" style="display:none;margin-right:auto" onclick="deleteCompany()">🚫 비활성화</button>
       <button class="btn btn-ghost" onclick="closeModal('company-modal')">취소</button>
       <button class="btn btn-primary" onclick="saveCompany()">저장</button>
     </div>
@@ -1480,7 +1480,18 @@ function openCompanyModal(bizno){
     document.getElementById('comp-group').value=c.group||'일반고객';
     document.getElementById('comp-active').value=c.active||'Y';
     document.getElementById('comp-memo').value=c.memo||'';
-    document.getElementById('comp-del-btn').style.display='';
+    // 비활성 업체면 버튼 텍스트 변경
+    const delBtn=document.getElementById('comp-del-btn');
+    delBtn.style.display='';
+    if(c.active==='N'){
+      delBtn.textContent='↩️ 복구';
+      delBtn.className='btn btn-ghost btn-sm';
+      delBtn.onclick=()=>restoreCompany(bizno);
+    } else {
+      delBtn.textContent='🚫 비활성화';
+      delBtn.className='btn btn-danger btn-sm';
+      delBtn.onclick=deleteCompany;
+    }
   } else {
     document.getElementById('company-modal-title').textContent='🏛️ 기업 등록';
     document.getElementById('comp-edit-bizno').value='';
@@ -1508,9 +1519,61 @@ async function saveCompany(){
 }
 async function deleteCompany(){
   const bizno=document.getElementById('comp-edit-bizno').value;
-  if(!bizno||!confirm('정말 삭제하시겠습니까?\n관련 컨설팅 이력은 유지됩니다.'))return;
-  try{await deleteDoc(doc(db,'companies',bizno));closeModal('company-modal');setBadge('✅ 삭제됨',2000);}
-  catch(e){alert('삭제 실패');}
+  if(!bizno)return;
+  const comp=companies.find(x=>x._id===bizno);
+  if(!comp)return;
+
+  // 연관 데이터 조회
+  const relatedWork=workItems.filter(w=>w.clientBizno===bizno);
+  const relatedCC=consCompanies.filter(cc=>cc.bizno===bizno);
+
+  const confirmMsg=`'${comp.name}'을(를) 비활성화 하시겠습니까?\n\n` +
+    `✅ 화면에서 숨겨지는 데이터:\n` +
+    `- 업무 항목: ${relatedWork.length}건\n` +
+    `- 지원사업 참여이력: ${relatedCC.length}건\n\n` +
+    `📊 통계 데이터는 보존됩니다.\n` +
+    `기업관리 → 🚫비활성 필터에서 언제든 복구 가능합니다.`;
+
+  if(!confirm(confirmMsg))return;
+
+  try{
+    setBadge('🔄 처리 중...');
+    const batch=writeBatch(db);
+
+    // 1. 기업 active = 'N' (Soft Delete)
+    batch.update(doc(db,'companies',bizno),{
+      active:'N',
+      deactivatedAt:Date.now(),
+      updatedAt:Date.now()
+    });
+
+    // 2. 해당 업체 work_items → status 유지, clientBizno로 필터링해서 화면에서만 제외
+    // (데이터 삭제 안 함 - 통계 보존)
+
+    // 3. consulting_company → 참여이력 유지 (통계 보존)
+
+    await batch.commit();
+    setBadge('✅ 비활성화 완료',2000);
+    closeModal('company-modal');
+    cliPageOv=1;cliPageSub=1;
+  }catch(e){
+    console.error(e);
+    setBadge('⚠️ 처리 실패');
+    alert('처리 실패: '+e.message);
+  }
+}
+
+// 비활성 기업 복구
+async function restoreCompany(bizno){
+  if(!confirm('이 기업을 다시 활성화 하시겠습니까?'))return;
+  try{
+    await updateDoc(doc(db,'companies',bizno),{
+      active:'Y',
+      deactivatedAt:null,
+      updatedAt:Date.now()
+    });
+    setBadge('✅ 복구 완료',2000);
+  }catch(e){alert('복구 실패: '+e.message);}
 }
 function renderCompaniesPage(){
   const q=(document.getElementById('corp-search')?.value||'').toLowerCase();
@@ -1527,7 +1590,10 @@ function renderCompaniesPage(){
       <td style="color:var(--g1)">${c.tel||'—'}</td>
       <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold-l)">${amt?fmtAmt(amt):'—'}</td>
       <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g2)">${c.joinDate||'—'}</td>
-      <td><button onclick="openCompanyModal('${c._id}')" style="background:none;border:none;color:var(--g2);font-size:13px;cursor:pointer;padding:2px">✏️</button></td>
+      <td>
+        <button onclick="openCompanyModal('${c._id}')" style="background:none;border:none;color:var(--g2);font-size:13px;cursor:pointer;padding:2px" title="수정">✏️</button>
+        ${isInactive?`<button onclick="restoreCompany('${c._id}')" style="background:none;border:none;color:var(--ok);font-size:11px;cursor:pointer;padding:2px" title="복구">↩️복구</button>`:''}
+      </td>
     </tr>`;
   }).join(''):`<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--g2)">등록된 기업이 없습니다</td></tr>`;
 }
@@ -1561,7 +1627,7 @@ Object.assign(window,{
   renderWork,openWorkModal,saveWork,confirmDeleteWork,cycleWork,
   renderClientsPage,setCliPageOv,setCliPageSub,setCliGroupFilter,
   renderStatsPage,renderHistoryPage,setHistStatus,setHistPage,
-  openCompanyModal,saveCompany,deleteCompany,checkBizno,renderCompaniesPage,
+  openCompanyModal,saveCompany,deleteCompany,restoreCompany,checkBizno,renderCompaniesPage,
   showCorpDrop,hideCorpDrop,selectCorpDrop,
 });
 </script>
