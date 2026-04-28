@@ -893,12 +893,15 @@ function getConsWorkItems(cat){
   const items=[];
   consulting.filter(c=>c.category===cat).forEach(c=>{
     const ccs=getConsCompanies(c.id); // 이미 비활성 업체 제외됨
+    // 원래 참여업체가 있는데 활성 업체가 0개면 → 업무 영역에도 표시 안 함
+    const allCompaniesInactive=consCompanies.filter(cc=>cc.consId===c.id).length>0&&ccs.length===0;
+    if(allCompaniesInactive)return;
     if(!ccs.length){
       const already=workItems.some(w=>w.category===cat&&w.consId===c.id&&!w.clientBizno);
       if(!already)items.push({_fromCons:true,consId:c.id,consTitle:c.title,id:'cons_'+c.id,name:c.title,client:'',clientBizno:'',status:c.status||'wait',sub:'',doneAt:c.doneAt});
     } else {
       ccs.forEach(cc=>{
-        if(inactive.has(cc.bizno))return; // 비활성 업체 제외
+        if(inactive.has(cc.bizno))return;
         const already=workItems.some(w=>w.category===cat&&w.consId===c.id&&w.clientBizno===cc.bizno);
         if(!already)items.push({_fromCons:true,consId:c.id,consTitle:c.title,id:'cons_'+c.id+'_'+cc.bizno,name:cc.companyName,client:cc.companyName,clientBizno:cc.bizno,status:cc.status||'wait',sub:'',doneAt:cc.doneAt});
       });
@@ -970,6 +973,9 @@ function renderGantt(sfx){
     const cm=CAT_META[c.category]||CAT_META.etc;
     // consulting_company JOIN으로 참여업체 조회 (비활성 업체 자동 제외)
     const ccs=getConsCompanies(c.id);
+    // 참여업체가 있는데 활성 업체가 0개면 대분류도 숨김
+    const allCompaniesInactive=consCompanies.filter(cc=>cc.consId===c.id).length>0&&ccs.length===0;
+    if(allCompaniesInactive)return;
     body+=`<tr class="cat-row${isDone?' gantt-row-done':''}${isExpired?' gantt-row-expired':''}" onclick="toggleCat('${c.id}')"><td class="cat-label-td">
       <div class="cat-name">${cm.icon} ${c.title} ${badge(c.status||'wait')}<span class="cat-arrow${exp?' open':''}">▶</span>
         <button onclick="event.stopPropagation();openConsultingModal('${c.id}')" style="margin-left:6px;padding:2px 8px;background:rgba(37,99,235,.2);border:1px solid rgba(37,99,235,.4);border-radius:5px;color:#93C5FD;font-size:9px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">관리</button>
