@@ -220,6 +220,7 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
     <!-- PAGE: OVERVIEW -->
     <div class="page-section active" id="page-overview">
       <div id="cert-banner"></div>
+      <div id="cert-summary-ov" style="margin-bottom:16px"></div>
       <div class="grid5" id="ov-stats" style="margin-bottom:24px"></div>
       <div style="margin-bottom:24px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
@@ -628,6 +629,59 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
         <button class="btn btn-ghost" onclick="closeModal('consulting-modal')">취소</button>
         <button class="btn btn-primary" onclick="saveConsulting()">저장</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 업무완료 → 인증등록 연결 -->
+<div class="ov" id="cert-from-work-modal">
+  <div class="modal" style="width:500px">
+    <div class="modal-title">
+      <span>🎉 인증 완료! 인증 정보를 등록하세요</span>
+      <button class="modal-close" onclick="closeModal('cert-from-work-modal')">×</button>
+    </div>
+    <div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:11px;color:#6EE7B7">
+      ✅ 업무가 완료됐어요! 인증서 취득일과 만료일을 등록하면 갱신 알림을 받을 수 있어요.
+    </div>
+    <input type="hidden" id="cfw-work-id">
+    <div class="frow">
+      <div class="fg"><label class="fl">업체명</label>
+        <input class="fi" id="cfw-comp-name" readonly style="opacity:.7">
+      </div>
+      <div class="fg"><label class="fl">인증 종류 *</label>
+        <select class="fs" id="cfw-master-sel" onchange="onCfwTypeChange()"></select>
+      </div>
+    </div>
+    <!-- ISO 등 complex 단계 선택 -->
+    <div class="fg" id="cfw-phase-wrap" style="display:none">
+      <label class="fl">현재 단계</label>
+      <select class="fs" id="cfw-phase-sel"></select>
+    </div>
+    <div class="frow">
+      <div class="fg">
+        <label class="fl">취득일 (인증서 발급일) *</label>
+        <div style="display:flex;gap:4px;align-items:center">
+          <input class="fi" id="cfw-acq-y" placeholder="YYYY" maxlength="4" style="width:64px;text-align:center" oninput="autoTabDate(this,'cfw-acq-m',4);cfwCalcExpDate()">
+          <span style="color:var(--g2)">-</span>
+          <input class="fi" id="cfw-acq-m" placeholder="MM" maxlength="2" style="width:48px;text-align:center" oninput="autoTabDate(this,'cfw-acq-d',2);cfwCalcExpDate()">
+          <span style="color:var(--g2)">-</span>
+          <input class="fi" id="cfw-acq-d" placeholder="DD" maxlength="2" style="width:48px;text-align:center" oninput="cfwCalcExpDate()">
+        </div>
+      </div>
+      <div class="fg">
+        <label class="fl">만료·갱신일 * <span style="font-size:9px;color:var(--g2)">(자동계산)</span></label>
+        <div style="display:flex;gap:4px;align-items:center">
+          <input class="fi" id="cfw-exp-y" placeholder="YYYY" maxlength="4" style="width:64px;text-align:center" oninput="autoTabDate(this,'cfw-exp-m',4)">
+          <span style="color:var(--g2)">-</span>
+          <input class="fi" id="cfw-exp-m" placeholder="MM" maxlength="2" style="width:48px;text-align:center" oninput="autoTabDate(this,'cfw-exp-d',2)">
+          <span style="color:var(--g2)">-</span>
+          <input class="fi" id="cfw-exp-d" placeholder="DD" maxlength="2" style="width:48px;text-align:center">
+        </div>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="skipCertFromWork()" style="margin-right:auto">나중에 등록</button>
+      <button class="btn btn-primary" onclick="saveCertFromWork()">✅ 인증 등록</button>
     </div>
   </div>
 </div>
@@ -1463,12 +1517,18 @@ async function saveWork(){
     category:cat,name,client:clientName,clientBizno:comp?comp._id:'',
     status:newStatus,sub:document.getElementById('wm-sub').value,
     doneAt:newStatus==='done'&&prevItem?.status!=='done'?Date.now():newStatus!=='done'?null:(prevItem?.doneAt||null),
+    certId:prevItem?.certId||null,
     updatedAt:Date.now()
   };
   try{
+    let savedId=editId;
     if(editId){await updateDoc(doc(db,'work_items',editId),data);}
-    else{data.createdAt=Date.now();await addDoc(COL.work_items(),data);}
+    else{data.createdAt=Date.now();const ref=await addDoc(COL.work_items(),data);savedId=ref.id;}
     closeModal('work-modal');
+    // 인증 관련 카테고리 + 완료 처리 + 인증 미등록 → 팝업
+    if(newStatus==='done'&&prevItem?.status!=='done'&&isCertCategory(cat)&&!data.certId){
+      setTimeout(()=>openCertFromWork(savedId),300);
+    }
   }catch(e){console.error(e);alert('저장 실패');}
 }
 async function confirmDeleteWork(){
@@ -1476,14 +1536,110 @@ async function confirmDeleteWork(){
   if(!editId||!confirm('삭제하시겠습니까?'))return;
   try{await deleteDoc(doc(db,'work_items',editId));closeModal('work-modal');}catch(e){alert('삭제 실패');}
 }
+// 인증 관련 업무 카테고리 → cert_master ID 매핑
+const CERT_CAT_MAP={
+  'ven':  ['venture','innobiz','mainbiz'],   // 벤처·이노비즈
+  'lab':  ['lab','rnd_dept'],               // 기업부설연구소
+  'iso':  ['iso_9001','iso_14001','iso_45001','iso_22000','iso_37001','iso_37301'], // ISO
+  'pat':  [],                               // 특허·지재 (인증 없음)
+};
+// 해당 카테고리가 인증 관련인지 확인
+function isCertCategory(cat){return !!CERT_CAT_MAP[cat];}
+
 async function cycleWork(itemId){
   const it=workItems.find(x=>x.id===itemId);if(!it)return;
   const cy={wait:'ing',ing:'done',done:'wait'};const newStatus=cy[it.status]||'wait';
+  // 인증 관련 카테고리이고 완료로 변경 시 → 인증 등록 팝업
+  if(newStatus==='done'&&isCertCategory(it.category)&&!it.certId){
+    try{await updateDoc(doc(db,'work_items',itemId),{status:'done',doneAt:Date.now(),updatedAt:Date.now()});}
+    catch(e){console.error(e);return;}
+    // 인증 등록 유도 팝업
+    openCertFromWork(itemId);
+    return;
+  }
   try{await updateDoc(doc(db,'work_items',itemId),{status:newStatus,doneAt:newStatus==='done'?Date.now():null,updatedAt:Date.now()});}
   catch(e){console.error(e);}
 }
 
-// ── CLIENTS TABLE ──
+// 업무 완료 → 인증 등록 연결 팝업
+function openCertFromWork(workItemId){
+  const it=workItems.find(x=>x.id===workItemId);if(!it)return;
+  const comp=companies.find(c=>c._id===it.clientBizno);
+  // 해당 카테고리의 기본 cert_master 목록
+  const relatedMasterIds=CERT_CAT_MAP[it.category]||[];
+  const relatedMasters=certMaster.filter(m=>relatedMasterIds.includes(m.id));
+
+  // 인증 등록 팝업 표시
+  document.getElementById('cfw-work-id').value=workItemId;
+  document.getElementById('cfw-comp-name').value=comp?.name||it.client||'';
+  // 인증 종류 드롭다운 - 해당 카테고리 관련만
+  const masterSel=document.getElementById('cfw-master-sel');
+  if(masterSel)masterSel.innerHTML=relatedMasters.length
+    ? relatedMasters.map(m=>`<option value="${m.id}">${m.icon} ${m.certName}</option>`).join('')
+    : certMasterOptions();
+  // 날짜 초기화
+  ['cfw-acq-y','cfw-acq-m','cfw-acq-d','cfw-exp-y','cfw-exp-m','cfw-exp-d'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  onCfwTypeChange();
+  openModal('cert-from-work-modal');
+}
+function onCfwTypeChange(){
+  const masterId=document.getElementById('cfw-master-sel')?.value;
+  const m=getCertMasterInfo(masterId);
+  const phaseWrap=document.getElementById('cfw-phase-wrap');
+  const phaseSelect=document.getElementById('cfw-phase-sel');
+  if(phaseWrap&&phaseSelect){
+    if(m.cycleType==='complex'&&m.phases?.length){
+      phaseWrap.style.display='';
+      phaseSelect.innerHTML=m.phases.map((p,i)=>`<option value="${p.name}">${i+1}단계: ${p.name}</option>`).join('');
+    } else {phaseWrap.style.display='none';}
+  }
+}
+function cfwCalcExpDate(){
+  const y=document.getElementById('cfw-acq-y')?.value;
+  const m=document.getElementById('cfw-acq-m')?.value;
+  const d=document.getElementById('cfw-acq-d')?.value;
+  const masterId=document.getElementById('cfw-master-sel')?.value;
+  const master=getCertMasterInfo(masterId);
+  const cycle=master.cycleMonths||12;
+  if(!y||!m)return;
+  const acq=new Date(`${y}-${m.padStart(2,'0')}-${(d||'01').padStart(2,'0')}`);
+  if(isNaN(acq))return;
+  acq.setMonth(acq.getMonth()+cycle);
+  setDateFields('cfw-exp-y','cfw-exp-m','cfw-exp-d',acq.toISOString().slice(0,10));
+}
+async function saveCertFromWork(){
+  const workItemId=document.getElementById('cfw-work-id').value;
+  const it=workItems.find(x=>x.id===workItemId);if(!it)return;
+  const compName=document.getElementById('cfw-comp-name').value.trim();
+  const comp=companies.find(c=>c.name===compName)||companies.find(c=>c._id===it.clientBizno);
+  if(!comp){alert('업체 정보를 확인해주세요.');return;}
+  const acqDate=getDateFields('cfw-acq-y','cfw-acq-m','cfw-acq-d');
+  const expDate=getDateFields('cfw-exp-y','cfw-exp-m','cfw-exp-d');
+  if(!acqDate||!expDate){alert('취득일과 만료일을 입력해주세요.');return;}
+  const masterId=document.getElementById('cfw-master-sel')?.value;
+  const m=getCertMasterInfo(masterId);
+  const currentPhase=document.getElementById('cfw-phase-sel')?.value||'';
+  try{
+    // 1. certifications 등록
+    const certData={
+      bizno:comp._id,companyName:comp.name,
+      certMasterId:masterId,certName:m.certName,certIcon:m.icon,
+      cycleType:m.cycleType,cycleMonths:m.cycleMonths,
+      currentPhase:m.cycleType==='complex'?currentPhase:'',
+      acqDate,expDate,status:'유효',
+      workItemId,  // ← 업무 항목 연결
+      createdAt:Date.now(),updatedAt:Date.now()
+    };
+    const certRef=await addDoc(COL.certifications(),certData);
+    // 2. work_items에 certId 연결
+    await updateDoc(doc(db,'work_items',workItemId),{certId:certRef.id,updatedAt:Date.now()});
+    closeModal('cert-from-work-modal');
+    setBadge('✅ 인증 등록 완료',2000);
+  }catch(e){alert('저장 실패: '+e.message);}
+}
+async function skipCertFromWork(){
+  closeModal('cert-from-work-modal');
+}
 function makePagination(currentPage,totalPages,onClickFn){
   if(totalPages<=1)return '';
   let html='<div class="pagination">';
@@ -1774,10 +1930,15 @@ function certRow(c){
   const comp=companies.find(x=>x._id===c.bizno);
   const diff=getCertDday(c.expDate);
   const m=getCertMasterInfo(c.certMasterId);
-  // complex 인증이면 현재 단계 표시
   const phaseLabel=c.currentPhase?` <span style="font-size:9px;color:var(--g2)">[${c.currentPhase}]</span>`:'';
+  // 연결된 업무 항목
+  const linkedWork=c.workItemId?workItems.find(w=>w.id===c.workItemId):null;
+  const workLink=linkedWork?`<div style="font-size:9px;color:var(--teal);margin-top:2px">🔗 ${linkedWork.name} [${ST[linkedWork.status]?.label||linkedWork.status}]</div>`:'';
   return `<tr>
-    <td><div style="font-size:12px;font-weight:500;cursor:pointer;color:var(--blue-l)" onclick="openCertModal('${c.id}')">${comp?.name||c.companyName||'—'}</div></td>
+    <td>
+      <div style="font-size:12px;font-weight:500;cursor:pointer;color:var(--blue-l)" onclick="openCertModal('${c.id}')">${comp?.name||c.companyName||'—'}</div>
+      ${workLink}
+    </td>
     <td><span style="font-size:11px">${m.icon} ${m.certName}${phaseLabel}</span></td>
     <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g2)">${c.acqDate||'—'}</td>
     <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g2)">${c.expDate||'—'}</td>
@@ -1962,38 +2123,79 @@ async function deleteCert(){
   catch(e){alert('삭제 실패');}
 }
 
-// 전체현황 갱신 알림 배너
+// 전체현황 인증 요약 카드 (가벼운 버전)
 function renderCertAlertBanner(){
-  const el=document.getElementById('cert-banner');if(!el)return;
-  const urgent=certifications.filter(c=>{
-    const d=getCertDday(c.expDate);
-    return d!==null&&d<=90&&(c.status!=='만료');
-  }).sort((a,b)=>(getCertDday(a.expDate)||0)-(getCertDday(b.expDate)||0));
-  if(!urgent.length){el.style.display='none';return;}
-  el.style.display='';
-  el.innerHTML=`<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:var(--r);padding:14px 18px;margin-bottom:20px">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-      <span style="font-size:14px">⚠️</span>
-      <span style="font-size:13px;font-weight:500;color:#FCA5A5">갱신 임박 알림 ${urgent.length}건</span>
-      <button onclick="navTo('cert')" style="margin-left:auto;background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.3);border-radius:6px;color:#FCA5A5;font-size:10px;padding:3px 10px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">전체보기 →</button>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:5px">
-      ${urgent.slice(0,5).map(c=>{
-        const comp=companies.find(x=>x._id===c.bizno);
-        const m=getCertMasterInfo(c.certMasterId);
-        const diff=getCertDday(c.expDate);
-        const color=diff<=30?'var(--danger)':'var(--warn)';
-        const label=diff<=0?`만료 D+${Math.abs(diff)}`:diff===0?'D-Day':`D-${diff}`;
-        return `<div style="display:flex;align-items:center;gap:10px;font-size:11px">
-          <span style="font-family:'JetBrains Mono',monospace;color:${color};font-weight:500;width:70px;flex-shrink:0">${label}</span>
-          <span style="font-weight:500">${comp?.name||c.companyName||'—'}</span>
-          <span style="color:var(--g1)">${m.icon} ${m.certName}</span>
-          <span style="color:var(--g2);font-size:10px;margin-left:auto">${c.expDate}</span>
-        </div>`;
-      }).join('')}
-      ${urgent.length>5?`<div style="font-size:10px;color:var(--g2);margin-top:2px">외 ${urgent.length-5}건...</div>`:''}
-    </div>
-  </div>`;
+  const bannerEl=document.getElementById('cert-banner');
+  const summaryEl=document.getElementById('cert-summary-ov');
+  if(!bannerEl&&!summaryEl)return;
+
+  const now=Date.now();
+  const expired=certifications.filter(c=>getCertDday(c.expDate)<0||c.status==='만료');
+  const d30=certifications.filter(c=>{const d=getCertDday(c.expDate);return d>=0&&d<=30;});
+  const d90=certifications.filter(c=>{const d=getCertDday(c.expDate);return d>30&&d<=90;});
+  const safe=certifications.filter(c=>{const d=getCertDday(c.expDate);return d>90;});
+  const total=certifications.length;
+
+  // 상단 긴급 배너 (D-30 이내 또는 만료만)
+  if(bannerEl){
+    const urgent=[...expired,...d30];
+    if(!urgent.length){bannerEl.style.display='none';}
+    else{
+      bannerEl.style.display='';
+      bannerEl.innerHTML=`<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:var(--r);padding:12px 16px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span>⚠️</span>
+          <span style="font-size:12px;font-weight:500;color:#FCA5A5">긴급! 갱신 임박 ${urgent.length}건 (D-30 이내)</span>
+          <button onclick="navTo('cert')" style="margin-left:auto;background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.3);border-radius:6px;color:#FCA5A5;font-size:10px;padding:3px 10px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">전체보기 →</button>
+        </div>
+        ${urgent.slice(0,3).map(c=>{
+          const comp=companies.find(x=>x._id===c.bizno);
+          const m=getCertMasterInfo(c.certMasterId);
+          const diff=getCertDday(c.expDate);
+          const label=diff<0?`만료 D+${Math.abs(diff)}`:diff===0?'D-Day':`D-${diff}`;
+          return `<div style="display:flex;align-items:center;gap:8px;font-size:11px;padding:3px 0">
+            <span style="font-family:'JetBrains Mono',monospace;color:var(--danger);font-weight:600;width:65px;flex-shrink:0">${label}</span>
+            <span style="font-weight:500">${comp?.name||c.companyName||'—'}</span>
+            <span style="color:var(--g1)">${m.icon} ${m.certName}</span>
+            <span style="color:var(--g2);font-size:10px;margin-left:auto">${c.expDate}</span>
+          </div>`;
+        }).join('')}
+        ${urgent.length>3?`<div style="font-size:10px;color:var(--g2);margin-top:4px">외 ${urgent.length-3}건...</div>`:''}
+      </div>`;
+    }
+  }
+
+  // 인증 요약 카드 (항상 표시, 과부하 없음)
+  if(summaryEl){
+    if(!total){summaryEl.innerHTML='';return;}
+    summaryEl.innerHTML=`
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:28px;height:28px;border-radius:8px;background:rgba(212,168,67,.2);display:flex;align-items:center;justify-content:center">📋</div>
+          <span style="font-size:14px;font-weight:500">인증·갱신 현황</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g1);background:rgba(255,255,255,.06);padding:2px 8px;border-radius:10px">총 ${total}건</span>
+        </div>
+        <button onclick="navTo('cert')" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;color:var(--g1);font-size:11px;padding:5px 12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">자세히 보기 →</button>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <div style="flex:1;min-width:80px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:12px;text-align:center;cursor:pointer" onclick="navTo('cert')">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:500;color:var(--danger)">${expired.length+d30.length}</div>
+          <div style="font-size:10px;color:var(--g1);margin-top:4px">⚠️ 만료·D-30</div>
+        </div>
+        <div style="flex:1;min-width:80px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:12px;text-align:center;cursor:pointer" onclick="navTo('cert')">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:500;color:var(--warn)">${d90.length}</div>
+          <div style="font-size:10px;color:var(--g1);margin-top:4px">🟡 D-90 주의</div>
+        </div>
+        <div style="flex:1;min-width:80px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:12px;text-align:center">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:500;color:var(--ok)">${safe.length}</div>
+          <div style="font-size:10px;color:var(--g1);margin-top:4px">✅ 유효</div>
+        </div>
+        <div style="flex:1;min-width:80px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px;text-align:center">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:500;color:var(--blue-l)">${total}</div>
+          <div style="font-size:10px;color:var(--g1);margin-top:4px">📋 전체</div>
+        </div>
+      </div>`;
+  }
 }
 function openCompanyModal(bizno){
   if(bizno){
@@ -2175,6 +2377,7 @@ Object.assign(window,{
   openCatAddModal,saveCatAdd,deleteCatAdd,
   setCertTab,renderCertByCert,renderCertByComp,
   openCertModal,onCertTypeChange,saveCert,deleteCert,calcCertExpDate,
+  openCertFromWork,onCfwTypeChange,cfwCalcExpDate,saveCertFromWork,skipCertFromWork,
   openConsultingModal,saveConsulting,deleteConsulting,addConsCompany,renderConsCompaniesList,updateConsCompanyStatus,removeConsCompany,
   openTodoModal,saveTodo,cycleTodo,deleteTodoItem,
   renderWork,openWorkModal,saveWork,confirmDeleteWork,cycleWork,
