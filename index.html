@@ -869,24 +869,36 @@ function updateCounts(){
 }
 
 // ── HELPER: 컨설팅-업체 JOIN (오라클 JOIN과 동일 개념) ──
+
+// 비활성 업체 bizno Set (렌더링 시 필터용)
+function getInactiveBiznos(){
+  return new Set(companies.filter(c=>c.active==='N').map(c=>c._id));
+}
+
 // consulting_company 테이블에서 특정 consId의 업체 목록 가져오기
 function getConsCompanies(consId){
-  return consCompanies.filter(cc=>cc.consId===consId);
+  const inactive=getInactiveBiznos();
+  // 비활성 업체 제외
+  return consCompanies.filter(cc=>cc.consId===consId&&!inactive.has(cc.bizno));
 }
 // work_items 테이블에서 특정 카테고리의 업무 가져오기
 function getWorkItemsByCategory(cat){
-  return workItems.filter(w=>w.category===cat);
+  const inactive=getInactiveBiznos();
+  // 비활성 업체 업무 제외 (업체 없는 업무는 표시)
+  return workItems.filter(w=>w.category===cat&&(!w.clientBizno||!inactive.has(w.clientBizno)));
 }
 // 간트 연동 업무 항목 생성 (consulting + consulting_company JOIN)
 function getConsWorkItems(cat){
+  const inactive=getInactiveBiznos();
   const items=[];
   consulting.filter(c=>c.category===cat).forEach(c=>{
-    const ccs=getConsCompanies(c.id);
+    const ccs=getConsCompanies(c.id); // 이미 비활성 업체 제외됨
     if(!ccs.length){
       const already=workItems.some(w=>w.category===cat&&w.consId===c.id&&!w.clientBizno);
       if(!already)items.push({_fromCons:true,consId:c.id,consTitle:c.title,id:'cons_'+c.id,name:c.title,client:'',clientBizno:'',status:c.status||'wait',sub:'',doneAt:c.doneAt});
     } else {
       ccs.forEach(cc=>{
+        if(inactive.has(cc.bizno))return; // 비활성 업체 제외
         const already=workItems.some(w=>w.category===cat&&w.consId===c.id&&w.clientBizno===cc.bizno);
         if(!already)items.push({_fromCons:true,consId:c.id,consTitle:c.title,id:'cons_'+c.id+'_'+cc.bizno,name:cc.companyName,client:cc.companyName,clientBizno:cc.bizno,status:cc.status||'wait',sub:'',doneAt:cc.doneAt});
       });
@@ -894,15 +906,13 @@ function getConsWorkItems(cat){
   });
   return items;
 }
-// 업체 도메인 상태 조회 (오라클 GROUP BY + MAX 집계와 동일)
+// 업체 도메인 상태 조회
 function getCompanyDomains(bizno){
   const result={};CAT_IDS.forEach(c=>result[c]='');
-  // consulting_company 테이블 조인
   consCompanies.filter(cc=>cc.bizno===bizno).forEach(cc=>{
     const cons=consulting.find(c=>c.id===cc.consId);
     if(cons)result[cons.category]=stHigher(result[cons.category],cc.status||'wait');
   });
-  // work_items 테이블 조회
   workItems.filter(w=>w.clientBizno===bizno).forEach(w=>{
     result[w.category]=stHigher(result[w.category],w.status||'wait');
   });
@@ -958,7 +968,7 @@ function renderGantt(sfx){
     const exp=expandedCats.has(c.id);
     const color=CAT_COLORS[ci%CAT_COLORS.length];
     const cm=CAT_META[c.category]||CAT_META.etc;
-    // consulting_company JOIN으로 참여업체 조회
+    // consulting_company JOIN으로 참여업체 조회 (비활성 업체 자동 제외)
     const ccs=getConsCompanies(c.id);
     body+=`<tr class="cat-row${isDone?' gantt-row-done':''}${isExpired?' gantt-row-expired':''}" onclick="toggleCat('${c.id}')"><td class="cat-label-td">
       <div class="cat-name">${cm.icon} ${c.title} ${badge(c.status||'wait')}<span class="cat-arrow${exp?' open':''}">▶</span>
