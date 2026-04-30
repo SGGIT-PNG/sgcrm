@@ -2460,76 +2460,137 @@ async function deleteCert(){
   catch(e){alert('삭제 실패');}
 }
 
-// 전체현황 인증 요약 카드 (가벼운 버전)
+// 전체현황 인증 요약 카드 (갱신형 / 연간신고 2줄 분리)
 function renderCertAlertBanner(){
   const bannerEl=document.getElementById('cert-banner');
   const summaryEl=document.getElementById('cert-summary-ov');
   if(!bannerEl&&!summaryEl)return;
 
-  const now=Date.now();
-  const expired=certifications.filter(c=>getCertDday(c.expDate)<0||c.status==='만료');
-  const d30=certifications.filter(c=>{const d=getCertDday(c.expDate);return d>=0&&d<=30;});
-  const d90=certifications.filter(c=>{const d=getCertDday(c.expDate);return d>30&&d<=90;});
-  const safe=certifications.filter(c=>{const d=getCertDday(c.expDate);return d>90;});
-  const total=certifications.length;
+  // 갱신형 (renewal) 인증 통계
+  const renewalCerts=certifications.filter(c=>{
+    const m=getCertMasterInfo(c.certMasterId);
+    return m.reportType!=='annual';
+  });
+  const annualCerts=certifications.filter(c=>{
+    const m=getCertMasterInfo(c.certMasterId);
+    return m.reportType==='annual';
+  });
 
-  // 상단 긴급 배너 (D-30 이내 또는 만료만)
+  // 갱신형 D-Day 분류
+  const rExpired=renewalCerts.filter(c=>getCertDday(c.expDate)<0||c.status==='만료');
+  const rD30=renewalCerts.filter(c=>{const d=getCertDday(c.expDate);return d>=0&&d<=30;});
+  const rD90=renewalCerts.filter(c=>{const d=getCertDday(c.expDate);return d>30&&d<=90;});
+  const rSafe=renewalCerts.filter(c=>{const d=getCertDday(c.expDate);return d>90;});
+
+  // 연간신고 분류 (annual_reports 기반)
+  const aReports=annualCerts.map(c=>{
+    const reports=annualReports.filter(r=>r.certId===c.id).sort((a,b)=>b.year-a.year);
+    const latest=reports[0];
+    return {cert:c,report:latest};
+  });
+  const aMissed=aReports.filter(r=>r.report&&r.report.status!=='done'&&new Date(r.report.dueDate)<new Date());
+  const aPending=aReports.filter(r=>r.report&&r.report.status!=='done'&&new Date(r.report.dueDate)>=new Date());
+  const aDone=aReports.filter(r=>r.report&&r.report.status==='done');
+  const aNoReport=aReports.filter(r=>!r.report);
+
+  // 긴급 배너 (갱신형 D-30 이내 + 연간신고 미신고)
   if(bannerEl){
-    const urgent=[...expired,...d30];
-    if(!urgent.length){bannerEl.style.display='none';}
+    const urgentRenewal=[...rExpired,...rD30];
+    const urgentAnnual=aMissed;
+    if(!urgentRenewal.length&&!urgentAnnual.length){bannerEl.style.display='none';}
     else{
       bannerEl.style.display='';
-      bannerEl.innerHTML=`<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:var(--r);padding:12px 16px;margin-bottom:12px">
+      let bannerHtml=`<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:var(--r);padding:12px 16px;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
           <span>⚠️</span>
-          <span style="font-size:12px;font-weight:500;color:#FCA5A5">긴급! 갱신 임박 ${urgent.length}건 (D-30 이내)</span>
+          <span style="font-size:12px;font-weight:500;color:#FCA5A5">긴급 알림 ${urgentRenewal.length+urgentAnnual.length}건</span>
           <button onclick="navTo('cert')" style="margin-left:auto;background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.3);border-radius:6px;color:#FCA5A5;font-size:10px;padding:3px 10px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">전체보기 →</button>
-        </div>
-        ${urgent.slice(0,3).map(c=>{
-          const comp=companies.find(x=>x._id===c.bizno);
-          const m=getCertMasterInfo(c.certMasterId);
-          const diff=getCertDday(c.expDate);
-          const label=diff<0?`만료 D+${Math.abs(diff)}`:diff===0?'D-Day':`D-${diff}`;
-          return `<div style="display:flex;align-items:center;gap:8px;font-size:11px;padding:3px 0">
-            <span style="font-family:'JetBrains Mono',monospace;color:var(--danger);font-weight:600;width:65px;flex-shrink:0">${label}</span>
-            <span style="font-weight:500">${comp?.name||c.companyName||'—'}</span>
-            <span style="color:var(--g1)">${m.icon} ${m.certName}</span>
-            <span style="color:var(--g2);font-size:10px;margin-left:auto">${c.expDate}</span>
-          </div>`;
-        }).join('')}
-        ${urgent.length>3?`<div style="font-size:10px;color:var(--g2);margin-top:4px">외 ${urgent.length-3}건...</div>`:''}
-      </div>`;
+        </div>`;
+      // 갱신형 임박
+      [...urgentRenewal].slice(0,2).forEach(c=>{
+        const comp=companies.find(x=>x._id===c.bizno);
+        const m=getCertMasterInfo(c.certMasterId);
+        const diff=getCertDday(c.expDate);
+        const label=diff<0?`만료 D+${Math.abs(diff)}`:diff===0?'D-Day':`D-${diff}`;
+        bannerHtml+=`<div style="display:flex;align-items:center;gap:8px;font-size:11px;padding:2px 0">
+          <span style="font-family:'JetBrains Mono',monospace;color:var(--danger);font-weight:600;width:65px;flex-shrink:0">${label}</span>
+          <span style="font-weight:500">${comp?.name||c.companyName||'—'}</span>
+          <span style="color:var(--g1)">${m.icon} ${m.certName} 갱신</span>
+        </div>`;
+      });
+      // 연간신고 미신고
+      urgentAnnual.slice(0,2).forEach(({cert,report})=>{
+        const comp=companies.find(x=>x._id===cert.bizno);
+        const m=getCertMasterInfo(cert.certMasterId);
+        const diff=Math.ceil((new Date(report.dueDate)-Date.now())/(1000*60*60*24));
+        bannerHtml+=`<div style="display:flex;align-items:center;gap:8px;font-size:11px;padding:2px 0">
+          <span style="font-family:'JetBrains Mono',monospace;color:var(--danger);font-weight:600;width:65px;flex-shrink:0">미신고</span>
+          <span style="font-weight:500">${comp?.name||cert.companyName||'—'}</span>
+          <span style="color:var(--g1)">${m.icon} ${m.certName} ${report.year}년 신고</span>
+        </div>`;
+      });
+      bannerHtml+=`</div>`;
+      bannerEl.innerHTML=bannerHtml;
     }
   }
 
-  // 인증 요약 카드 (항상 표시, 과부하 없음)
+  // 요약 카드 (갱신형 / 연간신고 2줄)
   if(summaryEl){
-    if(!total){summaryEl.innerHTML='';return;}
+    const totalAll=certifications.length;
+    if(!totalAll){summaryEl.innerHTML='';return;}
     summaryEl.innerHTML=`
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:8px">
           <div style="width:28px;height:28px;border-radius:8px;background:rgba(212,168,67,.2);display:flex;align-items:center;justify-content:center">📋</div>
           <span style="font-size:14px;font-weight:500">인증·갱신 현황</span>
-          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g1);background:rgba(255,255,255,.06);padding:2px 8px;border-radius:10px">총 ${total}건</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g1);background:rgba(255,255,255,.06);padding:2px 8px;border-radius:10px">총 ${totalAll}건</span>
         </div>
         <button onclick="navTo('cert')" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;color:var(--g1);font-size:11px;padding:5px 12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">자세히 보기 →</button>
       </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <div style="flex:1;min-width:80px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:12px;text-align:center;cursor:pointer" onclick="navTo('cert')">
-          <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:500;color:var(--danger)">${expired.length+d30.length}</div>
-          <div style="font-size:10px;color:var(--g1);margin-top:4px">⚠️ 만료·D-30</div>
+
+      <!-- 갱신형 인증 -->
+      <div style="margin-bottom:8px">
+        <div style="font-size:11px;color:var(--g2);margin-bottom:6px;font-weight:500">🔄 갱신형 인증 (벤처·ISO 등)</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <div style="flex:1;min-width:70px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:10px;text-align:center;cursor:pointer" onclick="navTo('cert')">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;color:var(--danger)">${rExpired.length+rD30.length}</div>
+            <div style="font-size:9px;color:var(--g1);margin-top:3px">⚠️ 만료·D-30</div>
+          </div>
+          <div style="flex:1;min-width:70px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:10px;text-align:center;cursor:pointer" onclick="navTo('cert')">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;color:var(--warn)">${rD90.length}</div>
+            <div style="font-size:9px;color:var(--g1);margin-top:3px">🟡 D-90 주의</div>
+          </div>
+          <div style="flex:1;min-width:70px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:10px;text-align:center">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;color:var(--ok)">${rSafe.length}</div>
+            <div style="font-size:9px;color:var(--g1);margin-top:3px">✅ 유효</div>
+          </div>
+          <div style="flex:1;min-width:70px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px;text-align:center">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;color:var(--blue-l)">${renewalCerts.length}</div>
+            <div style="font-size:9px;color:var(--g1);margin-top:3px">📋 전체</div>
+          </div>
         </div>
-        <div style="flex:1;min-width:80px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:12px;text-align:center;cursor:pointer" onclick="navTo('cert')">
-          <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:500;color:var(--warn)">${d90.length}</div>
-          <div style="font-size:10px;color:var(--g1);margin-top:4px">🟡 D-90 주의</div>
-        </div>
-        <div style="flex:1;min-width:80px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:12px;text-align:center">
-          <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:500;color:var(--ok)">${safe.length}</div>
-          <div style="font-size:10px;color:var(--g1);margin-top:4px">✅ 유효</div>
-        </div>
-        <div style="flex:1;min-width:80px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px;text-align:center">
-          <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:500;color:var(--blue-l)">${total}</div>
-          <div style="font-size:10px;color:var(--g1);margin-top:4px">📋 전체</div>
+      </div>
+
+      <!-- 연간신고 (연구소/전담부서) -->
+      <div>
+        <div style="font-size:11px;color:var(--g2);margin-bottom:6px;font-weight:500">📋 연간 신고 (연구소·전담부서)</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <div style="flex:1;min-width:70px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:10px;text-align:center;cursor:pointer" onclick="navTo('cert')">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;color:var(--danger)">${aMissed.length}</div>
+            <div style="font-size:9px;color:var(--g1);margin-top:3px">❌ 미신고</div>
+          </div>
+          <div style="flex:1;min-width:70px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:10px;text-align:center;cursor:pointer" onclick="navTo('cert')">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;color:var(--warn)">${aPending.length}</div>
+            <div style="font-size:9px;color:var(--g1);margin-top:3px">🔜 신고예정</div>
+          </div>
+          <div style="flex:1;min-width:70px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:10px;text-align:center">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;color:var(--ok)">${aDone.length}</div>
+            <div style="font-size:9px;color:var(--g1);margin-top:3px">✅ 신고완료</div>
+          </div>
+          <div style="flex:1;min-width:70px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px;text-align:center">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;color:var(--blue-l)">${annualCerts.length}</div>
+            <div style="font-size:9px;color:var(--g1);margin-top:3px">📋 전체</div>
+          </div>
         </div>
       </div>`;
   }
