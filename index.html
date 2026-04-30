@@ -1060,8 +1060,18 @@ async function loadAll(){
     certMaster     = cmSnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.sortOrder||99)-(b.sortOrder||99));
     annualReports  = arSnap.docs.map(d=>({id:d.id,...d.data()}));
     applyCategories(catSnap.docs.map(d=>({id:d.id,...d.data()})));
-    // cert_master가 없으면 기본값 자동 등록
+    // cert_master 없으면 초기화, lab/rnd_dept reportType 누락시 자동 보정
     if(!certMaster.length) await initCertMaster();
+    else{
+      const needsFix=certMaster.filter(m=>['lab','rnd_dept'].includes(m.id)&&m.reportType!=='annual');
+      if(needsFix.length){
+        const batch=writeBatch(db);
+        needsFix.forEach(m=>batch.update(doc(db,'cert_master',m.id),{reportType:'annual',annualMonth:4,annualDay:30}));
+        await batch.commit();
+        const snap=await getDocs(COL.cert_master());
+        certMaster=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.sortOrder||99)-(b.sortOrder||99));
+      }
+    }
     renderAll(); updateCounts();
     setBadge('✅ 로드 완료',2000);
     startRealtimeSync();
@@ -2274,38 +2284,64 @@ function renderCertPage(){
 
 // 탭1: 갱신 알림 (D-Day 순)
 function renderCertAlert(){
-  const sorted=[...certifications].sort((a,b)=>{
-    const da=getCertDday(a.expDate)??9999;
-    const db=getCertDday(b.expDate)??9999;
-    return da-db;
-  });
   const el=document.getElementById('cert-alert-list');if(!el)return;
-  if(!sorted.length){el.innerHTML=`<div class="empty"><div class="empty-ico">📋</div><div class="empty-txt">등록된 인증이 없습니다</div></div>`;return;}
+  if(!certifications.length){el.innerHTML=`<div class="empty"><div class="empty-ico">📋</div><div class="empty-txt">등록된 인증이 없습니다</div></div>`;return;}
 
-  // 요약 카드
-  const now=Date.now();
-  const expired=certifications.filter(c=>getCertDday(c.expDate)<0||c.status==='만료').length;
-  const urgent=certifications.filter(c=>{const d=getCertDday(c.expDate);return d>=0&&d<=30;}).length;
-  const caution=certifications.filter(c=>{const d=getCertDday(c.expDate);return d>30&&d<=90;}).length;
-  const safe=certifications.filter(c=>{const d=getCertDday(c.expDate);return d>90;}).length;
+  // 갱신형 / 연간신고 분리
+  const renewalList=certifications.filter(c=>getCertMasterInfo(c.certMasterId).reportType!=='annual');
+  const annualList=certifications.filter(c=>getCertMasterInfo(c.certMasterId).reportType==='annual');
+
+  // 갱신형 통계
+  const rExpired=renewalList.filter(c=>getCertDday(c.expDate)<0||c.status==='만료').length;
+  const rD30=renewalList.filter(c=>{const d=getCertDday(c.expDate);return d>=0&&d<=30;}).length;
+  const rD90=renewalList.filter(c=>{const d=getCertDday(c.expDate);return d>30&&d<=90;}).length;
+  const rSafe=renewalList.filter(c=>{const d=getCertDday(c.expDate);return d>90;}).length;
+
+  // 연간신고 통계
+  const aMissed=annualList.filter(c=>{const reports=annualReports.filter(r=>r.certId===c.id).sort((a,b)=>b.year-a.year);const r=reports[0];return r&&r.status!=='done'&&new Date(r.dueDate)<new Date();}).length;
+  const aPending=annualList.filter(c=>{const reports=annualReports.filter(r=>r.certId===c.id).sort((a,b)=>b.year-a.year);const r=reports[0];return r&&r.status!=='done'&&new Date(r.dueDate)>=new Date();}).length;
+  const aDone=annualList.filter(c=>{const reports=annualReports.filter(r=>r.certId===c.id).sort((a,b)=>b.year-a.year);const r=reports[0];return r&&r.status==='done';}).length;
+
+  const sortedRenewal=[...renewalList].sort((a,b)=>(getCertDday(a.expDate)??9999)-(getCertDday(b.expDate)??9999));
+  const sortedAnnual=[...annualList].sort((a,b)=>a.companyName?.localeCompare(b.companyName,'ko')||0);
 
   el.innerHTML=`
-    <div class="grid4" style="margin-bottom:18px">
-      <div class="stat-mini"><div class="stat-mini-val" style="color:var(--danger)">${expired}</div><div class="stat-mini-label">⚠️ 만료</div></div>
-      <div class="stat-mini"><div class="stat-mini-val" style="color:var(--danger)">${urgent}</div><div class="stat-mini-label">🔴 D-30 임박</div></div>
-      <div class="stat-mini"><div class="stat-mini-val" style="color:var(--warn)">${caution}</div><div class="stat-mini-label">🟡 D-90 주의</div></div>
-      <div class="stat-mini"><div class="stat-mini-val" style="color:var(--ok)">${safe}</div><div class="stat-mini-label">✅ 유효</div></div>
+    <!-- 갱신형 인증 -->
+    <div style="margin-bottom:20px">
+      <div style="font-size:12px;font-weight:500;color:var(--g1);margin-bottom:10px">🔄 갱신형 인증 (벤처·ISO 등)</div>
+      <div class="grid4" style="margin-bottom:12px">
+        <div class="stat-mini"><div class="stat-mini-val" style="color:var(--danger)">${rExpired}</div><div class="stat-mini-label">⚠️ 만료</div></div>
+        <div class="stat-mini"><div class="stat-mini-val" style="color:var(--danger)">${rD30}</div><div class="stat-mini-label">🔴 D-30 임박</div></div>
+        <div class="stat-mini"><div class="stat-mini-val" style="color:var(--warn)">${rD90}</div><div class="stat-mini-label">🟡 D-90 주의</div></div>
+        <div class="stat-mini"><div class="stat-mini-val" style="color:var(--ok)">${rSafe}</div><div class="stat-mini-label">✅ 유효</div></div>
+      </div>
+      ${renewalList.length?`<div class="card"><div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>업체명</th><th>인증 종류</th><th>취득일</th><th>만료·갱신일</th><th>갱신주기</th><th>상태</th><th>D-Day</th><th>관리</th></tr></thead>
+        <tbody>${sortedRenewal.map(certRow).join('')}</tbody>
+      </table></div></div>`:`<div class="empty"><div class="empty-txt">등록된 갱신형 인증이 없습니다</div></div>`}
     </div>
-    <div class="card"><div class="tbl-wrap"><table class="tbl">
-      <thead><tr><th>업체명</th><th>인증 종류</th><th>취득일</th><th>만료·갱신일</th><th>갱신주기</th><th>상태</th><th>D-Day</th><th>관리</th></tr></thead>
-      <tbody>${sorted.map(certRow).join('')}</tbody>
-    </table></div></div>`;
+
+    <!-- 연간신고 (연구소/전담부서) -->
+    <div>
+      <div style="font-size:12px;font-weight:500;color:var(--g1);margin-bottom:10px">📋 연간 신고 (연구소·전담부서)</div>
+      <div class="grid4" style="margin-bottom:12px">
+        <div class="stat-mini"><div class="stat-mini-val" style="color:var(--danger)">${aMissed}</div><div class="stat-mini-label">❌ 미신고</div></div>
+        <div class="stat-mini"><div class="stat-mini-val" style="color:var(--warn)">${aPending}</div><div class="stat-mini-label">🔜 신고예정</div></div>
+        <div class="stat-mini"><div class="stat-mini-val" style="color:var(--ok)">${aDone}</div><div class="stat-mini-label">✅ 신고완료</div></div>
+        <div class="stat-mini"><div class="stat-mini-val" style="color:var(--blue-l)">${annualList.length}</div><div class="stat-mini-label">📋 전체</div></div>
+      </div>
+      ${annualList.length?`<div class="card"><div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>업체명</th><th>인증 종류</th><th>설립일</th><th>다음신고기한</th><th>신고주기</th><th>구분</th><th>신고현황</th><th>관리</th></tr></thead>
+        <tbody>${sortedAnnual.map(certRow).join('')}</tbody>
+      </table></div></div>`:`<div class="empty"><div class="empty-txt">등록된 연간신고 인증이 없습니다</div></div>`}
+    </div>`;
 }
 
 // 탭2: 인증별 업체 조회
 function renderCertByCert(){
   const typeF=document.getElementById('cert-type-filter')?.value||'';
-  const filtered=typeF?certifications.filter(c=>c.certType===typeF):certifications;
+  // certMasterId 기반으로 필터
+  const filtered=typeF?certifications.filter(c=>c.certMasterId===typeF):certifications;
   const sorted=[...filtered].sort((a,b)=>(getCertDday(a.expDate)??9999)-(getCertDday(b.expDate)??9999));
   const el=document.getElementById('cert-by-cert-body');if(!el)return;
   el.innerHTML=sorted.length?sorted.map(certRow).join(''):`<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--g2)">해당 인증이 없습니다</td></tr>`;
@@ -2314,10 +2350,47 @@ function renderCertByCert(){
 // 탭3: 업체별 인증 조회
 function renderCertByComp(){
   const compF=document.getElementById('cert-comp-filter')?.value||'';
-  const filtered=compF?certifications.filter(c=>c.bizno===compF):certifications;
-  const sorted=[...filtered].sort((a,b)=>(getCertDday(a.expDate)??9999)-(getCertDday(b.expDate)??9999));
   const el=document.getElementById('cert-by-comp-body');if(!el)return;
-  el.innerHTML=sorted.length?sorted.map(certRow).join(''):`<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--g2)">해당 업체의 인증이 없습니다</td></tr>`;
+
+  // certifications 필터
+  const filteredCert=compF?certifications.filter(c=>c.bizno===compF):certifications;
+
+  // 연구소 관련 work_items도 함께 표시 (인증 미등록 업무)
+  const labCatIds=['lab','rnd_dept'];
+  const labWorkItems=workItems.filter(w=>{
+    if(!labCatIds.includes(w.category))return false;
+    if(compF&&w.clientBizno!==compF)return false;
+    // 이미 certifications에 연결된 항목 제외
+    return !certifications.some(c=>c.workItemId===w.id);
+  });
+
+  // 정렬: 갱신형은 D-Day순, annual은 업체명순
+  const sortedCert=[...filteredCert].sort((a,b)=>{
+    const ma=getCertMasterInfo(a.certMasterId);
+    const mb=getCertMasterInfo(b.certMasterId);
+    if(ma.reportType==='annual'&&mb.reportType!=='annual')return 1;
+    if(ma.reportType!=='annual'&&mb.reportType==='annual')return -1;
+    return (getCertDday(a.expDate)??9999)-(getCertDday(b.expDate)??9999);
+  });
+
+  // work_items 행 생성 (인증 미등록 표시)
+  const workRows=labWorkItems.map(w=>{
+    const comp=companies.find(c=>c._id===w.clientBizno);
+    const m=getCertMasterInfo(w.category==='lab'?'lab':'rnd_dept');
+    return `<tr style="opacity:.7">
+      <td>
+        <div style="font-size:12px;font-weight:500">${comp?.name||w.client||'—'}</div>
+        <div style="font-size:9px;color:var(--warn)">⚠️ 인증 미등록 (업무만 등록됨)</div>
+      </td>
+      <td><span style="font-size:11px">${m.icon||'🔬'} ${m.certName||w.category}</span></td>
+      <td colspan="4" style="font-size:10px;color:var(--g2)">인증 등록 필요</td>
+      <td>${badge(w.status)}</td>
+      <td><button onclick="openCertModal()" style="background:rgba(37,99,235,.2);border:1px solid rgba(37,99,235,.3);border-radius:6px;color:#93C5FD;font-size:10px;padding:2px 8px;cursor:pointer">인증등록</button></td>
+    </tr>`;
+  }).join('');
+
+  const allRows=sortedCert.map(certRow).join('')+workRows;
+  el.innerHTML=allRows||`<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--g2)">해당 업체의 인증이 없습니다</td></tr>`;
 }
 
 // 인증 종류 선택 시 complex면 단계 선택 표시
