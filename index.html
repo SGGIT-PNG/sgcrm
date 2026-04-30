@@ -1072,6 +1072,8 @@ async function loadAll(){
         certMaster=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.sortOrder||99)-(b.sortOrder||99));
       }
     }
+    // certifications 구버전 데이터 자동 보정 (certMasterId 없는 경우)
+    await migrateCertifications();
     renderAll(); updateCounts();
     setBadge('✅ 로드 완료',2000);
     startRealtimeSync();
@@ -2067,9 +2069,45 @@ async function initCertMaster(){
   certMaster=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.sortOrder||99)-(b.sortOrder||99));
 }
 
-// cert_master에서 인증 정보 조회 헬퍼
+// 구버전 certifications 데이터 자동 보정 (certMasterId 없는 경우)
+async function migrateCertifications(){
+  // certName → certMasterId 매핑 테이블
+  const nameToId={
+    '벤처기업인증':'venture','이노비즈인증':'innobiz','메인비즈인증':'mainbiz',
+    '기업부설연구소':'lab','연구개발전담부서':'rnd_dept','직접생산확인':'direct_prod',
+    'ISO 9001':'iso_9001','ISO 14001':'iso_14001','ISO 45001':'iso_45001',
+    'ISO 22000':'iso_22000','ISO 37001':'iso_37001','ISO 37301':'iso_37301',
+    'ISO9001':'iso_9001','ISO14001':'iso_14001','ISO45001':'iso_45001',
+  };
+  const needsMigration=certifications.filter(c=>!c.certMasterId&&(c.certType||c.certName));
+  if(!needsMigration.length)return;
+  const batch=writeBatch(db);
+  needsMigration.forEach(c=>{
+    const key=c.certType||c.certName||'';
+    const masterId=nameToId[key]||'venture';
+    const master=certMaster.find(m=>m.id===masterId)||{};
+    batch.update(doc(db,'certifications',c.id),{
+      certMasterId:masterId,
+      certName:master.certName||key,
+      certIcon:master.icon||'📋',
+      cycleType:master.cycleType||'fixed',
+      cycleMonths:master.cycleMonths||12,
+    });
+  });
+  await batch.commit();
+  // 재로드
+  const snap=await getDocs(COL.certifications());
+  certifications=snap.docs.map(d=>({id:d.id,...d.data()}));
+}
+
+// cert_master에서 인증 정보 조회 헬퍼 (fallback 강화)
 function getCertMasterInfo(certMasterId){
-  return certMaster.find(m=>m.id===certMasterId)||{certName:'기타',icon:'📋',cycleType:'fixed',cycleMonths:12};
+  if(!certMasterId)return{certName:'미분류',icon:'📋',cycleType:'fixed',cycleMonths:12,reportType:'renewal'};
+  const found=certMaster.find(m=>m.id===certMasterId);
+  if(found)return found;
+  // ID로 못찾으면 certName으로 검색
+  const byName=certMaster.find(m=>m.certName===certMasterId);
+  return byName||{certName:certMasterId,icon:'📋',cycleType:'fixed',cycleMonths:12,reportType:'renewal'};
 }
 // 인증 종류 드롭다운 옵션 생성
 function certMasterOptions(selectedId=''){
