@@ -1978,17 +1978,22 @@ function renderStatsCards(targetId){
   </div>`;
 }
 // ── STATS PAGE (누적 통계) ──
-let statsYear='all', statsCat='all';
+let statsYear='all', statsCat='all', statsCompPage=1;
+const STATS_COMP_PER_PAGE=10;
 
 function setStatsYear(y){
-  statsYear=y;
+  statsYear=y; statsCompPage=1;
   document.querySelectorAll('#stats-year-toggle .toggle-opt').forEach(b=>{
     b.classList.toggle('active', b.dataset.val===String(y));
   });
   renderStatsPage();
 }
 function setStatsCat(c){
-  statsCat=c;
+  statsCat=c; statsCompPage=1;
+  renderStatsPage();
+}
+function setStatsCompPage(p){
+  statsCompPage=p;
   renderStatsPage();
 }
 // 월별 막대 HTML 생성 (중첩 템플릿 리터럴 회피)
@@ -2101,20 +2106,20 @@ function renderStatsPage(){
 
   // 분야별 바 HTML
   const catBarsHtml=catList.length
-    ? catList.map(r=>`
-        <div style="margin-bottom:10px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
-            <span style="font-size:11px">${r.icon} ${r.name}</span>
-            <div style="display:flex;gap:8px;align-items:center">
-              ${r.approved?`<span style="font-size:9px;color:var(--gold)">승인 ${fmtAmt(r.approved)}</span>`:''}
-              ${r.amt?`<span style="font-size:9px;color:var(--g2)">신청 ${fmtAmt(r.amt)}</span>`:''}
-              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ok);font-weight:500">${r.cnt}건</span>
-            </div>
-          </div>
-          <div style="height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden">
-            <div style="height:100%;width:${Math.round(r.cnt/maxCnt*100)}%;background:${r.color};border-radius:3px;transition:width .4s"></div>
-          </div>
-        </div>`).join('')
+    ? catList.map(r=>{
+        const approvedHtml=r.approved?'<span style="font-size:9px;color:var(--gold)">승인 '+fmtAmt(r.approved)+'</span>':'';
+        const amtHtml=r.amt?'<span style="font-size:9px;color:var(--g2)">신청 '+fmtAmt(r.amt)+'</span>':'';
+        const barW=Math.round(r.cnt/maxCnt*100);
+        return '<div style="margin-bottom:10px">'
+          +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">'
+          +'<span style="font-size:11px">'+r.icon+' '+r.name+'</span>'
+          +'<div style="display:flex;gap:8px;align-items:center">'+approvedHtml+amtHtml
+          +'<span style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--ok);font-weight:500">'+r.cnt+'건</span>'
+          +'</div></div>'
+          +'<div style="height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden">'
+          +'<div style="height:100%;width:'+barW+'%;background:'+r.color+';border-radius:3px;transition:width .4s"></div>'
+          +'</div></div>';
+      }).join('')
     : '<div class="empty"><div class="empty-txt">완료된 업무가 없습니다</div></div>';
 
   // 월별 바 HTML
@@ -2130,27 +2135,37 @@ function renderStatsPage(){
     </div>`;
   }).join('');
 
-  // 업체별 테이블 HTML
-  const compRowsHtml=compList.length
-    ? compList.map(c=>`<tr>
-        <td style="font-size:12px;font-weight:500">${c.name}</td>
-        <td><span style="font-family:'JetBrains Mono',monospace;color:var(--ok)">${c.cnt}건</span></td>
-        <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--g2)">${c.amt?fmtAmt(c.amt):'—'}</td>
-        <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gold)">${c.approved?fmtAmt(c.approved):'—'}</td>
-        <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g2)">${c.lastDone?new Date(c.lastDone).toLocaleDateString('ko-KR'):'—'}</td>
-      </tr>`).join('')
+  // 업체별 테이블 - 페이지네이션 적용
+  const totalComps=compList.length;
+  const totalCompPages=Math.ceil(totalComps/STATS_COMP_PER_PAGE)||1;
+  const safeCompPage=Math.min(Math.max(1,statsCompPage),totalCompPages);
+  const pagedComps=compList.slice((safeCompPage-1)*STATS_COMP_PER_PAGE, safeCompPage*STATS_COMP_PER_PAGE);
+
+  const compRowsHtml=pagedComps.length
+    ? pagedComps.map(c=>'<tr>'
+        +'<td style="font-size:12px;font-weight:500">'+c.name+'</td>'
+        +'<td><span style="font-family:JetBrains Mono,monospace;color:var(--ok)">'+c.cnt+'건</span></td>'
+        +'<td style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--g2)">'+(c.amt?fmtAmt(c.amt):'—')+'</td>'
+        +'<td style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--gold)">'+(c.approved?fmtAmt(c.approved):'—')+'</td>'
+        +'<td style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--g2)">'+(c.lastDone?new Date(c.lastDone).toLocaleDateString('ko-KR'):'—')+'</td>'
+        +'</tr>').join('')
     : '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--g2)">완료된 업무가 없습니다</td></tr>';
+
+  const compPaginationHtml=totalComps>STATS_COMP_PER_PAGE
+    ? makePagination(safeCompPage,totalCompPages,'setStatsCompPage')
+      +'<div style="text-align:center;font-size:10px;color:var(--g2);margin-top:4px">총 '+totalComps+'개 업체 중 '+((safeCompPage-1)*STATS_COMP_PER_PAGE+1)+'~'+Math.min(safeCompPage*STATS_COMP_PER_PAGE,totalComps)+'번째</div>'
+    : '<div style="text-align:center;font-size:10px;color:var(--g2);padding:6px">총 '+totalComps+'개 업체</div>';
 
   el.innerHTML=`
     <!-- 필터 -->
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:20px">
       <div class="toggle-btn" id="stats-year-toggle">
         <button class="toggle-opt${statsYear==='all'?' active':''}" onclick="setStatsYear('all')">전체</button>
-        ${yearList.map(y=>`<button class="toggle-opt${statsYear===y?' active':''}" onclick="setStatsYear(${y})">${y}년</button>`).join('')}
+        ${yearList.map(y=>'<button class="toggle-opt'+(statsYear===y?' active':'')+'" data-val="'+y+'" onclick="setStatsYear('+y+')">'+y+'년</button>').join('')}
       </div>
       <select class="fs" onchange="setStatsCat(this.value)" style="width:140px">
         <option value="all">전체 분야</option>
-        ${CAT_IDS.map(c=>`<option value="${c}"${statsCat===c?' selected':''}>${CAT_META[c].icon} ${CAT_META[c].name}</option>`).join('')}
+        ${CAT_IDS.map(c=>'<option value="'+c+'"'+(statsCat===c?' selected':'')+'>'+CAT_META[c].icon+' '+CAT_META[c].name+'</option>').join('')}
       </select>
       <button class="btn btn-ghost btn-sm" onclick="exportStatsExcel()" style="margin-left:auto">📥 엑셀 다운로드</button>
     </div>
@@ -2195,7 +2210,7 @@ function renderStatsPage(){
     <div class="card" style="margin-bottom:20px">
       <div style="padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;align-items:center">
         <div style="font-size:12px;font-weight:500">🏢 업체별 완료 이력</div>
-        <div style="font-size:10px;color:var(--g2)">${compList.length}개 업체</div>
+        <div style="font-size:10px;color:var(--g2)">${totalComps}개 업체</div>
       </div>
       <div class="tbl-wrap"><table class="tbl">
         <thead><tr>
@@ -2203,6 +2218,7 @@ function renderStatsPage(){
         </tr></thead>
         <tbody>${compRowsHtml}</tbody>
       </table></div>
+      <div style="padding:8px 16px;border-top:1px solid rgba(255,255,255,.06)">${compPaginationHtml}</div>
     </div>
 
     <!-- 업무 현황 요약 (기존 카드) -->
@@ -3376,7 +3392,7 @@ Object.assign(window,{
   openTodoModal,saveTodo,cycleTodo,deleteTodoItem,
   renderWork,openWorkModal,saveWork,confirmDeleteWork,cycleWork,
   renderClientsPage,setCliPageOv,setCliPageSub,setCliGroupFilter,
-  renderStatsPage,setStatsYear,setStatsCat,exportStatsExcel,renderHistoryPage,setHistStatus,setHistPage,
+  renderStatsPage,setStatsYear,setStatsCat,setStatsCompPage,exportStatsExcel,renderHistoryPage,setHistStatus,setHistPage,
   openCompanyModal,saveCompany,deleteCompany,restoreCompany,checkBizno,renderCompaniesPage,autoTabDate,toggleBizDateFields,
   showCorpDrop,hideCorpDrop,selectCorpDrop,
 });
