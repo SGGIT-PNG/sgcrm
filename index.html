@@ -1884,7 +1884,7 @@ function makePagination(currentPage,totalPages,onClickFn){
 }
 function renderClientsTable(headId,bodyId,searchVal,page,perPage,paginationId,groupFilter){
   const headEl=document.getElementById(headId);const bodyEl=document.getElementById(bodyId);if(!headEl||!bodyEl)return;
-  headEl.innerHTML=`<th>업체명</th><th>그룹</th>${CAT_IDS.map(c=>`<th title="${CAT_META[c].name}">${CAT_META[c].icon} ${CAT_META[c].name.length>4?CAT_META[c].name.slice(0,4)+'…':CAT_META[c].name}</th>`).join('')}<th>관리</th>`;
+  headEl.innerHTML='<th>업체명</th><th>그룹</th>'+CAT_IDS.map(c=>'<th title="'+CAT_META[c].name+'">'+CAT_META[c].icon+' '+(CAT_META[c].name.length>4?CAT_META[c].name.slice(0,4)+'…':CAT_META[c].name)+'</th>').join('')+'<th>관리</th>';
   const q=(searchVal||'').toLowerCase();const gf=groupFilter||'all';
   let filtered=companies.filter(c=>{
     const nm=!q||c.name.toLowerCase().includes(q);if(!nm)return false;
@@ -1903,14 +1903,19 @@ function renderClientsTable(headId,bodyId,searchVal,page,perPage,paginationId,gr
   const pageData=filtered.slice(startIdx,startIdx+perPage);
   bodyEl.innerHTML=pageData.length?pageData.map(comp=>{
     const domains=getCompanyDomains(comp._id);
-    const grpIcon=GROUP_BADGE[comp.group]||'🏢';const isInactive=comp.active==='N';
-    return `<tr style="${isInactive?'opacity:.4':''}">
-      <td><div style="font-size:12px;font-weight:500;cursor:pointer;color:var(--blue-l)" onclick="openCompanyModal('${comp._id}')">${comp.name}</div>${isInactive?'<div style="font-size:9px;color:var(--danger)">비활성</div>':''}</td>
-      <td><span style="font-size:10px;color:var(--g1)">${grpIcon} ${comp.group||'일반고객'}</span></td>
-      ${CAT_IDS.map(c=>`<td>${domains[c]?badge(domains[c]):'<span style="color:var(--g3);font-size:10px">—</span>'}</td>`).join('')}
-      <td><button onclick="openCompanyModal('${comp._id}')" style="background:none;border:none;color:var(--g2);font-size:12px;cursor:pointer;padding:2px">✏️</button></td>
-    </tr>`;
-  }).join(''):`<tr><td colspan="99" style="text-align:center;padding:30px;color:var(--g2)">등록된 업체가 없습니다</td></tr>`;
+    const grpIcon=GROUP_BADGE[comp.group]||'🏢';
+    const isInactive=comp.active==='N';
+    const cid=comp._id.replace(/'/g,"\\'");
+    return '<tr style="'+(isInactive?'opacity:.4':'')+'\">'
+      +'<td>'
+        +'<div style="font-size:12px;font-weight:500;cursor:pointer;color:var(--blue-l)" onclick="openCompanyModal(\''+cid+'\')" title="클릭하여 수정">'+comp.name+'</div>'
+        +(isInactive?'<div style="font-size:9px;color:var(--danger)">비활성</div>':'')
+      +'</td>'
+      +'<td><span style="font-size:10px;color:var(--g1)">'+grpIcon+' '+(comp.group||'일반고객')+'</span></td>'
+      +CAT_IDS.map(c=>'<td>'+(domains[c]?badge(domains[c]):'<span style="color:var(--g3);font-size:10px">—</span>')+'</td>').join('')
+      +'<td><button onclick="openCompanyModal(\''+cid+'\')" style="background:none;border:none;color:var(--g2);font-size:12px;cursor:pointer;padding:2px">✏️</button></td>'
+      +'</tr>';
+  }).join(''):'<tr><td colspan="99" style="text-align:center;padding:30px;color:var(--g2)">등록된 업체가 없습니다</td></tr>';
   const pgEl=document.getElementById(paginationId);
   if(pgEl){const fn=paginationId==='pg-cli-ov'?'setCliPageOv':'setCliPageSub';pgEl.innerHTML=total>perPage?makePagination(safePage,totalPages,fn):`<div class="pg-info" style="text-align:center;padding:6px 0">총 ${total}개 업체</div>`;}
 }
@@ -3341,21 +3346,27 @@ function renderCompaniesPage(){
   document.getElementById('corp-tbody').innerHTML=filtered.length?filtered.map(c=>{
     const mycons=consulting.filter(x=>consCompanies.some(cc=>cc.consId===x.id&&cc.bizno===c._id));
     const amt=mycons.reduce((s,x)=>s+(+x.amount||0),0);
-    const isInactive=c.active==='N';const grpIcon=GROUP_BADGE[c.group]||'🏢';
-    return `<tr style="${isInactive?'opacity:.5':''}">
-      <td><div style="font-size:12px;font-weight:500">${c.name}</div>${isInactive?'<span style="font-size:9px;color:var(--danger)">비활성</span>':''}</td>
-      <td><span style="font-size:10px">${grpIcon} ${c.group||'일반고객'}</span></td>
-      <td>${c.ceo||'—'}</td><td style="color:var(--g1)">${c.biztype||'—'}</td>
-      <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g2)">${c._id}</td>
-      <td style="color:var(--g1)">${c.tel||'—'}</td>
-      <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold-l)">${amt?fmtAmt(amt):'—'}</td>
-      <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g2)">${c.joinDate||'—'}</td>
-      <td>
-        <button onclick="openCompanyModal('${c._id}')" style="background:none;border:none;color:var(--g2);font-size:13px;cursor:pointer;padding:2px" title="수정">✏️</button>
-        ${isInactive?`<button onclick="restoreCompany('${c._id}')" style="background:none;border:none;color:var(--ok);font-size:11px;cursor:pointer;padding:2px" title="복구">↩️복구</button>`:''}
-      </td>
-    </tr>`;
-  }).join(''):`<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--g2)">등록된 기업이 없습니다</td></tr>`;
+    const isInactive=c.active==='N';
+    const grpIcon=GROUP_BADGE[c.group]||'🏢';
+    const id=c._id.replace(/'/g,"\\'"); // 사업자번호 따옴표 이스케이프
+    return '<tr style="'+(isInactive?'opacity:.5':'')+'\">'
+      +'<td>'
+        +'<div style="font-size:12px;font-weight:500;cursor:pointer;color:var(--blue-l)" onclick="openCompanyModal(\''+id+'\')" title="클릭하여 수정">'+c.name+'</div>'
+        +(isInactive?'<span style="font-size:9px;color:var(--danger)">비활성</span>':'')
+      +'</td>'
+      +'<td><span style="font-size:10px">'+grpIcon+' '+(c.group||'일반고객')+'</span></td>'
+      +'<td>'+(c.ceo||'—')+'</td>'
+      +'<td style="color:var(--g1)">'+(c.biztype||'—')+'</td>'
+      +'<td style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--g2)">'+c._id+'</td>'
+      +'<td style="color:var(--g1)">'+(c.tel||'—')+'</td>'
+      +'<td style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--gold-l)">'+(amt?fmtAmt(amt):'—')+'</td>'
+      +'<td style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--g2)">'+(c.joinDate||'—')+'</td>'
+      +'<td>'
+        +'<button onclick="openCompanyModal(\''+id+'\')" style="background:none;border:none;color:var(--g2);font-size:13px;cursor:pointer;padding:2px" title="수정">✏️</button>'
+        +(isInactive?'<button onclick="restoreCompany(\''+id+'\')" style="background:none;border:none;color:var(--ok);font-size:11px;cursor:pointer;padding:2px" title="복구">↩️복구</button>':'')
+      +'</td>'
+      +'</tr>';
+  }).join('')+'':'<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--g2)">등록된 기업이 없습니다</td></tr>';
 }
 
 // ── CORP AUTOCOMPLETE ──
