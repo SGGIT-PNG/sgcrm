@@ -866,6 +866,14 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
       <input type="hidden" id="cat-requires-cert" value="false">
       <div style="font-size:10px;color:var(--g2);margin-top:5px" id="cat-cert-hint">완료 처리 시 인증 팝업이 표시되지 않습니다</div>
     </div>
+    <!-- 갱신 있음 선택 시: 연결할 인증 종류 선택 -->
+    <div class="fg" id="cat-cert-master-wrap" style="display:none">
+      <label class="fl">연결할 인증 종류 <span style="font-size:9px;color:var(--g2)">(완료 시 팝업에서 우선 표시)</span></label>
+      <select class="fs" id="cat-cert-master-sel" multiple style="height:100px">
+        <!-- cert_master 로드 후 동적 생성 -->
+      </select>
+      <div style="font-size:9px;color:var(--g2);margin-top:3px">Ctrl/Cmd 클릭으로 여러 개 선택 가능 · 미선택 시 전체 인증 목록 표시</div>
+    </div>
     <div class="modal-btns">
       <button class="btn btn-danger btn-sm" id="cat-del-btn" style="display:none;margin-right:auto" onclick="deleteCatAdd()">삭제</button>
       <button class="btn btn-ghost" onclick="closeModal('cat-add-modal')">취소</button>
@@ -1107,7 +1115,8 @@ function applyCategories(catDocs){
   catDocs.sort((a,b)=>(a.order||99)-(b.order||99)).forEach(c=>{
     CAT_META[c.id]={
       name:c.name,icon:c.icon||'📋',color:c.color||'#64748B',
-      requiresCert:c.requiresCert||false,  // 갱신 필요 여부
+      requiresCert:c.requiresCert||false,
+      certMasterIds:c.certMasterIds||[],  // 연결된 cert_master IDs
       custom:true
     };
   });
@@ -1120,20 +1129,32 @@ function setCatRequiresCert(val){
   const yesBtn=document.getElementById('cat-cert-yes');
   const noBtn=document.getElementById('cat-cert-no');
   const hint=document.getElementById('cat-cert-hint');
+  const masterWrap=document.getElementById('cat-cert-master-wrap');
   if(val){
     yesBtn.style.cssText='flex:1;padding:8px;border-radius:8px;border:1px solid rgba(16,185,129,.4);background:rgba(16,185,129,.2);color:#6EE7B7;font-size:11px;cursor:pointer;font-family:Noto Sans KR,sans-serif';
     noBtn.style.cssText='flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:var(--g1);font-size:11px;cursor:pointer;font-family:Noto Sans KR,sans-serif';
     if(hint)hint.textContent='완료 처리 시 인증 등록 팝업이 표시됩니다';
+    // cert_master 드롭다운 채우기
+    if(masterWrap){
+      masterWrap.style.display='';
+      const sel=document.getElementById('cat-cert-master-sel');
+      if(sel) sel.innerHTML=certMaster.map(m=>'<option value="'+m.id+'">'+m.icon+' '+m.certName+'</option>').join('');
+    }
   } else {
     yesBtn.style.cssText='flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:var(--g1);font-size:11px;cursor:pointer;font-family:Noto Sans KR,sans-serif';
     noBtn.style.cssText='flex:1;padding:8px;border-radius:8px;border:1px solid rgba(37,99,235,.4);background:rgba(37,99,235,.2);color:#93C5FD;font-size:11px;cursor:pointer;font-family:Noto Sans KR,sans-serif';
     if(hint)hint.textContent='완료 처리 시 인증 팝업이 표시되지 않습니다';
+    if(masterWrap)masterWrap.style.display='none';
   }
 }
 
 // 업무 분야 추가/수정 모달
 function openCatAddModal(catId){
   document.getElementById('cat-edit-id').value=catId||'';
+  // cert_master 드롭다운 채우기 (항상)
+  const sel=document.getElementById('cat-cert-master-sel');
+  if(sel) sel.innerHTML=certMaster.map(m=>'<option value="'+m.id+'">'+m.icon+' '+m.certName+'</option>').join('');
+
   if(catId){
     if(DEFAULT_CAT_META[catId]){alert('기본 분야는 수정할 수 없습니다.');return;}
     const m=CAT_META[catId];
@@ -1142,6 +1163,12 @@ function openCatAddModal(catId){
     document.getElementById('cat-add-icon').value=m.icon||'📋';
     document.getElementById('cat-add-color').value=m.color||'#64748B';
     setCatRequiresCert(m.requiresCert===true);
+    // 저장된 certMasterIds 복원
+    if(m.requiresCert&&m.certMasterIds?.length&&sel){
+      Array.from(sel.options).forEach(opt=>{
+        opt.selected=m.certMasterIds.includes(opt.value);
+      });
+    }
     document.getElementById('cat-del-btn').style.display='';
   } else {
     document.getElementById('cat-modal-title').textContent='➕ 업무 분야 추가';
@@ -1159,13 +1186,18 @@ async function saveCatAdd(){
   const icon=document.getElementById('cat-add-icon').value.trim()||'📋';
   const color=document.getElementById('cat-add-color').value||'#64748B';
   const requiresCert=document.getElementById('cat-requires-cert').value==='true';
+  // 선택된 cert_master IDs
+  const sel=document.getElementById('cat-cert-master-sel');
+  const certMasterIds=requiresCert&&sel
+    ? Array.from(sel.selectedOptions).map(o=>o.value)
+    : [];
   const editId=document.getElementById('cat-edit-id').value;
   try{
     if(editId){
-      await updateDoc(doc(db,'categories',editId),{name,icon,color,requiresCert,updatedAt:Date.now()});
+      await updateDoc(doc(db,'categories',editId),{name,icon,color,requiresCert,certMasterIds,updatedAt:Date.now()});
     } else {
       const id='custom_'+Date.now();
-      await setDoc(doc(db,'categories',id),{name,icon,color,requiresCert,order:100+Date.now()%1000,createdAt:Date.now()});
+      await setDoc(doc(db,'categories',id),{name,icon,color,requiresCert,certMasterIds,order:100+Date.now()%1000,createdAt:Date.now()});
     }
     closeModal('cat-add-modal');
   }catch(e){alert('저장 실패: '+e.message);}
@@ -1706,18 +1738,17 @@ function isCertCategory(cat){
 }
 // 해당 카테고리의 관련 cert_master 목록 조회
 function getRelatedCertMasters(cat){
-  // ven → 벤처/이노비즈/메인비즈
-  // lab → 연구소/전담부서
-  // iso → ISO 계열 전체
-  const catName=(CAT_META[cat]?.name||'').toLowerCase();
-  return certMaster.filter(m=>{
-    const mn=m.certName.toLowerCase();
-    if(cat==='ven') return ['venture','innobiz','mainbiz'].includes(m.id);
-    if(cat==='lab') return ['lab','rnd_dept'].includes(m.id);
-    if(cat==='iso') return m.id.startsWith('iso_')||mn.includes('iso');
-    // 사용자 추가 분야: cert_master에서 이름 유사한 것 추천
-    return false;
-  });
+  const catMeta=CAT_META[cat];
+  // 방법1: categories에 certMasterIds가 저장된 경우 우선 사용
+  if(catMeta?.certMasterIds?.length){
+    return certMaster.filter(m=>catMeta.certMasterIds.includes(m.id));
+  }
+  // 기본 8개 분야 매핑
+  if(cat==='ven') return certMaster.filter(m=>['venture','innobiz','mainbiz'].includes(m.id));
+  if(cat==='lab') return certMaster.filter(m=>['lab','rnd_dept'].includes(m.id));
+  if(cat==='iso') return certMaster.filter(m=>m.id.startsWith('iso_')||m.certName.toLowerCase().includes('iso'));
+  // 방법3: 매핑 없는 경우 전체 cert_master 목록 반환
+  return certMaster;
 }
 
 async function cycleWork(itemId){
