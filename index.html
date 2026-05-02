@@ -1061,19 +1061,21 @@ async function loadAll(){
     annualReports  = arSnap.docs.map(d=>({id:d.id,...d.data()}));
     applyCategories(catSnap.docs.map(d=>({id:d.id,...d.data()})));
     // cert_master 없으면 초기화, lab/rnd_dept reportType 누락시 자동 보정
-    if(!certMaster.length) await initCertMaster();
-    else{
-      const needsFix=certMaster.filter(m=>['lab','rnd_dept'].includes(m.id)&&m.reportType!=='annual');
-      if(needsFix.length){
-        const batch=writeBatch(db);
-        needsFix.forEach(m=>batch.update(doc(db,'cert_master',m.id),{reportType:'annual',annualMonth:4,annualDay:30}));
-        await batch.commit();
-        const snap=await getDocs(COL.cert_master());
-        certMaster=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.sortOrder||99)-(b.sortOrder||99));
+    try{
+      if(!certMaster.length) await initCertMaster();
+      else{
+        const needsFix=certMaster.filter(m=>['lab','rnd_dept'].includes(m.id)&&m.reportType!=='annual');
+        if(needsFix.length){
+          const batch=writeBatch(db);
+          needsFix.forEach(m=>batch.update(doc(db,'cert_master',m.id),{reportType:'annual',annualMonth:4,annualDay:30}));
+          await batch.commit();
+          const snap=await getDocs(COL.cert_master());
+          certMaster=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.sortOrder||99)-(b.sortOrder||99));
+        }
       }
-    }
-    // certifications 구버전 데이터 자동 보정 (certMasterId 없는 경우)
-    await migrateCertifications();
+    }catch(e){console.warn('cert_master 초기화 스킵:',e);}
+    // certifications 구버전 데이터 자동 보정 (오류나도 계속 진행)
+    try{ await migrateCertifications(); }catch(e){console.warn('migrate 스킵:',e);}
     renderAll(); updateCounts();
     setBadge('✅ 로드 완료',2000);
     startRealtimeSync();
@@ -1801,25 +1803,68 @@ async function saveCertFromWork(){
   const comp=companies.find(c=>c.name===compName)||companies.find(c=>c._id===it.clientBizno);
   if(!comp){alert('업체 정보를 확인해주세요.');return;}
   const acqDate=getDateFields('cfw-acq-y','cfw-acq-m','cfw-acq-d');
-  const expDate=getDateFields('cfw-exp-y','cfw-exp-m','cfw-exp-d');
-  if(!acqDate||!expDate){alert('취득일과 만료일을 입력해주세요.');return;}
+  if(!acqDate){alert('취득일을 입력해주세요.');return;}
   const masterId=document.getElementById('cfw-master-sel')?.value;
   const m=getCertMasterInfo(masterId);
-  const currentPhase=document.getElementById('cfw-phase-sel')?.value||'';
+
   try{
-    // 1. certifications 등록
-    const certData={
-      bizno:comp._id,companyName:comp.name,
-      certMasterId:masterId,certName:m.certName,certIcon:m.icon,
-      cycleType:m.cycleType,cycleMonths:m.cycleMonths,
-      currentPhase:m.cycleType==='complex'?currentPhase:'',
-      acqDate,expDate,status:'유효',
-      workItemId,  // ← 업무 항목 연결
-      createdAt:Date.now(),updatedAt:Date.now()
-    };
-    const certRef=await addDoc(COL.certifications(),certData);
-    // 2. work_items에 certId 연결
-    await updateDoc(doc(db,'work_items',workItemId),{certId:certRef.id,updatedAt:Date.now()});
+    let firstCertId=null;
+    if(m.cycleType==='complex'&&m.phases?.length){
+      // ISO 등 complex: 단계별 자동 생성
+      if(!confirm(
+        `${m.certName} 인증을 등록하면\n`+
+        `취득일(${acqDate}) 기준으로 아래 일정이 자동 생성됩니다:\n\n`+
+        m.phases.map((p,i)=>{
+          const d=new Date(acqDate);
+          let months=0;
+          for(let j=0;j<=i;j++) months+=(m.phases[j].months||12);
+          d.setMonth(d.getMonth()+months);
+          return `  ${i+1}단계. ${p.name}: ${d.toISOString().slice(0,10)} 이전`;
+        }).join('\n')+'\n\n계속하시겠습니까?'
+      ))return;
+      // 첫 번째 단계에 workItemId 연결
+      const acq=new Date(acqDate);
+      let running=new Date(acq);
+      const refs=[];
+      for(let i=0;i<m.phases.length;i++){
+        const phase=m.phases[i];
+        running=new Date(running);
+        running.setMonth(running.getMonth()+(phase.months||12));
+        const phaseExpDate=running.toISOString().slice(0,10);
+        const ref=doc(COL.certifications());
+        refs.push({ref,data:{
+          bizno:comp._id,companyName:comp.name,
+          certMasterId:masterId,certName:m.certName,certIcon:m.icon,
+          cycleType:'complex',cycleMonths:phase.months||12,
+          currentPhase:phase.name,phaseIndex:i,
+          isLastPhase:i===m.phases.length-1,
+          acqDate,expDate:phaseExpDate,status:'유효',memo:'',
+          workItemId:i===0?workItemId:null,
+          createdAt:Date.now(),updatedAt:Date.now()
+        }});
+      }
+      const batch=writeBatch(db);
+      refs.forEach(({ref,data})=>batch.set(ref,data));
+      await batch.commit();
+      firstCertId=refs[0].ref.id;
+    } else {
+      // fixed 타입
+      const expDate=getDateFields('cfw-exp-y','cfw-exp-m','cfw-exp-d');
+      if(!expDate){alert('만료일을 입력해주세요.');return;}
+      const certData={
+        bizno:comp._id,companyName:comp.name,
+        certMasterId:masterId,certName:m.certName,certIcon:m.icon,
+        cycleType:m.cycleType,cycleMonths:m.cycleMonths,
+        currentPhase:'',acqDate,expDate,status:'유효',memo:'',
+        workItemId,createdAt:Date.now(),updatedAt:Date.now()
+      };
+      const certRef=await addDoc(COL.certifications(),certData);
+      firstCertId=certRef.id;
+    }
+    // work_items에 certId 연결 (첫 번째 단계)
+    if(firstCertId){
+      await updateDoc(doc(db,'work_items',workItemId),{certId:firstCertId,updatedAt:Date.now()});
+    }
     closeModal('cert-from-work-modal');
     setBadge('✅ 인증 등록 완료',2000);
   }catch(e){alert('저장 실패: '+e.message);}
@@ -2279,26 +2324,34 @@ function certRow(c){
   const diff=getCertDday(c.expDate);
   const m=getCertMasterInfo(c.certMasterId);
   const isAnnual=m.reportType==='annual';
-  const phaseLabel=c.currentPhase?` <span style="font-size:9px;color:var(--g2)">[${c.currentPhase}]</span>`:'';
+  const isComplex=m.cycleType==='complex';
+  const phaseLabel=c.currentPhase
+    ?`<span style="font-size:9px;padding:1px 5px;border-radius:4px;background:rgba(245,158,11,.2);color:#FCD34D;margin-left:4px">${c.currentPhase}</span>`
+    :'';
   const linkedWork=c.workItemId?workItems.find(w=>w.id===c.workItemId):null;
-  const workLink=linkedWork?`<div style="font-size:9px;color:var(--teal);margin-top:2px">🔗 ${linkedWork.name} [${ST[linkedWork.status]?.label||linkedWork.status}]</div>`:'';
-  // annual 타입: D-Day 대신 신고현황 표시
+  const workLink=linkedWork?`<div style="font-size:9px;color:var(--teal);margin-top:2px">&#128279; ${linkedWork.name} [${ST[linkedWork.status]?.label||linkedWork.status}]</div>`:'';
   const statusCell=isAnnual?getAnnualStatusDisplay(c.id):certDdayBadge(diff);
-  const expLabel=isAnnual?'다음신고기한':'만료·갱신일';
-  return `<tr>
+  return `<tr${c.status==='완료'?' style="opacity:.6"':''}>
     <td>
-      <div style="font-size:12px;font-weight:500;cursor:pointer;color:var(--blue-l)" onclick="openCertModal('${c.id}')">${comp?.name||c.companyName||'—'}</div>
+      <div style="font-size:12px;font-weight:500;cursor:pointer;color:var(--blue-l)" onclick="openCertModal('${c.id}')">${comp?.name||c.companyName||'&#8212;'}</div>
       ${workLink}
     </td>
-    <td><span style="font-size:11px">${m.icon} ${m.certName}${phaseLabel}</span></td>
-    <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g2)">${isAnnual?c.acqDate||'—':c.acqDate||'—'}</td>
-    <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g2)">${c.expDate||'—'}</td>
-    <td style="font-size:10px;color:var(--g1)">${isAnnual?`매년 ${m.annualMonth||4}월 ${m.annualDay||30}일`:m.cycleType==='complex'?'사후심사':m.cycleMonths+'개월'}</td>
-    <td>${isAnnual?`<span class="badge" style="background:rgba(59,130,246,.2);color:#93C5FD">📋 연간신고</span>`:certStatusBadge(c)}</td>
+    <td>
+      <span style="font-size:11px">${m.icon} ${m.certName}</span>${phaseLabel}
+      ${c.status==='완료'?'<span style="font-size:9px;padding:1px 5px;border-radius:4px;background:rgba(16,185,129,.2);color:#6EE7B7;margin-left:4px">&#10003;완료</span>':''}
+    </td>
+    <td style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--g2)">${c.acqDate||'&#8212;'}</td>
+    <td style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--g2)">${c.expDate||'&#8212;'}</td>
+    <td style="font-size:10px;color:var(--g1)">${isAnnual?`매년 ${m.annualMonth||4}월 ${m.annualDay||30}일`:isComplex?`${c.cycleMonths||12}개월`:(m.cycleMonths||12)+'개월'}</td>
+    <td>${isAnnual?'<span class="badge" style="background:rgba(59,130,246,.2);color:#93C5FD">연간신고</span>':certStatusBadge(c)}</td>
     <td>${statusCell}</td>
-    <td><button onclick="openCertModal('${c.id}')" style="background:none;border:none;color:var(--g2);font-size:12px;cursor:pointer">✏️</button></td>
+    <td>
+      ${isComplex&&c.status!=='완료'?`<button onclick="markCertPhaseDone('${c.id}')" style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:6px;color:#6EE7B7;font-size:9px;padding:2px 6px;cursor:pointer;margin-right:4px">완료</button>`:''}
+      <button onclick="openCertModal('${c.id}')" style="background:none;border:none;color:var(--g2);font-size:12px;cursor:pointer">&#9998;</button>
+    </td>
   </tr>`;
 }
+
 
 function renderCertPage(){
   // 업체 필터 드롭다운
@@ -2323,6 +2376,10 @@ function renderCertPage(){
 // 탭1: 갱신 알림 (D-Day 순)
 function renderCertAlert(){
   const el=document.getElementById('cert-alert-list');if(!el)return;
+  if(!certMaster||!certMaster.length){
+    el.innerHTML=`<div class="empty"><div class="empty-ico">⏳</div><div class="empty-txt">데이터 로딩 중...</div></div>`;
+    return;
+  }
   if(!certifications.length){el.innerHTML=`<div class="empty"><div class="empty-ico">📋</div><div class="empty-txt">등록된 인증이 없습니다</div></div>`;return;}
 
   // 갱신형 / 연간신고 분리
@@ -2533,37 +2590,116 @@ function calcCertExpDate(){
   setDateFields('cert-exp-y','cert-exp-m','cert-exp-d',acq.toISOString().slice(0,10));
 }
 
+// ISO complex 타입 단계별 자동 생성
+async function createComplexPhases(masterId, bizno, companyName, acqDate, workItemId){
+  const m=getCertMasterInfo(masterId);
+  if(!m||m.cycleType!=='complex'||!m.phases?.length)return;
+  const batch=writeBatch(db);
+  const acq=new Date(acqDate);
+  let running=new Date(acq);
+
+  m.phases.forEach((phase,i)=>{
+    running=new Date(running);
+    running.setMonth(running.getMonth()+(phase.months||12));
+    const phaseExpDate=running.toISOString().slice(0,10);
+    const isLast=(i===m.phases.length-1);
+    const phaseData={
+      bizno,companyName,
+      certMasterId:masterId,
+      certName:m.certName,
+      certIcon:m.icon,
+      cycleType:'complex',
+      cycleMonths:phase.months||12,
+      currentPhase:phase.name,
+      phaseIndex:i,
+      isLastPhase:isLast,
+      acqDate,
+      expDate:phaseExpDate,
+      status:'유효',
+      memo:'',
+      workItemId:workItemId||null,
+      createdAt:Date.now(),
+      updatedAt:Date.now()
+    };
+    const newRef=doc(COL.certifications());
+    batch.set(newRef,phaseData);
+  });
+  await batch.commit();
+}
+
 async function saveCert(){
   const compName=document.getElementById('cert-comp-inp').value.trim();
   const comp=companies.find(c=>c.name===compName);
   if(!compName||!comp){alert('등록된 업체를 선택해주세요.');return;}
   const acqDate=getDateFields('cert-acq-y','cert-acq-m','cert-acq-d');
-  const expDate=getDateFields('cert-exp-y','cert-exp-m','cert-exp-d');
   if(!acqDate){alert('취득일을 입력하세요.');return;}
   const masterId=document.getElementById('cert-master-sel')?.value;
   const m=getCertMasterInfo(masterId);
-  const currentPhase=document.getElementById('cert-phase-sel')?.value||'';
-  const data={
-    bizno:comp._id,
-    companyName:comp.name,
-    certMasterId:masterId,
-    certName:m.certName,      // 조회 편의용 비정규화
-    certIcon:m.icon,
-    cycleType:m.cycleType,
-    cycleMonths:+document.getElementById('cert-cycle').value||m.cycleMonths||12,
-    currentPhase:m.cycleType==='complex'?currentPhase:'',
-    acqDate,expDate,
-    status:document.getElementById('cert-status').value,
-    memo:document.getElementById('cert-memo').value,
-    updatedAt:Date.now()
-  };
   const editId=document.getElementById('cert-edit-id').value;
+
   try{
-    if(editId){await updateDoc(doc(db,'certifications',editId),data);}
-    else{data.createdAt=Date.now();await addDoc(COL.certifications(),data);}
+    if(editId){
+      // 수정 모드: 단계별 구분 없이 현재 데이터만 업데이트
+      const expDate=getDateFields('cert-exp-y','cert-exp-m','cert-exp-d');
+      const currentPhase=document.getElementById('cert-phase-sel')?.value||'';
+      await updateDoc(doc(db,'certifications',editId),{
+        bizno:comp._id,companyName:comp.name,
+        certMasterId:masterId,certName:m.certName,certIcon:m.icon,
+        cycleType:m.cycleType,
+        cycleMonths:+document.getElementById('cert-cycle').value||m.cycleMonths||12,
+        currentPhase:m.cycleType==='complex'?currentPhase:'',
+        acqDate,expDate,
+        status:document.getElementById('cert-status').value,
+        memo:document.getElementById('cert-memo').value,
+        updatedAt:Date.now()
+      });
+    } else {
+      // 신규 등록
+      if(m.cycleType==='complex'&&m.phases?.length){
+        // ISO 등 complex 타입: 단계별 자동 생성
+        if(!confirm(
+          `${m.certName} 인증을 등록하면\n`+
+          `취득일(${acqDate}) 기준으로 아래 일정이 자동 생성됩니다:\n\n`+
+          m.phases.map((p,i)=>{
+            const d=new Date(acqDate);
+            let months=0;
+            for(let j=0;j<=i;j++) months+=(m.phases[j].months||12);
+            d.setMonth(d.getMonth()+months);
+            return `  ${i+1}단계. ${p.name}: ${d.toISOString().slice(0,10)} 이전`;
+          }).join('\n')+
+          '\n\n계속하시겠습니까?'
+        ))return;
+        await createComplexPhases(masterId,comp._id,comp.name,acqDate,null);
+      } else {
+        // 일반 fixed 타입
+        const expDate=getDateFields('cert-exp-y','cert-exp-m','cert-exp-d');
+        await addDoc(COL.certifications(),{
+          bizno:comp._id,companyName:comp.name,
+          certMasterId:masterId,certName:m.certName,certIcon:m.icon,
+          cycleType:m.cycleType,
+          cycleMonths:+document.getElementById('cert-cycle').value||m.cycleMonths||12,
+          currentPhase:'',
+          acqDate,expDate,
+          status:document.getElementById('cert-status').value,
+          memo:document.getElementById('cert-memo').value,
+          createdAt:Date.now(),updatedAt:Date.now()
+        });
+      }
+    }
     closeModal('cert-modal');
   }catch(e){alert('저장 실패: '+e.message);}
 }
+// ISO 사후심사 단계 완료 처리
+async function markCertPhaseDone(certId){
+  if(!confirm('이 단계를 완료 처리하시겠습니까?'))return;
+  try{
+    await updateDoc(doc(db,'certifications',certId),{
+      status:'완료',updatedAt:Date.now()
+    });
+    setBadge('✅ 단계 완료',2000);
+  }catch(e){alert('처리 실패: '+e.message);}
+}
+
 async function deleteCert(){
   const id=document.getElementById('cert-edit-id').value;
   if(!id||!confirm('삭제하시겠습니까?'))return;
@@ -2576,6 +2712,12 @@ function renderCertAlertBanner(){
   const bannerEl=document.getElementById('cert-banner');
   const summaryEl=document.getElementById('cert-summary-ov');
   if(!bannerEl&&!summaryEl)return;
+  // certMaster 미로드 시 안전 처리
+  if(!certMaster||!certMaster.length){
+    if(bannerEl)bannerEl.style.display='none';
+    if(summaryEl)summaryEl.innerHTML='';
+    return;
+  }
 
   // 갱신형 (renewal) 인증 통계
   const renewalCerts=certifications.filter(c=>{
@@ -2944,6 +3086,7 @@ Object.assign(window,{
   setCertTab,renderCertByCert,renderCertByComp,renderCertMaster,
   openCertMasterModal,saveCertMaster,deleteCertMaster,toggleCmCycleFields,addCmPhase,renderCmPhases,
   openCertModal,onCertTypeChange,saveCert,deleteCert,calcCertExpDate,
+  markCertPhaseDone,createComplexPhases,
   openCertFromWork,onCfwTypeChange,cfwCalcExpDate,saveCertFromWork,skipCertFromWork,
   renderAnnualReportList,addAnnualReport,markAnnualDone,deleteAnnualReport,
   openConsultingModal,saveConsulting,deleteConsulting,addConsCompany,renderConsCompaniesList,updateConsCompanyStatus,removeConsCompany,
