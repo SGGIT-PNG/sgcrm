@@ -3143,9 +3143,9 @@ function renderAnnualReportList(){
       ?'<span class="badge" style="background:rgba(239,68,68,.2);color:#FCA5A5">&#x274C; 미신고(기한초과)</span>'
       :'<span class="badge" style="background:rgba(245,158,11,.2);color:#FCD34D">&#x1F6DC; 신고예정</span>';
     const doneBtn=!isDone
-      ?'<button onclick="markAnnualDone(''+r.id+'')" style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:6px;color:#6EE7B7;font-size:10px;padding:3px 8px;cursor:pointer;white-space:nowrap;font-family:Noto Sans KR,sans-serif">신고완료</button>'
+      ?'<button onclick="markAnnualDone(\'' + r.id + '\')" style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:6px;color:#6EE7B7;font-size:10px;padding:3px 8px;cursor:pointer;white-space:nowrap;font-family:Noto Sans KR,sans-serif">신고완료</button>'
       :'';
-    const delBtn='<button onclick="deleteAnnualReport(''+r.id+'')" style="background:none;border:none;color:var(--g2);cursor:pointer;font-size:16px;padding:0 2px">&times;</button>';
+    const delBtn='<button onclick="deleteAnnualReport(\'' + r.id + '\')" style="background:none;border:none;color:var(--g2);cursor:pointer;font-size:16px;padding:0 2px">&times;</button>';
     return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:8px;margin-bottom:4px">'
       +'<div style="font-family:JetBrains Mono,monospace;font-size:12px;font-weight:500;width:45px;flex-shrink:0">'+r.year+'년</div>'
       +'<div style="font-size:10px;color:var(--g2);flex-shrink:0">기한: '+r.dueDate+'</div>'
