@@ -628,6 +628,7 @@ table.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
         </select>
       </div>
       <div class="fg"><label class="fl">신청금액 (만원)</label><input class="fi" id="cons-amount" type="number" placeholder="0"></div>
+      <div class="fg"><label class="fl">승인·확정금액 (만원)</label><input class="fi" id="cons-approved-amt" type="number" placeholder="0"></div>
     </div>
     <div class="fg"><label class="fl">메모</label><textarea class="fta" id="cons-memo"></textarea></div>
     <div style="border-top:1px solid rgba(255,255,255,.08);padding-top:12px;margin-top:4px">
@@ -1079,7 +1080,12 @@ async function loadAll(){
     renderAll(); updateCounts();
     setBadge('✅ 로드 완료',2000);
     startRealtimeSync();
-  }catch(e){console.error(e);setBadge('⚠️ 오프라인');}
+  }catch(e){
+    console.error('loadAll 오류:', e);
+    setBadge('⚠️ 오류: '+e.message);
+    // 오류가 있어도 기본 렌더는 시도
+    try{renderAll();updateCounts();}catch(e2){console.error('renderAll 오류:',e2);}
+  }
 }
 
 // ── REALTIME SYNC (각 컬렉션 독립 감시) ──
@@ -1456,6 +1462,7 @@ function openConsultingModal(id){
     document.getElementById('cons-end').value=c.endDate||'';
     document.getElementById('cons-status').value=c.status||'wait';
     document.getElementById('cons-amount').value=c.amount||'';
+    document.getElementById('cons-approved-amt').value=c.approvedAmt||'';
     document.getElementById('cons-memo').value=c.memo||'';
     // consulting_company 테이블에서 참여업체 로드
     tempConsCompanies=getConsCompanies(id).map(cc=>({...cc}));
@@ -1463,7 +1470,7 @@ function openConsultingModal(id){
   } else {
     document.getElementById('cons-modal-title').textContent='📋 지원사업·정책자금 추가';
     document.getElementById('cons-edit-id').value='';
-    ['cons-title','cons-org','cons-start','cons-end','cons-amount','cons-memo'].forEach(id=>document.getElementById(id).value='');
+    ['cons-title','cons-org','cons-start','cons-end','cons-amount','cons-approved-amt','cons-memo'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('cons-category').value='policy';
     document.getElementById('cons-status').value='wait';
     document.getElementById('cons-del-btn').style.display='none';
@@ -1505,6 +1512,7 @@ async function saveConsulting(){
     endDate,status:newStatus,
     doneAt:newStatus==='done'&&prevCons?.status!=='done'?Date.now():newStatus!=='done'?null:(prevCons?.doneAt||null),
     amount:+document.getElementById('cons-amount').value||0,
+    approvedAmt:+document.getElementById('cons-approved-amt').value||0,
     memo:document.getElementById('cons-memo').value,
     updatedAt:Date.now()
   };
@@ -1811,17 +1819,7 @@ async function saveCertFromWork(){
     let firstCertId=null;
     if(m.cycleType==='complex'&&m.phases?.length){
       // ISO 등 complex: 단계별 자동 생성
-      if(!confirm(
-        `${m.certName} 인증을 등록하면\n`+
-        `취득일(${acqDate}) 기준으로 아래 일정이 자동 생성됩니다:\n\n`+
-        m.phases.map((p,i)=>{
-          const d=new Date(acqDate);
-          let months=0;
-          for(let j=0;j<=i;j++) months+=(m.phases[j].months||12);
-          d.setMonth(d.getMonth()+months);
-          return `  ${i+1}단계. ${p.name}: ${d.toISOString().slice(0,10)} 이전`;
-        }).join('\n')+'\n\n계속하시겠습니까?'
-      ))return;
+      if(!confirm(buildIsoConfirmMsg(m,acqDate)))return;
       // 첫 번째 단계에 workItemId 연결
       const acq=new Date(acqDate);
       let running=new Date(acq);
@@ -1979,7 +1977,287 @@ function renderStatsCards(targetId){
     </div>
   </div>`;
 }
-function renderStatsPage(){renderStatsCards('stats-page');}
+// ── STATS PAGE (누적 통계) ──
+let statsYear='all', statsCat='all';
+
+function setStatsYear(y){
+  statsYear=y;
+  document.querySelectorAll('#stats-year-toggle .toggle-opt').forEach(b=>{
+    b.classList.toggle('active', b.dataset.val===String(y));
+  });
+  renderStatsPage();
+}
+function setStatsCat(c){
+  statsCat=c;
+  renderStatsPage();
+}
+// 월별 막대 HTML 생성 (중첩 템플릿 리터럴 회피)
+function makeMonthBar(key, val, maxVal){
+  const h=val?Math.max(Math.round(val/maxVal*80),4):2;
+  const mon=key.slice(5);
+  const color=val>0?'var(--ok)':'rgba(255,255,255,.1)';
+  const numHtml=val>0
+    ? '<div style="font-size:8px;color:var(--ok);font-family:JetBrains Mono,monospace">'+val+'</div>'
+    : '<div style="font-size:8px;color:transparent">0</div>';
+  return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">'
+    +numHtml
+    +'<div style="width:100%;height:'+h+'px;background:'+color+';border-radius:3px 3px 0 0;min-height:2px"></div>'
+    +'<div style="font-size:8px;color:var(--g2);white-space:nowrap">'+mon+'</div>'
+    +'</div>';
+}
+// 분야별 바 HTML 생성
+function makeCatBar(r, maxCnt){
+  return '<div style="margin-bottom:10px">'
+    +'<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">'
+    +'<span>'+r.icon+' '+r.name+'</span>'
+    +'<span style="font-family:JetBrains Mono,monospace;color:var(--ok)">'+r.cnt+'건'+(r.amt?' · '+fmtAmt(r.amt):'' )+'</span>'
+    +'</div>'
+    +'<div style="height:10px;background:rgba(255,255,255,.07);border-radius:5px;overflow:hidden">'
+    +'<div style="height:100%;width:'+Math.round(r.cnt/maxCnt*100)+'%;background:'+r.color+';border-radius:5px"></div>'
+    +'</div></div>';
+}
+
+function renderStatsPage(){
+  const el=document.getElementById('stats-page');if(!el)return;
+
+  // 연도 목록 자동 생성
+  const years=new Set();
+  [...workItems,...consulting].forEach(i=>{
+    const d=i.doneAt||i.createdAt;
+    if(d) years.add(new Date(d).getFullYear());
+  });
+  const yearList=[...years].sort((a,b)=>b-a);
+
+  function inPeriod(ts){
+    if(statsYear==='all') return true;
+    if(!ts) return false;
+    return new Date(ts).getFullYear()===+statsYear;
+  }
+
+  // 완료 데이터 수집
+  const doneWork=workItems.filter(w=>w.status==='done'&&inPeriod(w.doneAt)&&(statsCat==='all'||w.category===statsCat));
+  const doneConsComp=consCompanies.filter(cc=>{
+    const c=consulting.find(x=>x.id===cc.consId);
+    return cc.status==='done'&&c&&(statsCat==='all'||c.category===statsCat)&&inPeriod(cc.doneAt);
+  });
+  const doneCons=consulting.filter(c=>c.status==='done'&&inPeriod(c.doneAt)&&(statsCat==='all'||c.category===statsCat));
+
+  const totalDone=doneWork.length+doneConsComp.length;
+  const totalAmt=doneCons.reduce((s,c)=>s+(+c.amount||0),0);
+  const totalApproved=doneCons.reduce((s,c)=>s+(+c.approvedAmt||0),0);
+  const uniqueComps=new Set([...doneWork.map(w=>w.clientBizno),...doneConsComp.map(cc=>cc.bizno)].filter(Boolean));
+
+  // 분야별 집계
+  const catList=[];
+  CAT_IDS.forEach(cat=>{
+    const m=CAT_META[cat];
+    const wCnt=doneWork.filter(w=>w.category===cat).length;
+    const cCnt=doneConsComp.filter(cc=>{const c=consulting.find(x=>x.id===cc.consId);return c&&c.category===cat;}).length;
+    const amt=doneCons.filter(c=>c.category===cat).reduce((s,c)=>s+(+c.amount||0),0);
+    const approved=doneCons.filter(c=>c.category===cat).reduce((s,c)=>s+(+c.approvedAmt||0),0);
+    if(wCnt+cCnt>0) catList.push({name:m.name,icon:m.icon,color:m.color,cnt:wCnt+cCnt,amt,approved});
+  });
+  catList.sort((a,b)=>b.cnt-a.cnt);
+  const maxCnt=catList[0]?.cnt||1;
+
+  // 업체별 집계
+  const compMap={};
+  doneWork.forEach(w=>{
+    if(!w.clientBizno)return;
+    const comp=companies.find(c=>c._id===w.clientBizno);
+    if(!compMap[w.clientBizno]) compMap[w.clientBizno]={name:comp?.name||w.client||'—',cnt:0,amt:0,approved:0,lastDone:0};
+    compMap[w.clientBizno].cnt++;
+    if((w.doneAt||0)>compMap[w.clientBizno].lastDone) compMap[w.clientBizno].lastDone=w.doneAt||0;
+  });
+  doneConsComp.forEach(cc=>{
+    const c=consulting.find(x=>x.id===cc.consId);
+    if(!cc.bizno)return;
+    const comp=companies.find(x=>x._id===cc.bizno);
+    if(!compMap[cc.bizno]) compMap[cc.bizno]={name:comp?.name||cc.companyName||'—',cnt:0,amt:0,approved:0,lastDone:0};
+    compMap[cc.bizno].cnt++;
+    compMap[cc.bizno].amt+=(+c?.amount||0);
+    compMap[cc.bizno].approved+=(+c?.approvedAmt||0);
+    if((cc.doneAt||0)>compMap[cc.bizno].lastDone) compMap[cc.bizno].lastDone=cc.doneAt||0;
+  });
+  const compList=Object.values(compMap).sort((a,b)=>b.cnt-a.cnt);
+
+  // 월별 추이 (최근 12개월)
+  const monthStats={};
+  const now=new Date();
+  for(let i=11;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    monthStats[key]=0;
+  }
+  [...doneWork,...doneConsComp].forEach(it=>{
+    if(!it.doneAt)return;
+    const d=new Date(it.doneAt);
+    const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    if(key in monthStats) monthStats[key]++;
+  });
+  const monthKeys=Object.keys(monthStats);
+  const monthVals=Object.values(monthStats);
+  const maxMonth=Math.max(...monthVals,1);
+
+  // 분야별 바 HTML
+  const catBarsHtml=catList.length
+    ? catList.map(r=>`
+        <div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+            <span style="font-size:11px">${r.icon} ${r.name}</span>
+            <div style="display:flex;gap:8px;align-items:center">
+              ${r.approved?`<span style="font-size:9px;color:var(--gold)">승인 ${fmtAmt(r.approved)}</span>`:''}
+              ${r.amt?`<span style="font-size:9px;color:var(--g2)">신청 ${fmtAmt(r.amt)}</span>`:''}
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ok);font-weight:500">${r.cnt}건</span>
+            </div>
+          </div>
+          <div style="height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden">
+            <div style="height:100%;width:${Math.round(r.cnt/maxCnt*100)}%;background:${r.color};border-radius:3px;transition:width .4s"></div>
+          </div>
+        </div>`).join('')
+    : '<div class="empty"><div class="empty-txt">완료된 업무가 없습니다</div></div>';
+
+  // 월별 바 HTML
+  const monthBarsHtml=monthKeys.map((k,i)=>{
+    const h=Math.round(monthVals[i]/maxMonth*90);
+    const label=k.slice(5);
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--g2)">${monthVals[i]||''}</span>
+      <div style="width:100%;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;height:90px;display:flex;align-items:flex-end">
+        <div style="width:100%;height:${h||2}px;background:var(--teal);border-radius:3px;transition:height .4s"></div>
+      </div>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--g2)">${label}</span>
+    </div>`;
+  }).join('');
+
+  // 업체별 테이블 HTML
+  const compRowsHtml=compList.length
+    ? compList.map(c=>`<tr>
+        <td style="font-size:12px;font-weight:500">${c.name}</td>
+        <td><span style="font-family:'JetBrains Mono',monospace;color:var(--ok)">${c.cnt}건</span></td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--g2)">${c.amt?fmtAmt(c.amt):'—'}</td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gold)">${c.approved?fmtAmt(c.approved):'—'}</td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g2)">${c.lastDone?new Date(c.lastDone).toLocaleDateString('ko-KR'):'—'}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--g2)">완료된 업무가 없습니다</td></tr>';
+
+  el.innerHTML=`
+    <!-- 필터 -->
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:20px">
+      <div class="toggle-btn" id="stats-year-toggle">
+        <button class="toggle-opt${statsYear==='all'?' active':''}" onclick="setStatsYear('all')">전체</button>
+        ${yearList.map(y=>`<button class="toggle-opt${statsYear===y?' active':''}" onclick="setStatsYear(${y})">${y}년</button>`).join('')}
+      </div>
+      <select class="fs" onchange="setStatsCat(this.value)" style="width:140px">
+        <option value="all">전체 분야</option>
+        ${CAT_IDS.map(c=>`<option value="${c}"${statsCat===c?' selected':''}>${CAT_META[c].icon} ${CAT_META[c].name}</option>`).join('')}
+      </select>
+      <button class="btn btn-ghost btn-sm" onclick="exportStatsExcel()" style="margin-left:auto">📥 엑셀 다운로드</button>
+    </div>
+
+    <!-- 요약 카드 4개 -->
+    <div class="grid4" style="margin-bottom:20px">
+      <div class="stat-mini" style="padding:16px">
+        <div class="stat-mini-val" style="font-size:28px;color:var(--ok)">${totalDone}</div>
+        <div class="stat-mini-label">✅ 완료 건수</div>
+        <div class="stat-mini-sub">업무+간트 합산</div>
+      </div>
+      <div class="stat-mini" style="padding:16px">
+        <div class="stat-mini-val" style="font-size:22px;color:var(--gold)">${totalAmt?fmtAmt(totalAmt):'—'}</div>
+        <div class="stat-mini-label">💰 신청금액 합계</div>
+        <div class="stat-mini-sub">${totalApproved?'승인 '+fmtAmt(totalApproved):'승인금액 미입력'}</div>
+      </div>
+      <div class="stat-mini" style="padding:16px">
+        <div class="stat-mini-val" style="font-size:28px;color:var(--blue-l)">${uniqueComps.size}</div>
+        <div class="stat-mini-label">🏢 참여 업체 수</div>
+        <div class="stat-mini-sub">중복 제외</div>
+      </div>
+      <div class="stat-mini" style="padding:16px">
+        <div class="stat-mini-val" style="font-size:28px;color:var(--teal)">${uniqueComps.size?Math.round(totalDone/uniqueComps.size*10)/10:'—'}</div>
+        <div class="stat-mini-label">📊 업체당 평균</div>
+        <div class="stat-mini-sub">완료 건수</div>
+      </div>
+    </div>
+
+    <!-- 차트 2개 나란히 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div class="card" style="padding:16px">
+        <div style="font-size:12px;font-weight:500;color:var(--g1);margin-bottom:14px">📊 분야별 완료 현황</div>
+        ${catBarsHtml}
+      </div>
+      <div class="card" style="padding:16px">
+        <div style="font-size:12px;font-weight:500;color:var(--g1);margin-bottom:14px">📈 월별 완료 추이 (최근 12개월)</div>
+        <div style="display:flex;align-items:flex-end;gap:3px;height:120px">${monthBarsHtml}</div>
+      </div>
+    </div>
+
+    <!-- 업체별 완료 이력 -->
+    <div class="card" style="margin-bottom:20px">
+      <div style="padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:12px;font-weight:500">🏢 업체별 완료 이력</div>
+        <div style="font-size:10px;color:var(--g2)">${compList.length}개 업체</div>
+      </div>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr>
+          <th>업체명</th><th>완료 건수</th><th>신청금액</th><th>승인금액</th><th>최근 완료일</th>
+        </tr></thead>
+        <tbody>${compRowsHtml}</tbody>
+      </table></div>
+    </div>
+
+    <!-- 업무 현황 요약 (기존 카드) -->
+    <div>
+      <div style="font-size:12px;font-weight:500;color:var(--g1);margin-bottom:12px">📋 업무 현황 요약</div>
+      <div id="stats-cards-sub"></div>
+    </div>`;
+
+  renderStatsCards('stats-cards-sub');
+}
+
+// 엑셀 다운로드
+function exportStatsExcel(){
+  const doneCons=consulting.filter(c=>{
+    if(c.status!=='done') return false;
+    if(statsYear!=='all'&&new Date(c.doneAt||0).getFullYear()!==+statsYear) return false;
+    return statsCat==='all'||c.category===statsCat;
+  });
+  const doneWork=workItems.filter(w=>{
+    if(w.status!=='done') return false;
+    if(statsYear!=='all'&&new Date(w.doneAt||0).getFullYear()!==+statsYear) return false;
+    return statsCat==='all'||w.category===statsCat;
+  });
+
+  // CSV 생성
+  let csv='\uFEFF'; // BOM for Excel Korean
+  csv+='구분,업체명,분야,업무내용,신청금액(만원),승인금액(만원),완료일\n';
+
+  doneCons.forEach(c=>{
+    const m=CAT_META[c.category]||CAT_META.etc;
+    const ccs=consCompanies.filter(cc=>cc.consId===c.id&&cc.status==='done');
+    if(!ccs.length){
+      csv+=`간트,—,${m.name},${c.title},${c.amount||0},${c.approvedAmt||0},${c.doneAt?new Date(c.doneAt).toLocaleDateString('ko-KR'):''}\n`;
+    } else {
+      ccs.forEach(cc=>{
+        csv+=`간트,${cc.companyName},${m.name},${c.title},${c.amount||0},${c.approvedAmt||0},${cc.doneAt?new Date(cc.doneAt).toLocaleDateString('ko-KR'):''}\n`;
+      });
+    }
+  });
+
+  doneWork.forEach(w=>{
+    const m=CAT_META[w.category]||CAT_META.etc;
+    csv+=`업무,${w.client||'—'},${m.name},${w.name},—,—,${w.doneAt?new Date(w.doneAt).toLocaleDateString('ko-KR'):''}\n`;
+  });
+
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`SG완료실적_${statsYear==='all'?'전체':statsYear+'년'}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  setBadge('✅ 다운로드 완료',2000);
+}
+
 
 // ── HISTORY ──
 // 히스토리 상태 토글
@@ -2377,10 +2655,10 @@ function renderCertPage(){
 function renderCertAlert(){
   const el=document.getElementById('cert-alert-list');if(!el)return;
   if(!certMaster||!certMaster.length){
-    el.innerHTML=`<div class="empty"><div class="empty-ico">⏳</div><div class="empty-txt">데이터 로딩 중...</div></div>`;
+    el.innerHTML='<div class="empty"><div class="empty-ico">⏳</div><div class="empty-txt">데이터 로딩 중...</div></div>';
     return;
   }
-  if(!certifications.length){el.innerHTML=`<div class="empty"><div class="empty-ico">📋</div><div class="empty-txt">등록된 인증이 없습니다</div></div>`;return;}
+  if(!certifications.length){el.innerHTML='<div class="empty"><div class="empty-ico">📋</div><div class="empty-txt">등록된 인증이 없습니다</div></div>';return;}
 
   // 갱신형 / 연간신고 분리
   const renewalList=certifications.filter(c=>getCertMasterInfo(c.certMasterId).reportType!=='annual');
@@ -2393,45 +2671,41 @@ function renderCertAlert(){
   const rSafe=renewalList.filter(c=>{const d=getCertDday(c.expDate);return d>90;}).length;
 
   // 연간신고 통계
-  const aMissed=annualList.filter(c=>{const reports=annualReports.filter(r=>r.certId===c.id).sort((a,b)=>b.year-a.year);const r=reports[0];return r&&r.status!=='done'&&new Date(r.dueDate)<new Date();}).length;
-  const aPending=annualList.filter(c=>{const reports=annualReports.filter(r=>r.certId===c.id).sort((a,b)=>b.year-a.year);const r=reports[0];return r&&r.status!=='done'&&new Date(r.dueDate)>=new Date();}).length;
-  const aDone=annualList.filter(c=>{const reports=annualReports.filter(r=>r.certId===c.id).sort((a,b)=>b.year-a.year);const r=reports[0];return r&&r.status==='done';}).length;
+  const aMissed=annualList.filter(c=>{const r=annualReports.filter(x=>x.certId===c.id).sort((a,b)=>b.year-a.year)[0];return r&&r.status!=='done'&&new Date(r.dueDate)<new Date();}).length;
+  const aPending=annualList.filter(c=>{const r=annualReports.filter(x=>x.certId===c.id).sort((a,b)=>b.year-a.year)[0];return r&&r.status!=='done'&&new Date(r.dueDate)>=new Date();}).length;
+  const aDone=annualList.filter(c=>{const r=annualReports.filter(x=>x.certId===c.id).sort((a,b)=>b.year-a.year)[0];return r&&r.status==='done';}).length;
 
   const sortedRenewal=[...renewalList].sort((a,b)=>(getCertDday(a.expDate)??9999)-(getCertDday(b.expDate)??9999));
-  const sortedAnnual=[...annualList].sort((a,b)=>a.companyName?.localeCompare(b.companyName,'ko')||0);
+  const sortedAnnual=[...annualList].sort((a,b)=>(a.companyName||'').localeCompare(b.companyName||'','ko'));
 
-  el.innerHTML=`
-    <!-- 갱신형 인증 -->
-    <div style="margin-bottom:20px">
-      <div style="font-size:12px;font-weight:500;color:var(--g1);margin-bottom:10px">🔄 갱신형 인증 (벤처·ISO 등)</div>
-      <div class="grid4" style="margin-bottom:12px">
-        <div class="stat-mini"><div class="stat-mini-val" style="color:var(--danger)">${rExpired}</div><div class="stat-mini-label">⚠️ 만료</div></div>
-        <div class="stat-mini"><div class="stat-mini-val" style="color:var(--danger)">${rD30}</div><div class="stat-mini-label">🔴 D-30 임박</div></div>
-        <div class="stat-mini"><div class="stat-mini-val" style="color:var(--warn)">${rD90}</div><div class="stat-mini-label">🟡 D-90 주의</div></div>
-        <div class="stat-mini"><div class="stat-mini-val" style="color:var(--ok)">${rSafe}</div><div class="stat-mini-label">✅ 유효</div></div>
-      </div>
-      ${renewalList.length?`<div class="card"><div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>업체명</th><th>인증 종류</th><th>취득일</th><th>만료·갱신일</th><th>갱신주기</th><th>상태</th><th>D-Day</th><th>관리</th></tr></thead>
-        <tbody>${sortedRenewal.map(certRow).join('')}</tbody>
-      </table></div></div>`:`<div class="empty"><div class="empty-txt">등록된 갱신형 인증이 없습니다</div></div>`}
-    </div>
+  // 갱신형 테이블
+  const renewalTableHtml=renewalList.length
+    ?'<div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>업체명</th><th>인증 종류</th><th>취득일</th><th>만료·갱신일</th><th>갱신주기</th><th>상태</th><th>D-Day</th><th>관리</th></tr></thead><tbody>'+sortedRenewal.map(certRow).join('')+'</tbody></table></div></div>'
+    :'<div class="empty"><div class="empty-txt">등록된 갱신형 인증이 없습니다</div></div>';
 
-    <!-- 연간신고 (연구소/전담부서) -->
-    <div>
-      <div style="font-size:12px;font-weight:500;color:var(--g1);margin-bottom:10px">📋 연간 신고 (연구소·전담부서)</div>
-      <div class="grid4" style="margin-bottom:12px">
-        <div class="stat-mini"><div class="stat-mini-val" style="color:var(--danger)">${aMissed}</div><div class="stat-mini-label">❌ 미신고</div></div>
-        <div class="stat-mini"><div class="stat-mini-val" style="color:var(--warn)">${aPending}</div><div class="stat-mini-label">🔜 신고예정</div></div>
-        <div class="stat-mini"><div class="stat-mini-val" style="color:var(--ok)">${aDone}</div><div class="stat-mini-label">✅ 신고완료</div></div>
-        <div class="stat-mini"><div class="stat-mini-val" style="color:var(--blue-l)">${annualList.length}</div><div class="stat-mini-label">📋 전체</div></div>
-      </div>
-      ${annualList.length?`<div class="card"><div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>업체명</th><th>인증 종류</th><th>설립일</th><th>다음신고기한</th><th>신고주기</th><th>구분</th><th>신고현황</th><th>관리</th></tr></thead>
-        <tbody>${sortedAnnual.map(certRow).join('')}</tbody>
-      </table></div></div>`:`<div class="empty"><div class="empty-txt">등록된 연간신고 인증이 없습니다</div></div>`}
-    </div>`;
+  // 연간신고 테이블
+  const annualTableHtml=annualList.length
+    ?'<div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>업체명</th><th>인증 종류</th><th>설립일</th><th>다음신고기한</th><th>신고주기</th><th>구분</th><th>신고현황</th><th>관리</th></tr></thead><tbody>'+sortedAnnual.map(certRow).join('')+'</tbody></table></div></div>'
+    :'<div class="empty"><div class="empty-txt">등록된 연간신고 인증이 없습니다</div></div>';
+
+  el.innerHTML=
+    '<div style="margin-bottom:20px">'+
+    '<div style="font-size:12px;font-weight:500;color:var(--g1);margin-bottom:10px">🔄 갱신형 인증 (벤처·ISO 등)</div>'+
+    '<div class="grid4" style="margin-bottom:12px">'+
+    '<div class="stat-mini"><div class="stat-mini-val" style="color:var(--danger)">'+rExpired+'</div><div class="stat-mini-label">⚠️ 만료</div></div>'+
+    '<div class="stat-mini"><div class="stat-mini-val" style="color:var(--danger)">'+rD30+'</div><div class="stat-mini-label">🔴 D-30 임박</div></div>'+
+    '<div class="stat-mini"><div class="stat-mini-val" style="color:var(--warn)">'+rD90+'</div><div class="stat-mini-label">🟡 D-90 주의</div></div>'+
+    '<div class="stat-mini"><div class="stat-mini-val" style="color:var(--ok)">'+rSafe+'</div><div class="stat-mini-label">✅ 유효</div></div>'+
+    '</div>'+renewalTableHtml+'</div>'+
+    '<div>'+
+    '<div style="font-size:12px;font-weight:500;color:var(--g1);margin-bottom:10px">📋 연간 신고 (연구소·전담부서)</div>'+
+    '<div class="grid4" style="margin-bottom:12px">'+
+    '<div class="stat-mini"><div class="stat-mini-val" style="color:var(--danger)">'+aMissed+'</div><div class="stat-mini-label">❌ 미신고</div></div>'+
+    '<div class="stat-mini"><div class="stat-mini-val" style="color:var(--warn)">'+aPending+'</div><div class="stat-mini-label">🔜 신고예정</div></div>'+
+    '<div class="stat-mini"><div class="stat-mini-val" style="color:var(--ok)">'+aDone+'</div><div class="stat-mini-label">✅ 신고완료</div></div>'+
+    '<div class="stat-mini"><div class="stat-mini-val" style="color:var(--blue-l)">'+annualList.length+'</div><div class="stat-mini-label">📋 전체</div></div>'+
+    '</div>'+annualTableHtml+'</div>';
 }
-
 // 탭2: 인증별 업체 조회
 function renderCertByCert(){
   const typeF=document.getElementById('cert-type-filter')?.value||'';
@@ -2590,6 +2864,20 @@ function calcCertExpDate(){
   setDateFields('cert-exp-y','cert-exp-m','cert-exp-d',acq.toISOString().slice(0,10));
 }
 
+
+// ISO complex 단계 확인 메시지 생성
+function buildIsoConfirmMsg(m, acqDate){
+  let msg = m.certName + ' 인증을 등록하면\n';
+  msg += '취득일(' + acqDate + ') 기준으로 아래 일정이 자동 생성됩니다:\n\n';
+  var running = new Date(acqDate);
+  for(var i=0; i<m.phases.length; i++){
+    running = new Date(running);
+    running.setMonth(running.getMonth()+(m.phases[i].months||12));
+    msg += '  '+(i+1)+'단계. '+m.phases[i].name+': '+running.toISOString().slice(0,10)+' 이전\n';
+  }
+  msg += '\n계속하시겠습니까?';
+  return msg;
+}
 // ISO complex 타입 단계별 자동 생성
 async function createComplexPhases(masterId, bizno, companyName, acqDate, workItemId){
   const m=getCertMasterInfo(masterId);
@@ -2657,18 +2945,7 @@ async function saveCert(){
       // 신규 등록
       if(m.cycleType==='complex'&&m.phases?.length){
         // ISO 등 complex 타입: 단계별 자동 생성
-        if(!confirm(
-          `${m.certName} 인증을 등록하면\n`+
-          `취득일(${acqDate}) 기준으로 아래 일정이 자동 생성됩니다:\n\n`+
-          m.phases.map((p,i)=>{
-            const d=new Date(acqDate);
-            let months=0;
-            for(let j=0;j<=i;j++) months+=(m.phases[j].months||12);
-            d.setMonth(d.getMonth()+months);
-            return `  ${i+1}단계. ${p.name}: ${d.toISOString().slice(0,10)} 이전`;
-          }).join('\n')+
-          '\n\n계속하시겠습니까?'
-        ))return;
+        if(!confirm(buildIsoConfirmMsg(m,acqDate)))return;
         await createComplexPhases(masterId,comp._id,comp.name,acqDate,null);
       } else {
         // 일반 fixed 타입
@@ -2853,21 +3130,27 @@ function renderAnnualReportList(){
   const certId=document.getElementById('cert-edit-id')?.value;
   const el=document.getElementById('cert-annual-list');if(!el)return;
   const reports=annualReports.filter(r=>r.certId===certId).sort((a,b)=>b.year-a.year);
-  if(!reports.length){el.innerHTML=`<div style="font-size:11px;color:var(--g2);padding:8px 0">신고 이력 없음. 신고 추가 버튼으로 등록하세요.</div>`;return;}
+  if(!reports.length){
+    el.innerHTML='<div style="font-size:11px;color:var(--g2);padding:8px 0">신고 이력 없음. 신고 추가 버튼으로 등록하세요.</div>';
+    return;
+  }
   el.innerHTML=reports.map(r=>{
     const isDone=r.status==='done';
     const isOverdue=!isDone&&new Date(r.dueDate)<new Date();
     const sb=isDone
-      ?`<span class="badge" style="background:rgba(16,185,129,.2);color:#6EE7B7">✅ 신고완료 ${r.reportedDate||''}</span>`
-      :isOverdue?`<span class="badge" style="background:rgba(239,68,68,.2);color:#FCA5A5">❌ 미신고(기한초과)</span>`
-      :`<span class="badge" style="background:rgba(245,158,11,.2);color:#FCD34D">🔜 신고예정</span>`;
-    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:8px;margin-bottom:4px">
-      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;width:45px;flex-shrink:0">${r.year}년</div>
-      <div style="font-size:10px;color:var(--g2);flex-shrink:0">기한: ${r.dueDate}</div>
-      <div style="flex:1">${sb}</div>
-      ${!isDone?`<button onclick="markAnnualDone('${r.id}')" style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:6px;color:#6EE7B7;font-size:10px;padding:3px 8px;cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif">신고완료</button>`:''}
-      <button onclick="deleteAnnualReport('${r.id}')" style="background:none;border:none;color:var(--g2);cursor:pointer;font-size:16px;padding:0 2px">×</button>
-    </div>`;
+      ?'<span class="badge" style="background:rgba(16,185,129,.2);color:#6EE7B7">&#x2705; 신고완료 '+(r.reportedDate||'')+'</span>'
+      :isOverdue
+      ?'<span class="badge" style="background:rgba(239,68,68,.2);color:#FCA5A5">&#x274C; 미신고(기한초과)</span>'
+      :'<span class="badge" style="background:rgba(245,158,11,.2);color:#FCD34D">&#x1F6DC; 신고예정</span>';
+    const doneBtn=!isDone
+      ?'<button onclick="markAnnualDone(''+r.id+'')" style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:6px;color:#6EE7B7;font-size:10px;padding:3px 8px;cursor:pointer;white-space:nowrap;font-family:Noto Sans KR,sans-serif">신고완료</button>'
+      :'';
+    const delBtn='<button onclick="deleteAnnualReport(''+r.id+'')" style="background:none;border:none;color:var(--g2);cursor:pointer;font-size:16px;padding:0 2px">&times;</button>';
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:8px;margin-bottom:4px">'
+      +'<div style="font-family:JetBrains Mono,monospace;font-size:12px;font-weight:500;width:45px;flex-shrink:0">'+r.year+'년</div>'
+      +'<div style="font-size:10px;color:var(--g2);flex-shrink:0">기한: '+r.dueDate+'</div>'
+      +'<div style="flex:1">'+sb+'</div>'
+      +doneBtn+delBtn+'</div>';
   }).join('');
 }
 async function addAnnualReport(){
@@ -3086,14 +3369,14 @@ Object.assign(window,{
   setCertTab,renderCertByCert,renderCertByComp,renderCertMaster,
   openCertMasterModal,saveCertMaster,deleteCertMaster,toggleCmCycleFields,addCmPhase,renderCmPhases,
   openCertModal,onCertTypeChange,saveCert,deleteCert,calcCertExpDate,
-  markCertPhaseDone,createComplexPhases,
+  markCertPhaseDone,createComplexPhases,buildIsoConfirmMsg,
   openCertFromWork,onCfwTypeChange,cfwCalcExpDate,saveCertFromWork,skipCertFromWork,
   renderAnnualReportList,addAnnualReport,markAnnualDone,deleteAnnualReport,
   openConsultingModal,saveConsulting,deleteConsulting,addConsCompany,renderConsCompaniesList,updateConsCompanyStatus,removeConsCompany,
   openTodoModal,saveTodo,cycleTodo,deleteTodoItem,
   renderWork,openWorkModal,saveWork,confirmDeleteWork,cycleWork,
   renderClientsPage,setCliPageOv,setCliPageSub,setCliGroupFilter,
-  renderStatsPage,renderHistoryPage,setHistStatus,setHistPage,
+  renderStatsPage,setStatsYear,setStatsCat,exportStatsExcel,renderHistoryPage,setHistStatus,setHistPage,
   openCompanyModal,saveCompany,deleteCompany,restoreCompany,checkBizno,renderCompaniesPage,autoTabDate,toggleBizDateFields,
   showCorpDrop,hideCorpDrop,selectCorpDrop,
 });
