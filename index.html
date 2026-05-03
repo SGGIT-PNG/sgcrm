@@ -10,56 +10,56 @@
 @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root{
-  /* 라이트 테마 컬러 시스템 */
-  --bg:#F0F4F8;
+  /* 라이트 테마 컬러 시스템 - 중립적 회색 기반 */
+  --bg:#F5F6F8;
   --surface:#FFFFFF;
-  --surface2:#F8FAFC;
-  --surface3:#EFF3F8;
-  --border:#E2E8F0;
-  --border2:#CBD5E1;
+  --surface2:#FAFAFA;
+  --surface3:#F0F0F0;
+  --border:#E8E8E8;
+  --border2:#D4D4D4;
 
   /* 사이드바 */
-  --sb-bg:#1E3A5F;
-  --sb-bg2:#16304F;
+  --sb-bg:#1A2B4A;
+  --sb-bg2:#142238;
   --sb-active:#2563EB;
-  --sb-text:#CBD5E1;
+  --sb-text:#94A3B8;
   --sb-text-active:#FFFFFF;
 
   /* 텍스트 */
-  --text:#1A2332;
-  --text2:#374151;
-  --text3:#6B7280;
-  --text4:#9CA3AF;
+  --text:#1C1C1E;
+  --text2:#3A3A3C;
+  --text3:#6C6C70;
+  --text4:#AEAEB2;
 
   /* 브랜드 컬러 */
   --blue:#2563EB;
   --blue-l:#3B82F6;
-  --blue-pale:#EFF6FF;
+  --blue-pale:#EBF2FF;
   --teal:#0D9488;
-  --teal-pale:#F0FDFA;
+  --teal-pale:#F0FDFB;
   --gold:#D97706;
   --gold-l:#F59E0B;
-  --gold-pale:#FFFBEB;
+  --gold-pale:#FEFCE8;
 
   /* 상태 컬러 */
   --ok:#059669;
-  --ok-pale:#ECFDF5;
+  --ok-pale:#F0FDF4;
   --warn:#D97706;
   --warn-pale:#FFFBEB;
   --danger:#DC2626;
-  --danger-pale:#FEF2F2;
+  --danger-pale:#FFF5F5;
 
   /* 레이아웃 */
   --sidebar-w:220px;
   --r:10px;
   --r-sm:6px;
-  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
-  --shadow-md:0 4px 6px rgba(0,0,0,.07),0 2px 4px rgba(0,0,0,.06);
-  --shadow-lg:0 10px 15px rgba(0,0,0,.08),0 4px 6px rgba(0,0,0,.05);
+  --shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 6px rgba(0,0,0,.06),0 2px 4px rgba(0,0,0,.04);
+  --shadow-lg:0 10px 15px rgba(0,0,0,.07),0 4px 6px rgba(0,0,0,.04);
 
-  /* 호환 변수 (기존 코드에서 사용) */
-  --navy:#1E3A5F;--navy2:#16304F;--navy3:#1A2E4A;
-  --g1:#6B7280;--g2:#9CA3AF;--g3:#D1D5DB;
+  /* 호환 변수 */
+  --navy:#1A2B4A;--navy2:#142238;--navy3:#1E324F;
+  --g1:#6C6C70;--g2:#AEAEB2;--g3:#D4D4D4;
   --white:#FFFFFF;
 }
 
@@ -70,8 +70,8 @@ body{
   color:var(--text);
   display:flex;
   min-height:100vh;
-  font-size:13px;
-  line-height:1.5;
+  font-size:17px;
+  line-height:1.6;
 }
 
 /* ── 사이드바 ── */
@@ -88,15 +88,15 @@ body{
   border-bottom:1px solid rgba(255,255,255,.08);
 }
 .sb-logo-title{
-  font-size:14px;font-weight:700;
+  font-size:16px;font-weight:700;
   color:#FFFFFF;letter-spacing:-.3px;
 }
 .sb-logo-sub{
-  font-size:10px;color:var(--sb-text);
+  font-size:12px;color:var(--sb-text);
   margin-top:2px;opacity:.7;
 }
 .sb-section{
-  font-size:9px;font-weight:600;letter-spacing:1px;
+  font-size:11px;font-weight:600;letter-spacing:1px;
   color:rgba(255,255,255,.35);
   padding:14px 16px 6px;
   text-transform:uppercase;
@@ -104,13 +104,13 @@ body{
 .sb-menu{
   display:flex;align-items:center;gap:10px;
   padding:9px 16px;cursor:pointer;
-  color:var(--sb-text);font-size:12px;font-weight:400;
+  color:var(--sb-text);font-size:14px;font-weight:400;
   border-radius:0;transition:all .15s;
   margin:1px 8px;border-radius:7px;
   position:relative;
 }
 .sb-menu:hover{
-  background:var(--surface3);
+  background:var(--surface2);
   color:#FFFFFF;
 }
 .sb-menu.active{
@@ -119,9 +119,9 @@ body{
   font-weight:600;
   box-shadow:0 2px 8px rgba(37,99,235,.3);
 }
-.sb-ico{font-size:15px;width:20px;text-align:center;flex-shrink:0}
+.sb-ico{font-size:17px;width:20px;text-align:center;flex-shrink:0}
 .sb-cnt{
-  margin-left:auto;font-size:10px;font-weight:600;
+  margin-left:auto;font-size:12px;font-weight:600;
   background:rgba(255,255,255,.15);
   color:rgba(255,255,255,.9);
   padding:1px 7px;border-radius:20px;min-width:20px;text-align:center;
@@ -131,7 +131,7 @@ body{
   margin-top:auto;padding:12px 16px;
   border-top:1px solid rgba(255,255,255,.08);
 }
-.sb-time{font-size:10px;color:rgba(255,255,255,.4);text-align:center;}
+.sb-time{font-size:12px;color:rgba(255,255,255,.4);text-align:center;}
 
 /* ── 메인 영역 ── */
 .main{flex:1;display:flex;flex-direction:column;min-width:0;overflow-x:hidden;}
@@ -146,19 +146,19 @@ body{
   box-shadow:var(--shadow);
 }
 .topbar-title{
-  font-size:15px;font-weight:600;
+  font-size:17px;font-weight:600;
   color:var(--text);flex:1;
 }
 .topbar-right{display:flex;align-items:center;gap:8px;}
 .live-time-badge{
   font-family:'JetBrains Mono',monospace;
-  font-size:11px;color:var(--text3);
+  font-size:13px;color:var(--text3);
   background:var(--surface2);
   border:1px solid var(--border);
   border-radius:6px;padding:4px 10px;
 }
 .save-badge-wrap{
-  font-size:11px;color:var(--text3);
+  font-size:13px;color:var(--text3);
   background:var(--surface2);
   border:1px solid var(--border);
   border-radius:6px;padding:4px 10px;
@@ -188,8 +188,8 @@ body{
   border-bottom:1px solid var(--border);
   background:var(--surface);
 }
-.card-hd-title{font-size:13px;font-weight:600;color:var(--text);}
-.card-hd-sub{font-size:11px;color:var(--text3);margin-top:1px;}
+.card-hd-title{font-size:15px;font-weight:600;color:var(--text);}
+.card-hd-sub{font-size:13px;color:var(--text3);margin-top:1px;}
 
 /* ── 통계 카드 ── */
 .stat-mini{
@@ -202,12 +202,12 @@ body{
 }
 .stat-mini:hover{box-shadow:var(--shadow-md);}
 .stat-mini-val{
-  font-size:26px;font-weight:700;
+  font-size:28px;font-weight:700;
   font-family:'JetBrains Mono',monospace;
   color:var(--text);line-height:1.1;
 }
 .stat-mini-label{
-  font-size:11px;color:var(--text3);
+  font-size:13px;color:var(--text3);
   margin-top:4px;font-weight:500;
 }
 
@@ -221,7 +221,7 @@ body{
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:6px;
   padding:8px 16px;border-radius:var(--r-sm);
-  font-size:12px;font-weight:600;cursor:pointer;
+  font-size:14px;font-weight:600;cursor:pointer;
   border:none;transition:all .15s;
   font-family:'Pretendard','Noto Sans KR',sans-serif;
   white-space:nowrap;
@@ -234,25 +234,25 @@ body{
   background:var(--surface);color:var(--text2);
   border:1px solid var(--border2);
 }
-.btn-ghost:hover{background:var(--surface3);border-color:var(--border2);}
+.btn-ghost:hover{background:var(--surface2);border-color:var(--border2);}
 .btn-danger{
   background:var(--danger);color:#FFFFFF;
 }
 .btn-danger:hover{background:#B91C1C;}
-.btn-sm{padding:5px 12px;font-size:11px;}
+.btn-sm{padding:5px 12px;font-size:13px;}
 
 /* ── 배지 ── */
 .badge{
   display:inline-flex;align-items:center;
   padding:3px 8px;border-radius:20px;
-  font-size:10px;font-weight:600;
+  font-size:12px;font-weight:600;
 }
 .badge-wait{background:#F1F5F9;color:#64748B;}
 .badge-ing{background:#FFFBEB;color:#D97706;}
 .badge-done{background:#ECFDF5;color:#059669;}
 .ci{
   display:inline-flex;align-items:center;gap:4px;
-  font-size:10px;font-weight:600;
+  font-size:12px;font-weight:600;
 }
 .s-dot{width:6px;height:6px;border-radius:50%;display:inline-block;}
 
@@ -262,14 +262,14 @@ body{
 }
 .search-ico{
   position:absolute;left:12px;top:50%;transform:translateY(-50%);
-  font-size:13px;color:var(--text4);pointer-events:none;
+  font-size:15px;color:var(--text4);pointer-events:none;
 }
 .search-inp{
   width:100%;padding:9px 12px 9px 36px;
   border:1px solid var(--border2);
   border-radius:var(--r-sm);
   background:var(--surface);
-  color:var(--text);font-size:12px;
+  color:var(--text);font-size:14px;
   font-family:'Pretendard','Noto Sans KR',sans-serif;
   transition:border-color .15s;
   outline:none;
@@ -279,22 +279,22 @@ body{
 
 /* ── 폼 요소 ── */
 .fi{
-  width:100%;padding:9px 12px;
+  width:100%;padding:10px 13px;
   border:1px solid var(--border2);
   border-radius:var(--r-sm);
   background:var(--surface);
-  color:var(--text);font-size:12px;
+  color:var(--text);font-size:14px;
   font-family:'Pretendard','Noto Sans KR',sans-serif;
   outline:none;transition:border-color .15s;
 }
 .fi:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
 .fi::placeholder{color:var(--text4);}
 .fs{
-  width:100%;padding:9px 12px;
+  width:100%;padding:10px 13px;
   border:1px solid var(--border2);
   border-radius:var(--r-sm);
   background:var(--surface);
-  color:var(--text);font-size:12px;
+  color:var(--text);font-size:14px;
   font-family:'Pretendard','Noto Sans KR',sans-serif;
   outline:none;cursor:pointer;
   appearance:none;
@@ -304,31 +304,31 @@ body{
 }
 .fs:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
 .fta{
-  width:100%;padding:9px 12px;
+  width:100%;padding:10px 13px;
   border:1px solid var(--border2);
   border-radius:var(--r-sm);
   background:var(--surface);
-  color:var(--text);font-size:12px;
+  color:var(--text);font-size:14px;
   font-family:'Pretendard','Noto Sans KR',sans-serif;
   outline:none;resize:vertical;min-height:70px;
 }
 .fta:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
 .fg{display:flex;flex-direction:column;gap:5px;flex:1;}
-.fl{font-size:11px;font-weight:600;color:var(--text2);}
+.fl{font-size:13px;font-weight:600;color:var(--text2);}
 .frow{display:flex;gap:12px;}
 
 /* ── 테이블 ── */
 .tbl-wrap{overflow-x:auto;}
-.tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.tbl{width:100%;border-collapse:collapse;font-size:14px;}
 .tbl thead tr{background:var(--surface2);}
 .tbl th{
-  padding:10px 14px;text-align:left;
-  font-size:11px;font-weight:600;color:var(--text3);
+  padding:11px 16px;text-align:left;
+  font-size:13px;font-weight:600;color:var(--text3);
   border-bottom:1px solid var(--border);
   white-space:nowrap;
 }
 .tbl td{
-  padding:11px 14px;
+  padding:12px 16px;
   border-bottom:1px solid var(--border);
   color:var(--text);
 }
@@ -355,7 +355,7 @@ body{
   display:flex;flex-direction:column;gap:14px;
 }
 .modal-title{
-  font-size:15px;font-weight:700;color:var(--text);
+  font-size:17px;font-weight:700;color:var(--text);
   display:flex;align-items:center;justify-content:space-between;
   padding-bottom:12px;border-bottom:1px solid var(--border);
 }
@@ -383,7 +383,7 @@ body{
 .toggle-opt{
   padding:5px 14px;border-radius:6px;
   border:none;background:none;
-  font-size:11px;font-weight:500;cursor:pointer;
+  font-size:13px;font-weight:500;cursor:pointer;
   color:var(--text3);transition:all .15s;
   font-family:'Pretendard','Noto Sans KR',sans-serif;
 }
@@ -399,14 +399,14 @@ body{
 .pg-btn{
   padding:5px 10px;border-radius:6px;border:1px solid var(--border2);
   background:var(--surface);color:var(--text3);
-  font-size:11px;cursor:pointer;transition:all .15s;
+  font-size:13px;cursor:pointer;transition:all .15s;
   font-family:'Pretendard','Noto Sans KR',sans-serif;
 }
-.pg-btn:hover{background:var(--surface3);color:var(--text);}
+.pg-btn:hover{background:var(--surface2);color:var(--text);}
 .pg-btn.active{
   background:var(--blue);color:#fff;border-color:var(--blue);font-weight:600;
 }
-.pg-info{font-size:11px;color:var(--text3);padding:0 4px;}
+.pg-info{font-size:13px;color:var(--text3);padding:0 4px;}
 
 /* ── 간트차트 ── */
 .gantt-wrap{
@@ -418,7 +418,7 @@ body{
   padding:12px 16px;border-bottom:1px solid var(--border);
   background:var(--surface2);
 }
-.cal-month-title{font-size:14px;font-weight:700;color:var(--text);flex:1;text-align:center;}
+.cal-month-title{font-size:16px;font-weight:700;color:var(--text);flex:1;text-align:center;}
 .cal-nav-btn{
   background:var(--surface);border:1px solid var(--border2);
   border-radius:6px;width:30px;height:30px;
@@ -426,20 +426,20 @@ body{
   display:flex;align-items:center;justify-content:center;
   transition:all .15s;
 }
-.cal-nav-btn:hover{background:var(--surface3);border-color:var(--blue);color:var(--blue);}
+.cal-nav-btn:hover{background:var(--surface2);border-color:var(--blue);color:var(--blue);}
 .cal-today-btn{
   background:var(--blue-pale);color:var(--blue);
   border:1px solid rgba(37,99,235,.2);
   border-radius:6px;padding:4px 12px;
-  font-size:11px;font-weight:600;cursor:pointer;
+  font-size:13px;font-weight:600;cursor:pointer;
   font-family:'Pretendard','Noto Sans KR',sans-serif;
 }
 .gantt-scroll{overflow-x:auto;}
-.gantt-table{width:100%;border-collapse:collapse;font-size:11px;}
+.gantt-table{width:100%;border-collapse:collapse;font-size:13px;}
 .gantt-table th{
   background:var(--surface2);
   padding:7px 8px;text-align:center;
-  font-size:10px;font-weight:600;color:var(--text3);
+  font-size:12px;font-weight:600;color:var(--text3);
   border:1px solid var(--border);
   white-space:nowrap;
 }
@@ -449,11 +449,11 @@ body{
   vertical-align:middle;
 }
 .gantt-row-label{
-  font-size:11px;font-weight:600;color:var(--text);
+  font-size:13px;font-weight:600;color:var(--text);
   min-width:140px;background:var(--surface);
 }
 .gantt-row-label-sub{
-  font-size:10px;color:var(--text2);
+  font-size:12px;color:var(--text2);
   min-width:120px;background:var(--surface);
 }
 .gantt-row-done .gantt-row-label{color:var(--text4);}
@@ -461,7 +461,7 @@ body{
 .gantt-bar{
   height:18px;border-radius:4px;
   display:flex;align-items:center;justify-content:center;
-  font-size:9px;font-weight:600;color:#fff;
+  font-size:11px;font-weight:600;color:#fff;
 }
 .gantt-today{background:rgba(37,99,235,.1)!important;}
 
@@ -476,7 +476,7 @@ body{
 }
 .todo-col-hd{
   display:flex;align-items:center;gap:6px;
-  font-size:11px;font-weight:600;color:var(--text2);
+  font-size:13px;font-weight:600;color:var(--text2);
   margin-bottom:10px;
 }
 .todo-item{
@@ -487,8 +487,8 @@ body{
   transition:all .15s;box-shadow:var(--shadow);
 }
 .todo-item:hover{border-color:var(--blue);box-shadow:0 0 0 2px rgba(37,99,235,.1);}
-.todo-item-title{font-size:12px;font-weight:500;color:var(--text);}
-.todo-item-meta{font-size:10px;color:var(--text3);margin-top:3px;}
+.todo-item-title{font-size:14px;font-weight:500;color:var(--text);}
+.todo-item-meta{font-size:12px;color:var(--text3);margin-top:3px;}
 
 /* ── 업무 항목 ── */
 .work-item{
@@ -516,7 +516,7 @@ body{
 .corp-dropdown.open{display:block;}
 .corp-dropdown-item{
   padding:9px 12px;cursor:pointer;
-  font-size:12px;color:var(--text);
+  font-size:14px;color:var(--text);
   border-bottom:1px solid var(--border);
   transition:background .1s;
 }
@@ -528,7 +528,7 @@ body{
   text-align:center;padding:48px 24px;
 }
 .empty-ico{font-size:36px;margin-bottom:12px;opacity:.4;}
-.empty-txt{font-size:13px;color:var(--text4);}
+.empty-txt{font-size:15px;color:var(--text4);}
 
 /* ── 섹션 헤더 ── */
 .section-hd{
@@ -537,7 +537,7 @@ body{
 .section-icon{
   width:30px;height:30px;border-radius:8px;
   display:flex;align-items:center;justify-content:center;
-  font-size:14px;
+  font-size:16px;
 }
 
 /* ── 상태별 색상 ── */
@@ -582,11 +582,11 @@ body{
   position:sticky;top:0;z-index:40;
   box-shadow:0 1px 3px rgba(0,0,0,.06);
 }
-.tb-title{font-size:15px;font-weight:700;color:var(--text);}
-.tb-sub{font-size:11px;color:var(--text3);margin-top:1px;}
+.tb-title{font-size:18px;font-weight:700;color:var(--text);}
+.tb-sub{font-size:13px;color:var(--text3);margin-top:1px;}
 #live-time{
   font-family:'JetBrains Mono',monospace;
-  font-size:12px;color:var(--text3);
+  font-size:14px;color:var(--text3);
   background:var(--surface2);border:1px solid var(--border);
   border-radius:6px;padding:5px 12px;
 }
@@ -623,7 +623,7 @@ body{
   <div class="sb-section">관리</div>
   <div class="sb-menu" id="nav-companies" onclick="navTo('companies')"><span class="sb-ico">🏛️</span><span>기업 관리</span><span class="sb-cnt" id="sb-corp-cnt">0</span></div>
   <div class="sb-bottom">
-    <div class="sb-save" id="save-badge" onclick="manualSave()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:7px;padding:7px 12px;text-align:center;cursor:pointer;font-size:11px;font-weight:500;color:rgba(255,255,255,.8);transition:all .15s;margin-bottom:6px;">💾 저장</div>
+    <div class="sb-save" id="save-badge" onclick="manualSave()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:7px;padding:7px 12px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;color:rgba(255,255,255,.8);transition:all .15s;margin-bottom:6px;">💾 저장</div>
     <div class="sb-time" id="live-time-sb"></div>
   </div>
 </nav>
@@ -651,9 +651,9 @@ body{
       <div style="margin-bottom:24px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
           <div style="display:flex;align-items:center;gap:8px">
-            <div style="width:28px;height:28px;border-radius:8px;background:var(--blue-pale);display:flex;align-items:center;justify-content:center">📅</div>
-            <span style="font-size:14px;font-weight:500">지원사업 · 정책자금 일정 관리</span>
-            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);background:var(--surface2);padding:2px 8px;border-radius:10px" id="ov-gantt-cnt">0건</span>
+            <div style="width:28px;height:28px;border-radius:8px;background:#EEF2FF;display:flex;align-items:center;justify-content:center">📅</div>
+            <span style="font-size:16px;font-weight:500">지원사업 · 정책자금 일정 관리</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text3);background:var(--surface2);padding:2px 8px;border-radius:10px" id="ov-gantt-cnt">0건</span>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
             <div class="toggle-btn" id="gantt-filter-toggle">
@@ -676,9 +676,9 @@ body{
       <!-- 5. 수시처리 To Do List -->
       <div style="margin-bottom:24px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-          <div style="width:28px;height:28px;border-radius:8px;background:var(--ok-pale);display:flex;align-items:center;justify-content:center">✅</div>
-          <span style="font-size:14px;font-weight:500">수시처리 To Do List</span>
-          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);background:var(--surface2);padding:2px 8px;border-radius:10px" id="ov-todo-cnt">0건</span>
+          <div style="width:28px;height:28px;border-radius:8px;background:#ECFDF5;display:flex;align-items:center;justify-content:center">✅</div>
+          <span style="font-size:16px;font-weight:500">수시처리 To Do List</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text3);background:var(--surface2);padding:2px 8px;border-radius:10px" id="ov-todo-cnt">0건</span>
         </div>
         <div class="todo-wrap" id="todo-grid"></div>
       </div>
@@ -687,7 +687,7 @@ body{
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
           <div style="display:flex;align-items:center;gap:8px">
             <div style="width:28px;height:28px;border-radius:8px;background:#F5F3FF;display:flex;align-items:center;justify-content:center">📊</div>
-            <span style="font-size:14px;font-weight:500">업무 영역별 진행 현황</span>
+            <span style="font-size:16px;font-weight:500">업무 영역별 진행 현황</span>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
             <div class="toggle-btn" id="work-filter-toggle">
@@ -704,8 +704,8 @@ body{
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
           <div style="display:flex;align-items:center;gap:8px">
             <div style="width:28px;height:28px;border-radius:8px;background:var(--teal-pale);display:flex;align-items:center;justify-content:center">🏢</div>
-            <span style="font-size:14px;font-weight:500">업체별 진행 분야 현황</span>
-            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);background:var(--surface2);padding:2px 8px;border-radius:10px" id="ov-cli-cnt">0개</span>
+            <span style="font-size:16px;font-weight:500">업체별 진행 분야 현황</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text3);background:var(--surface2);padding:2px 8px;border-radius:10px" id="ov-cli-cnt">0개</span>
           </div>
           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
             <div id="cli-group-filter-ov" style="display:flex;gap:3px;flex-wrap:wrap">
@@ -733,7 +733,7 @@ body{
       <div style="margin-bottom:24px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
           <div style="width:28px;height:28px;border-radius:8px;background:var(--gold-pale);display:flex;align-items:center;justify-content:center">📈</div>
-          <span style="font-size:14px;font-weight:500">누적 통계 데이터</span>
+          <span style="font-size:16px;font-weight:500">누적 통계 데이터</span>
         </div>
         <div id="stats-ov"></div>
       </div>
@@ -864,7 +864,7 @@ body{
       <!-- 탭4: 인증 종류 관리 -->
       <div id="cert-pane-master" style="display:none">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-          <div style="font-size:12px;color:var(--text3)">⚙️ 인증 종류를 추가·수정·삭제할 수 있어요. 기본 제공 인증도 수정 가능해요.</div>
+          <div style="font-size:14px;color:var(--text3)">⚙️ 인증 종류를 추가·수정·삭제할 수 있어요. 기본 제공 인증도 수정 가능해요.</div>
           <button class="btn btn-primary" onclick="openCertMasterModal()">+ 인증 종류 추가</button>
         </div>
         <div class="card"><div class="tbl-wrap"><table class="tbl">
@@ -899,7 +899,7 @@ body{
           <button class="toggle-opt" onclick="setHistStatus('all')">전체</button>
         </div>
         <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:11px;color:var(--text3)">페이지당</span>
+          <span style="font-size:13px;color:var(--text3)">페이지당</span>
           <select class="fs" id="hist-per-page" onchange="histPage=1;renderHistoryPage()" style="width:70px;padding:5px 8px">
             <option value="10">10개</option>
             <option value="20" selected>20개</option>
@@ -959,7 +959,7 @@ body{
       <div class="fg"><label class="fl">법인번호</label><input class="fi" id="comp-corp-no" placeholder="000000-0000000"></div>
     </div>
     <div class="frow">
-      <div class="fg"><label class="fl">사업자번호 * <span id="comp-bizno-auto" style="color:var(--gold);font-size:9px"></span></label>
+      <div class="fg"><label class="fl">사업자번호 * <span id="comp-bizno-auto" style="color:var(--gold);font-size:11px"></span></label>
         <input class="fi" id="comp-bizno" placeholder="000-00-00000" oninput="checkBizno()"></div>
       <div class="fg"><label class="fl">업종</label><input class="fi" id="comp-biztype" placeholder="제조업"></div>
     </div>
@@ -978,7 +978,7 @@ body{
     </div>
     <!-- 법인: 등기일 + 사업개시일 / 개인: 사업개시일만 -->
     <div id="comp-reg-date-wrap" class="fg">
-      <label class="fl">등기일 <span style="font-size:9px;color:var(--text4)">(법인만)</span></label>
+      <label class="fl">등기일 <span style="font-size:11px;color:var(--text4)">(법인만)</span></label>
       <div style="display:flex;gap:4px;align-items:center">
         <input class="fi" id="comp-reg-y" placeholder="YYYY" maxlength="4" style="width:64px;text-align:center" oninput="autoTabDate(this,'comp-reg-m',4)">
         <span style="color:var(--text4)">-</span>
@@ -1054,7 +1054,7 @@ body{
     </div>
     <div class="fg"><label class="fl">메모</label><textarea class="fta" id="cons-memo"></textarea></div>
     <div style="border-top:1px solid rgba(255,255,255,.08);padding-top:12px;margin-top:4px">
-      <div style="font-size:11px;font-weight:500;color:var(--text3);margin-bottom:8px">참여 업체</div>
+      <div style="font-size:13px;font-weight:500;color:var(--text3);margin-bottom:8px">참여 업체</div>
       <div id="cons-companies-list"></div>
       <div style="display:flex;gap:6px;margin-top:6px">
         <div class="corp-dd-wrap" style="flex:1">
@@ -1107,10 +1107,10 @@ body{
       <label class="fl">심사 단계 설정</label>
       <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:4px">
         <div id="cm-phases-list"></div>
-        <button onclick="addCmPhase()" style="width:100%;padding:6px;background:none;border:1px dashed rgba(255,255,255,.1);border-radius:7px;color:var(--text4);font-size:11px;cursor:pointer;margin-top:6px;font-family:'Noto Sans KR',sans-serif">+ 단계 추가</button>
+        <button onclick="addCmPhase()" style="width:100%;padding:6px;background:none;border:1px dashed rgba(255,255,255,.1);border-radius:7px;color:var(--text4);font-size:13px;cursor:pointer;margin-top:6px;font-family:'Noto Sans KR',sans-serif">+ 단계 추가</button>
       </div>
     </div>
-    <div class="fg"><label class="fl">알림 기준일 <span style="font-size:9px;color:var(--text4)">(쉼표로 구분, 예: 90,30,7)</span></label>
+    <div class="fg"><label class="fl">알림 기준일 <span style="font-size:11px;color:var(--text4)">(쉼표로 구분, 예: 90,30,7)</span></label>
       <input class="fi" id="cm-alert-days" placeholder="90,30,7" value="90,30,7">
     </div>
     <div class="fg"><label class="fl">설명</label><input class="fi" id="cm-description" placeholder="예: ISO 식품안전경영시스템 (3년 주기, 매년 사후심사)"></div>
@@ -1129,7 +1129,7 @@ body{
       <span>🎉 인증 완료! 인증 정보를 등록하세요</span>
       <button class="modal-close" onclick="closeModal('cert-from-work-modal')">×</button>
     </div>
-    <div style="background:var(--ok-pale);border:1px solid #A7F3D0;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:11px;color:var(--ok)">
+    <div style="background:var(--ok-pale);border:1px solid #A7F3D0;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--ok)">
       ✅ 업무가 완료됐어요! 인증서 취득일과 만료일을 등록하면 갱신 알림을 받을 수 있어요.
     </div>
     <input type="hidden" id="cfw-work-id">
@@ -1158,7 +1158,7 @@ body{
         </div>
       </div>
       <div class="fg">
-        <label class="fl">만료·갱신일 * <span style="font-size:9px;color:var(--text4)">(자동계산)</span></label>
+        <label class="fl">만료·갱신일 * <span style="font-size:11px;color:var(--text4)">(자동계산)</span></label>
         <div style="display:flex;gap:4px;align-items:center">
           <input class="fi" id="cfw-exp-y" placeholder="YYYY" maxlength="4" style="width:64px;text-align:center" oninput="autoTabDate(this,'cfw-exp-m',4)">
           <span style="color:var(--text4)">-</span>
@@ -1193,7 +1193,7 @@ body{
     </div>
     <!-- complex 인증(ISO 등) 단계 선택 -->
     <div class="fg" id="cert-phase-wrap" style="display:none">
-      <label class="fl">현재 단계 <span style="font-size:9px;color:var(--text4)">(ISO 사후심사 단계)</span></label>
+      <label class="fl">현재 단계 <span style="font-size:11px;color:var(--text4)">(ISO 사후심사 단계)</span></label>
       <select class="fs" id="cert-phase-sel"></select>
     </div>
     <!-- 취득일 / 설립일 (annual 타입이면 라벨 변경) -->
@@ -1222,7 +1222,7 @@ body{
     <!-- 만료·갱신일 / 신고기한 (annual 타입이면 라벨 변경) -->
     <div class="frow">
       <div class="fg">
-        <label class="fl" id="cert-exp-label">만료·갱신일 * <span style="font-size:9px;color:var(--text4)">(취득일+주기 자동계산)</span></label>
+        <label class="fl" id="cert-exp-label">만료·갱신일 * <span style="font-size:11px;color:var(--text4)">(취득일+주기 자동계산)</span></label>
         <div style="display:flex;gap:4px;align-items:center">
           <input class="fi" id="cert-exp-y" placeholder="YYYY" maxlength="4" style="width:64px;text-align:center" oninput="autoTabDate(this,'cert-exp-m',4)">
           <span style="color:var(--text4)">-</span>
@@ -1243,7 +1243,7 @@ body{
     <div id="cert-annual-section" style="display:none">
       <div style="border-top:1px solid rgba(255,255,255,.08);padding-top:14px;margin-top:4px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <div style="font-size:11px;font-weight:500;color:var(--text3)">📋 연간 신고 이력</div>
+          <div style="font-size:13px;font-weight:500;color:var(--text3)">📋 연간 신고 이력</div>
           <button onclick="addAnnualReport()" class="btn btn-primary btn-sm">+ 신고 추가</button>
         </div>
         <div id="cert-annual-list"></div>
@@ -1269,7 +1269,7 @@ body{
       <div class="fg"><label class="fl">색상</label>
         <div style="display:flex;gap:8px;align-items:center">
           <input type="color" id="cat-add-color" value="#64748B" style="width:40px;height:38px;border:1px solid var(--border2);border-radius:8px;background:none;cursor:pointer;padding:2px">
-          <div style="font-size:10px;color:var(--text3)">카드 색상</div>
+          <div style="font-size:12px;color:var(--text3)">카드 색상</div>
         </div>
       </div>
     </div>
@@ -1277,24 +1277,24 @@ body{
       <label class="fl">인증·갱신 관리 연동</label>
       <div style="display:flex;gap:8px;margin-top:4px">
         <button id="cat-cert-yes" onclick="setCatRequiresCert(true)"
-          style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:rgba(255,255,255,.05);color:var(--text3);font-size:11px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .15s">
+          style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:rgba(255,255,255,.05);color:var(--text3);font-size:13px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .15s">
           🔄 갱신 있음
         </button>
         <button id="cat-cert-no" onclick="setCatRequiresCert(false)"
-          style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(37,99,235,.4);background:var(--blue-pale);color:var(--blue);font-size:11px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .15s">
+          style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(37,99,235,.4);background:var(--blue-pale);color:var(--blue);font-size:13px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .15s">
           ✅ 갱신 없음
         </button>
       </div>
       <input type="hidden" id="cat-requires-cert" value="false">
-      <div style="font-size:10px;color:var(--text4);margin-top:5px" id="cat-cert-hint">완료 처리 시 인증 팝업이 표시되지 않습니다</div>
+      <div style="font-size:12px;color:var(--text4);margin-top:5px" id="cat-cert-hint">완료 처리 시 인증 팝업이 표시되지 않습니다</div>
     </div>
     <!-- 갱신 있음 선택 시: 연결할 인증 종류 선택 -->
     <div class="fg" id="cat-cert-master-wrap" style="display:none">
-      <label class="fl">연결할 인증 종류 <span style="font-size:9px;color:var(--text4)">(완료 시 팝업에서 우선 표시)</span></label>
+      <label class="fl">연결할 인증 종류 <span style="font-size:11px;color:var(--text4)">(완료 시 팝업에서 우선 표시)</span></label>
       <select class="fs" id="cat-cert-master-sel" multiple style="height:100px">
         <!-- cert_master 로드 후 동적 생성 -->
       </select>
-      <div style="font-size:9px;color:var(--text4);margin-top:3px">Ctrl/Cmd 클릭으로 여러 개 선택 가능 · 미선택 시 전체 인증 목록 표시</div>
+      <div style="font-size:11px;color:var(--text4);margin-top:3px">Ctrl/Cmd 클릭으로 여러 개 선택 가능 · 미선택 시 전체 인증 목록 표시</div>
     </div>
     <div class="modal-btns">
       <button class="btn btn-danger btn-sm" id="cat-del-btn" style="display:none;margin-right:auto" onclick="deleteCatAdd()">삭제</button>
@@ -1444,7 +1444,7 @@ function openModal(id){document.getElementById(id).classList.add('open')}
 document.querySelectorAll('.ov').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open')}));
 function genTempBizno(){const n=String(tempBiznoCounter++).padStart(3,'0');saveAppState();return `TEMP-${n}`;}
 function fmtAmt(v){if(!v||v===0)return '—';return Number(v).toLocaleString()+'만원';}
-function badge(st){if(!ST[st])return '';return `<span style="font-size:9px;padding:2px 7px;border-radius:10px;background:${ST[st].bg};color:${ST[st].tx};font-weight:500;white-space:nowrap">${ST[st].label}</span>`;}
+function badge(st){if(!ST[st])return '';return `<span style="font-size:11px;padding:2px 7px;border-radius:10px;background:${ST[st].bg};color:${ST[st].tx};font-weight:500;white-space:nowrap">${ST[st].label}</span>`;}
 function dot(st){return `<div class="s-dot" style="background:${ST[st]?.dot||'#64748B'}"></div>`;}
 function isDoneExpired(item){if(item.status!=='done')return false;if(!item.doneAt)return false;return(Date.now()-item.doneAt)>DONE_HIDE_MS;}
 function setBadge(txt,ms){const el=document.getElementById('save-badge');if(el)el.textContent=txt;if(ms)setTimeout(()=>{if(el)el.textContent='💾 저장';},ms);}
@@ -1553,8 +1553,8 @@ function setCatRequiresCert(val){
   const hint=document.getElementById('cat-cert-hint');
   const masterWrap=document.getElementById('cat-cert-master-wrap');
   if(val){
-    yesBtn.style.cssText='flex:1;padding:8px;border-radius:8px;border:1px solid rgba(16,185,129,.4);background:var(--ok-pale);color:var(--ok);font-size:11px;cursor:pointer;font-family:Noto Sans KR,sans-serif';
-    noBtn.style.cssText='flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:rgba(255,255,255,.05);color:var(--text3);font-size:11px;cursor:pointer;font-family:Noto Sans KR,sans-serif';
+    yesBtn.style.cssText='flex:1;padding:8px;border-radius:8px;border:1px solid rgba(16,185,129,.4);background:var(--ok-pale);color:var(--ok);font-size:13px;cursor:pointer;font-family:Noto Sans KR,sans-serif';
+    noBtn.style.cssText='flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:rgba(255,255,255,.05);color:var(--text3);font-size:13px;cursor:pointer;font-family:Noto Sans KR,sans-serif';
     if(hint)hint.textContent='완료 처리 시 인증 등록 팝업이 표시됩니다';
     // cert_master 드롭다운 채우기
     if(masterWrap){
@@ -1563,8 +1563,8 @@ function setCatRequiresCert(val){
       if(sel) sel.innerHTML=certMaster.map(m=>'<option value="'+m.id+'">'+m.icon+' '+m.certName+'</option>').join('');
     }
   } else {
-    yesBtn.style.cssText='flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:rgba(255,255,255,.05);color:var(--text3);font-size:11px;cursor:pointer;font-family:Noto Sans KR,sans-serif';
-    noBtn.style.cssText='flex:1;padding:8px;border-radius:8px;border:1px solid rgba(37,99,235,.4);background:var(--blue-pale);color:var(--blue);font-size:11px;cursor:pointer;font-family:Noto Sans KR,sans-serif';
+    yesBtn.style.cssText='flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:rgba(255,255,255,.05);color:var(--text3);font-size:13px;cursor:pointer;font-family:Noto Sans KR,sans-serif';
+    noBtn.style.cssText='flex:1;padding:8px;border-radius:8px;border:1px solid rgba(37,99,235,.4);background:var(--blue-pale);color:var(--blue);font-size:13px;cursor:pointer;font-family:Noto Sans KR,sans-serif';
     if(hint)hint.textContent='완료 처리 시 인증 팝업이 표시되지 않습니다';
     if(masterWrap)masterWrap.style.display='none';
   }
@@ -1846,9 +1846,9 @@ function renderGantt(sfx){
     if(allCompaniesInactive)return;
     body+=`<tr class="cat-row${isDone?' gantt-row-done':''}${isExpired?' gantt-row-expired':''}" onclick="toggleCat('${c.id}')"><td class="cat-label-td">
       <div class="cat-name">${cm.icon} ${c.title} ${badge(c.status||'wait')}<span class="cat-arrow${exp?' open':''}">▶</span>
-        <button onclick="event.stopPropagation();openConsultingModal('${c.id}')" style="margin-left:6px;padding:2px 8px;background:var(--blue-pale);border:1px solid rgba(37,99,235,.4);border-radius:5px;color:var(--blue);font-size:9px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">관리</button>
+        <button onclick="event.stopPropagation();openConsultingModal('${c.id}')" style="margin-left:6px;padding:2px 8px;background:var(--blue-pale);border:1px solid rgba(37,99,235,.4);border-radius:5px;color:var(--blue);font-size:11px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">관리</button>
       </div>
-      <div style="font-size:9px;color:var(--text4);margin-top:2px">${c.org||''} ${c.endDate?'· ~'+c.endDate:''} ${c.amount?'· '+fmtAmt(c.amount):''}</div>
+      <div style="font-size:11px;color:var(--text4);margin-top:2px">${c.org||''} ${c.endDate?'· ~'+c.endDate:''} ${c.amount?'· '+fmtAmt(c.amount):''}</div>
     </td>`;
     for(let d=1;d<=days;d++){
       const ds=dateStr(y,m,d);const inR=c.startDate&&c.endDate&&ds>=c.startDate&&ds<=c.endDate;const isS=c.startDate&&ds===c.startDate;
@@ -1868,7 +1868,7 @@ function renderGantt(sfx){
       body+=`</tr>`;
     });
   });
-  if(!consulting.length)body=`<tr><td colspan="999" style="text-align:center;padding:30px;color:var(--text4);font-size:12px">+ 대분류 추가 버튼을 눌러 일정을 등록하세요</td></tr>`;
+  if(!consulting.length)body=`<tr><td colspan="999" style="text-align:center;padding:30px;color:var(--text4);font-size:14px">+ 대분류 추가 버튼을 눌러 일정을 등록하세요</td></tr>`;
   tableEl.innerHTML=head+body;
   applyGanttFilterCSS();
 }
@@ -1934,12 +1934,12 @@ function openConsultingModal(id){
 function renderConsCompaniesList(){
   document.getElementById('cons-companies-list').innerHTML=tempConsCompanies.map((cc,i)=>`
     <div class="ci" style="cursor:default">
-      <div style="font-size:12px;flex:1">🏢 ${cc.companyName}<span style="font-size:9px;color:var(--text4);margin-left:6px">${cc.bizno}</span></div>
-      <select data-idx="${i}" onchange="updateConsCompanyStatus(this)" style="background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--white);font-size:10px;padding:2px 5px;outline:none;font-family:'Noto Sans KR',sans-serif">
+      <div style="font-size:14px;flex:1">🏢 ${cc.companyName}<span style="font-size:11px;color:var(--text4);margin-left:6px">${cc.bizno}</span></div>
+      <select data-idx="${i}" onchange="updateConsCompanyStatus(this)" style="background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--white);font-size:12px;padding:2px 5px;outline:none;font-family:'Noto Sans KR',sans-serif">
         ${['wait','ing','done'].map(s=>`<option value="${s}"${cc.status===s?' selected':''}>${ST[s].label}</option>`).join('')}
       </select>
       <button data-idx="${i}" onclick="removeConsCompany(this)" style="background:none;border:none;color:var(--text4);cursor:pointer;font-size:16px">×</button>
-    </div>`).join('')||`<div style="font-size:11px;color:var(--text4);padding:4px">참여 업체 없음</div>`;
+    </div>`).join('')||`<div style="font-size:13px;color:var(--text4);padding:4px">참여 업체 없음</div>`;
 }
 function updateConsCompanyStatus(select){const idx=+select.getAttribute('data-idx');if(tempConsCompanies[idx])tempConsCompanies[idx].status=select.value;}
 function removeConsCompany(btn){const idx=+btn.getAttribute('data-idx');tempConsCompanies.splice(idx,1);renderConsCompaniesList();}
@@ -2011,16 +2011,16 @@ function renderTodo(sfx){
   const groups={wait:todos.filter(t=>t.status==='wait'),ing:todos.filter(t=>t.status==='ing'),done:todos.filter(t=>t.status==='done')};
   grid.innerHTML=['wait','ing','done'].map(st=>`
     <div class="todo-col">
-      <div class="todo-col-hd"><span style="color:${ST[st].dot}">●</span>${ST[st].label}<span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text4)">${groups[st].length}</span></div>
+      <div class="todo-col-hd"><span style="color:${ST[st].dot}">●</span>${ST[st].label}<span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text4)">${groups[st].length}</span></div>
       <div>${groups[st].map(t=>`
         <div class="ti${t.status==='done'?' done':''}">
           <div style="flex:1;cursor:pointer" onclick="cycleTodo('${t.id}')">
             <div class="ti-text">${t.text}</div>
             ${t.tag?`<div class="ti-tag">${t.tag}</div>`:''}
           </div>
-          <button onclick="deleteTodoItem('${t.id}')" style="background:none;border:none;color:var(--text4);font-size:14px;cursor:pointer;padding:0 2px;flex-shrink:0">×</button>
-        </div>`).join('')||`<div style="font-size:11px;color:var(--text4);padding:8px 6px">없음</div>`}</div>
-      <button onclick="openTodoModal('${st}')" style="width:100%;padding:6px;background:none;border:1px dashed rgba(255,255,255,.1);border-radius:7px;color:var(--text4);font-size:11px;cursor:pointer;margin-top:6px;font-family:'Noto Sans KR',sans-serif">+ 추가</button>
+          <button onclick="deleteTodoItem('${t.id}')" style="background:none;border:none;color:var(--text4);font-size:16px;cursor:pointer;padding:0 2px;flex-shrink:0">×</button>
+        </div>`).join('')||`<div style="font-size:13px;color:var(--text4);padding:8px 6px">없음</div>`}</div>
+      <button onclick="openTodoModal('${st}')" style="width:100%;padding:6px;background:none;border:1px dashed rgba(255,255,255,.1);border-radius:7px;color:var(--text4);font-size:13px;cursor:pointer;margin-top:6px;font-family:'Noto Sans KR',sans-serif">+ 추가</button>
     </div>`).join('');
 }
 function openTodoModal(st){document.getElementById('td-text').value='';document.getElementById('td-status').value=st||'ing';document.getElementById('td-tag').value='';openModal('todo-modal');}
@@ -2048,10 +2048,10 @@ function renderWork(gridId){
     const tot=allFull.length,dn=allFull.filter(i=>i.status==='done').length,pct=tot?Math.round(dn/tot*100):0;
     return `<div class="card">
       <div class="card-hd" style="border-bottom:2px solid ${m.color}33">
-        <div style="width:30px;height:30px;border-radius:8px;background:${m.color}22;display:flex;align-items:center;justify-content:center;font-size:14px">${m.icon}</div>
+        <div style="width:30px;height:30px;border-radius:8px;background:${m.color}22;display:flex;align-items:center;justify-content:center;font-size:16px">${m.icon}</div>
         <div style="flex:1"><div class="card-hd-title">${m.name}</div>
-        <div class="card-hd-sub">${tot}건 · 완료 ${dn}건 (${pct}%)${dn>0?`<span class="done-hint" style="color:var(--ok);font-size:9px"> · 완료 ${dn}건 숨김중</span>`:''}</div></div>
-        ${isCustom?`<button onclick="openCatAddModal('${cat}')" style="background:none;border:none;color:var(--text4);font-size:12px;cursor:pointer;padding:2px 4px" title="분야 수정/삭제">⚙️</button>`:''}
+        <div class="card-hd-sub">${tot}건 · 완료 ${dn}건 (${pct}%)${dn>0?`<span class="done-hint" style="color:var(--ok);font-size:11px"> · 완료 ${dn}건 숨김중</span>`:''}</div></div>
+        ${isCustom?`<button onclick="openCatAddModal('${cat}')" style="background:none;border:none;color:var(--text4);font-size:14px;cursor:pointer;padding:2px 4px" title="분야 수정/삭제">⚙️</button>`:''}
       </div>
       <div style="height:3px;background:rgba(255,255,255,.05)"><div style="height:100%;width:${pct}%;background:${m.color};transition:width .6s ease"></div></div>
       <div style="padding:10px 12px;max-height:220px;overflow-y:auto">
@@ -2060,25 +2060,25 @@ function renderWork(gridId){
           const cls=it.status==='done'?(isDoneExpired(it)?'work-item-done work-item-expired':'work-item-done'):'';
           return `<div class="ci work-item${cls?' '+cls:''}" onclick="openWorkModal('${cat}','${it.id}')">
             ${dot(it.status)}
-            <div style="flex:1"><div style="font-size:11px">${it.name}${it.sub?` <span style="font-size:9px;color:var(--text4)">[${it.sub}]</span>`:''}</div>
-            ${it.client?`<div style="font-size:9px;color:var(--text3)">${it.client}</div>`:''}</div>
+            <div style="flex:1"><div style="font-size:13px">${it.name}${it.sub?` <span style="font-size:11px;color:var(--text4)">[${it.sub}]</span>`:''}</div>
+            ${it.client?`<div style="font-size:11px;color:var(--text3)">${it.client}</div>`:''}</div>
             ${badge(it.status)}
-            <span onclick="event.stopPropagation();cycleWork('${it.id}')" style="color:var(--text4);font-size:11px;cursor:pointer;opacity:.6" title="상태변경">🔄</span>
+            <span onclick="event.stopPropagation();cycleWork('${it.id}')" style="color:var(--text4);font-size:13px;cursor:pointer;opacity:.6" title="상태변경">🔄</span>
           </div>`;
         }).join('')}
         ${allCatItems.length?`<div style="border-top:1px solid var(--border);margin:6px 0 4px;padding-top:4px">
-          <div style="font-size:9px;color:var(--text4);padding:0 4px 4px">📅 간트 연동</div>
+          <div style="font-size:11px;color:var(--text4);padding:0 4px 4px">📅 간트 연동</div>
           ${allCatItems.map(it=>{
             const cls=it.status==='done'?(isDoneExpired(it)?'work-item-done work-item-expired':'work-item-done'):'';
             return `<div class="ci work-item${cls?' '+cls:''}" onclick="openConsultingModal('${it.consId}')">
               ${dot(it.status)}
-              <div style="flex:1"><div style="font-size:11px;color:rgba(255,255,255,.6)">${it.client||it.consTitle}</div>
-              <div style="font-size:9px;color:var(--text4)">${it.consTitle}</div></div>
+              <div style="flex:1"><div style="font-size:13px;color:rgba(255,255,255,.6)">${it.client||it.consTitle}</div>
+              <div style="font-size:11px;color:var(--text4)">${it.consTitle}</div></div>
               ${badge(it.status)}
             </div>`;
           }).join('')}
         </div>`:''}
-        <button onclick="openWorkModal('${cat}',null)" style="width:100%;padding:6px;background:none;border:1px dashed rgba(255,255,255,.1);border-radius:7px;color:var(--text4);font-size:11px;cursor:pointer;margin-top:4px;font-family:'Noto Sans KR',sans-serif">+ 항목 추가</button>
+        <button onclick="openWorkModal('${cat}',null)" style="width:100%;padding:6px;background:none;border:1px dashed rgba(255,255,255,.1);border-radius:7px;color:var(--text4);font-size:13px;cursor:pointer;margin-top:4px;font-family:'Noto Sans KR',sans-serif">+ 항목 추가</button>
       </div>
     </div>`;
   }).join('');
@@ -2361,12 +2361,12 @@ function renderClientsTable(headId,bodyId,searchVal,page,perPage,paginationId,gr
     const cid=comp._id.replace(/'/g,"\\'");
     return '<tr style="'+(isInactive?'opacity:.4':'')+'\">'
       +'<td>'
-        +'<div style="font-size:12px;font-weight:500;cursor:pointer;color:var(--blue-l)" onclick="openCompanyModal(\''+cid+'\')" title="클릭하여 수정">'+comp.name+'</div>'
-        +(isInactive?'<div style="font-size:9px;color:var(--danger)">비활성</div>':'')
+        +'<div style="font-size:14px;font-weight:500;cursor:pointer;color:var(--blue-l)" onclick="openCompanyModal(\''+cid+'\')" title="클릭하여 수정">'+comp.name+'</div>'
+        +(isInactive?'<div style="font-size:11px;color:var(--danger)">비활성</div>':'')
       +'</td>'
-      +'<td><span style="font-size:10px;color:var(--text3)">'+grpIcon+' '+(comp.group||'일반고객')+'</span></td>'
-      +CAT_IDS.map(c=>'<td>'+(domains[c]?badge(domains[c]):'<span style="color:var(--text4);font-size:10px">—</span>')+'</td>').join('')
-      +'<td><button onclick="openCompanyModal(\''+cid+'\')" style="background:none;border:none;color:var(--text4);font-size:12px;cursor:pointer;padding:2px">✏️</button></td>'
+      +'<td><span style="font-size:12px;color:var(--text3)">'+grpIcon+' '+(comp.group||'일반고객')+'</span></td>'
+      +CAT_IDS.map(c=>'<td>'+(domains[c]?badge(domains[c]):'<span style="color:var(--text4);font-size:12px">—</span>')+'</td>').join('')
+      +'<td><button onclick="openCompanyModal(\''+cid+'\')" style="background:none;border:none;color:var(--text4);font-size:14px;cursor:pointer;padding:2px">✏️</button></td>'
       +'</tr>';
   }).join(''):'<tr><td colspan="99" style="text-align:center;padding:30px;color:var(--text4)">등록된 업체가 없습니다</td></tr>';
   const pgEl=document.getElementById(paginationId);
@@ -2407,31 +2407,31 @@ function renderStatsCards(targetId){
   const stColors={wait:'#64748B',ing:'#F59E0B',done:'#10B981'};
   el.innerHTML=`<div class="grid4">
     <div class="card" style="padding:16px">
-      <div style="font-size:11px;font-weight:500;color:var(--text3);margin-bottom:14px">전체 업무 상태 분포</div>
+      <div style="font-size:13px;font-weight:500;color:var(--text3);margin-bottom:14px">전체 업무 상태 분포</div>
       <div style="display:flex;align-items:center;gap:12px">
         <div style="position:relative;width:70px;height:70px;flex-shrink:0">
           <svg viewBox="0 0 36 36" style="width:70px;height:70px;transform:rotate(-90deg)">
             ${(()=>{let off=0;return['wait','ing','done'].map(k=>{const v=stCnt[k];const pct=v/total*100;const r=`<circle cx="18" cy="18" r="15.9" fill="none" stroke="${stColors[k]}" stroke-width="3.2" stroke-dasharray="${pct} ${100-pct}" stroke-dashoffset="${-off}" opacity="${v?1:.15}"/>`;off+=pct;return r;}).join('');})()}
           </svg>
-          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500">${allWork.length}</div>
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:500">${allWork.length}</div>
         </div>
         <div style="flex:1">
-          ${['wait','ing','done'].map(k=>`<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text3);margin-bottom:5px"><div style="width:8px;height:8px;border-radius:50%;background:${stColors[k]}"></div><span style="flex:1">${ST[k].label}</span><span style="font-family:'JetBrains Mono',monospace;color:var(--white)">${stCnt[k]}</span></div>`).join('')}
-          <div style="border-top:1px solid var(--border);margin-top:6px;padding-top:6px;display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--text4)">총합</span><span style="font-family:'JetBrains Mono',monospace">${allWork.length}</span></div>
+          ${['wait','ing','done'].map(k=>`<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text3);margin-bottom:5px"><div style="width:8px;height:8px;border-radius:50%;background:${stColors[k]}"></div><span style="flex:1">${ST[k].label}</span><span style="font-family:'JetBrains Mono',monospace;color:var(--white)">${stCnt[k]}</span></div>`).join('')}
+          <div style="border-top:1px solid var(--border);margin-top:6px;padding-top:6px;display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--text4)">총합</span><span style="font-family:'JetBrains Mono',monospace">${allWork.length}</span></div>
         </div>
       </div>
     </div>
     <div class="card" style="padding:16px">
-      <div style="font-size:11px;font-weight:500;color:var(--text3);margin-bottom:14px;display:flex;justify-content:space-between">업무 영역별 현황<span style="font-size:9px;color:var(--text4)">(업무+간트)</span></div>
-      ${workRates.length?workRates.map(r=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px"><div style="font-size:10px;color:var(--text3);width:72px;text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.icon} ${r.name}</div><div style="flex:1;height:12px;background:rgba(255,255,255,.07);border-radius:6px;overflow:hidden"><div style="height:100%;width:${r.pct}%;background:${r.color};border-radius:6px"></div></div><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);width:22px;text-align:right">${r.dn}</div></div>`).join(''):`<div class="empty" style="padding:12px 0"><div class="empty-txt">업무 항목을 추가하면 집계됩니다</div></div>`}
+      <div style="font-size:13px;font-weight:500;color:var(--text3);margin-bottom:14px;display:flex;justify-content:space-between">업무 영역별 현황<span style="font-size:11px;color:var(--text4)">(업무+간트)</span></div>
+      ${workRates.length?workRates.map(r=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px"><div style="font-size:12px;color:var(--text3);width:72px;text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.icon} ${r.name}</div><div style="flex:1;height:12px;background:rgba(255,255,255,.07);border-radius:6px;overflow:hidden"><div style="height:100%;width:${r.pct}%;background:${r.color};border-radius:6px"></div></div><div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text3);width:22px;text-align:right">${r.dn}</div></div>`).join(''):`<div class="empty" style="padding:12px 0"><div class="empty-txt">업무 항목을 추가하면 집계됩니다</div></div>`}
     </div>
     <div class="card" style="padding:16px">
-      <div style="font-size:11px;font-weight:500;color:var(--text3);margin-bottom:14px;display:flex;justify-content:space-between">세부구분 누적 건수<span style="font-size:9px;color:var(--text4)">(선정·기표 등)</span></div>
-      ${subSorted.length?subSorted.map(([k,v])=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px"><div style="font-size:10px;color:var(--text3);width:72px;text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${k}</div><div style="flex:1;height:12px;background:rgba(255,255,255,.07);border-radius:6px;overflow:hidden"><div style="height:100%;width:${subSorted[0]?Math.round(v/subSorted[0][1]*100):0}%;background:var(--teal);border-radius:6px"></div></div><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);width:22px;text-align:right">${v}</div></div>`).join(''):`<div class="empty" style="padding:12px 0"><div class="empty-txt">세부구분을 지정하면 집계됩니다</div></div>`}
+      <div style="font-size:13px;font-weight:500;color:var(--text3);margin-bottom:14px;display:flex;justify-content:space-between">세부구분 누적 건수<span style="font-size:11px;color:var(--text4)">(선정·기표 등)</span></div>
+      ${subSorted.length?subSorted.map(([k,v])=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px"><div style="font-size:12px;color:var(--text3);width:72px;text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${k}</div><div style="flex:1;height:12px;background:rgba(255,255,255,.07);border-radius:6px;overflow:hidden"><div style="height:100%;width:${subSorted[0]?Math.round(v/subSorted[0][1]*100):0}%;background:var(--teal);border-radius:6px"></div></div><div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text3);width:22px;text-align:right">${v}</div></div>`).join(''):`<div class="empty" style="padding:12px 0"><div class="empty-txt">세부구분을 지정하면 집계됩니다</div></div>`}
     </div>
     <div class="card" style="padding:16px">
-      <div style="font-size:11px;font-weight:500;color:var(--text3);margin-bottom:14px;display:flex;justify-content:space-between">D-Day 현황<span style="font-size:9px;color:var(--text4)">(마감 임박순)</span></div>
-      ${ddays.length?ddays.map(c=>{const color=c.diff<0?'var(--danger)':c.diff<=7?'var(--warn)':c.diff<=30?'var(--gold)':'var(--g1)';const label=c.diff<0?`D+${Math.abs(c.diff)}`:c.diff===0?'D-Day':`D-${c.diff}`;return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:${color};width:42px;flex-shrink:0;font-weight:500">${label}</div><div style="flex:1;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.title}</div>${badge(c.status||'wait')}</div>`;}).join(''):`<div class="empty" style="padding:12px 0"><div class="empty-txt">지원사업을 추가하면 집계됩니다</div></div>`}
+      <div style="font-size:13px;font-weight:500;color:var(--text3);margin-bottom:14px;display:flex;justify-content:space-between">D-Day 현황<span style="font-size:11px;color:var(--text4)">(마감 임박순)</span></div>
+      ${ddays.length?ddays.map(c=>{const color=c.diff<0?'var(--danger)':c.diff<=7?'var(--warn)':c.diff<=30?'var(--gold)':'var(--g1)';const label=c.diff<0?`D+${Math.abs(c.diff)}`:c.diff===0?'D-Day':`D-${c.diff}`;return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:${color};width:42px;flex-shrink:0;font-weight:500">${label}</div><div style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.title}</div>${badge(c.status||'wait')}</div>`;}).join(''):`<div class="empty" style="padding:12px 0"><div class="empty-txt">지원사업을 추가하면 집계됩니다</div></div>`}
     </div>
   </div>`;
 }
@@ -2471,7 +2471,7 @@ function makeMonthBar(key, val, maxVal){
 // 분야별 바 HTML 생성
 function makeCatBar(r, maxCnt){
   return '<div style="margin-bottom:10px">'
-    +'<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">'
+    +'<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">'
     +'<span>'+r.icon+' '+r.name+'</span>'
     +'<span style="font-family:JetBrains Mono,monospace;color:var(--ok)">'+r.cnt+'건'+(r.amt?' · '+fmtAmt(r.amt):'' )+'</span>'
     +'</div>'
@@ -2565,14 +2565,14 @@ function renderStatsPage(){
   // 분야별 바 HTML
   const catBarsHtml=catList.length
     ? catList.map(r=>{
-        const approvedHtml=r.approved?'<span style="font-size:9px;color:var(--gold)">승인 '+fmtAmt(r.approved)+'</span>':'';
-        const amtHtml=r.amt?'<span style="font-size:9px;color:var(--text4)">신청 '+fmtAmt(r.amt)+'</span>':'';
+        const approvedHtml=r.approved?'<span style="font-size:11px;color:var(--gold)">승인 '+fmtAmt(r.approved)+'</span>':'';
+        const amtHtml=r.amt?'<span style="font-size:11px;color:var(--text4)">신청 '+fmtAmt(r.amt)+'</span>':'';
         const barW=Math.round(r.cnt/maxCnt*100);
         return '<div style="margin-bottom:10px">'
           +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">'
-          +'<span style="font-size:11px">'+r.icon+' '+r.name+'</span>'
+          +'<span style="font-size:13px">'+r.icon+' '+r.name+'</span>'
           +'<div style="display:flex;gap:8px;align-items:center">'+approvedHtml+amtHtml
-          +'<span style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--ok);font-weight:500">'+r.cnt+'건</span>'
+          +'<span style="font-family:JetBrains Mono,monospace;font-size:13px;color:var(--ok);font-weight:500">'+r.cnt+'건</span>'
           +'</div></div>'
           +'<div style="height:6px;background:var(--surface2);border-radius:3px;overflow:hidden">'
           +'<div style="height:100%;width:'+barW+'%;background:'+r.color+';border-radius:3px;transition:width .4s"></div>'
@@ -2601,18 +2601,18 @@ function renderStatsPage(){
 
   const compRowsHtml=pagedComps.length
     ? pagedComps.map(c=>'<tr>'
-        +'<td style="font-size:12px;font-weight:500">'+c.name+'</td>'
+        +'<td style="font-size:14px;font-weight:500">'+c.name+'</td>'
         +'<td><span style="font-family:JetBrains Mono,monospace;color:var(--ok)">'+c.cnt+'건</span></td>'
-        +'<td style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--text4)">'+(c.amt?fmtAmt(c.amt):'—')+'</td>'
-        +'<td style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--gold)">'+(c.approved?fmtAmt(c.approved):'—')+'</td>'
-        +'<td style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--text4)">'+(c.lastDone?new Date(c.lastDone).toLocaleDateString('ko-KR'):'—')+'</td>'
+        +'<td style="font-family:JetBrains Mono,monospace;font-size:13px;color:var(--text4)">'+(c.amt?fmtAmt(c.amt):'—')+'</td>'
+        +'<td style="font-family:JetBrains Mono,monospace;font-size:13px;color:var(--gold)">'+(c.approved?fmtAmt(c.approved):'—')+'</td>'
+        +'<td style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--text4)">'+(c.lastDone?new Date(c.lastDone).toLocaleDateString('ko-KR'):'—')+'</td>'
         +'</tr>').join('')
     : '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text4)">완료된 업무가 없습니다</td></tr>';
 
   const compPaginationHtml=totalComps>STATS_COMP_PER_PAGE
     ? makePagination(safeCompPage,totalCompPages,'setStatsCompPage')
-      +'<div style="text-align:center;font-size:10px;color:var(--text4);margin-top:4px">총 '+totalComps+'개 업체 중 '+((safeCompPage-1)*STATS_COMP_PER_PAGE+1)+'~'+Math.min(safeCompPage*STATS_COMP_PER_PAGE,totalComps)+'번째</div>'
-    : '<div style="text-align:center;font-size:10px;color:var(--text4);padding:6px">총 '+totalComps+'개 업체</div>';
+      +'<div style="text-align:center;font-size:12px;color:var(--text4);margin-top:4px">총 '+totalComps+'개 업체 중 '+((safeCompPage-1)*STATS_COMP_PER_PAGE+1)+'~'+Math.min(safeCompPage*STATS_COMP_PER_PAGE,totalComps)+'번째</div>'
+    : '<div style="text-align:center;font-size:12px;color:var(--text4);padding:6px">총 '+totalComps+'개 업체</div>';
 
   el.innerHTML=`
     <!-- 필터 -->
@@ -2655,11 +2655,11 @@ function renderStatsPage(){
     <!-- 차트 2개 나란히 -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
       <div class="card" style="padding:16px">
-        <div style="font-size:12px;font-weight:500;color:var(--text3);margin-bottom:14px">📊 분야별 완료 현황</div>
+        <div style="font-size:14px;font-weight:500;color:var(--text3);margin-bottom:14px">📊 분야별 완료 현황</div>
         ${catBarsHtml}
       </div>
       <div class="card" style="padding:16px">
-        <div style="font-size:12px;font-weight:500;color:var(--text3);margin-bottom:14px">📈 월별 완료 추이 (최근 12개월)</div>
+        <div style="font-size:14px;font-weight:500;color:var(--text3);margin-bottom:14px">📈 월별 완료 추이 (최근 12개월)</div>
         <div style="display:flex;align-items:flex-end;gap:3px;height:120px">${monthBarsHtml}</div>
       </div>
     </div>
@@ -2667,8 +2667,8 @@ function renderStatsPage(){
     <!-- 업체별 완료 이력 -->
     <div class="card" style="margin-bottom:20px">
       <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-        <div style="font-size:12px;font-weight:500">🏢 업체별 완료 이력</div>
-        <div style="font-size:10px;color:var(--text4)">${totalComps}개 업체</div>
+        <div style="font-size:14px;font-weight:500">🏢 업체별 완료 이력</div>
+        <div style="font-size:12px;color:var(--text4)">${totalComps}개 업체</div>
       </div>
       <div class="tbl-wrap"><table class="tbl">
         <thead><tr>
@@ -2681,7 +2681,7 @@ function renderStatsPage(){
 
     <!-- 업무 현황 요약 (기존 카드) -->
     <div>
-      <div style="font-size:12px;font-weight:500;color:var(--text3);margin-bottom:12px">📋 업무 현황 요약</div>
+      <div style="font-size:14px;font-weight:500;color:var(--text3);margin-bottom:12px">📋 업무 현황 요약</div>
       <div id="stats-cards-sub"></div>
     </div>`;
 
@@ -2813,14 +2813,14 @@ function renderHistoryPage(){
   const bodyEl=document.getElementById('hist-body');
   if(bodyEl){
     bodyEl.innerHTML=pageData.length?pageData.map(r=>`<tr>
-      <td><div style="font-size:12px;font-weight:500">${r.client}</div></td>
-      <td><span style="font-size:10px;padding:2px 7px;border-radius:8px;background:${r.catMeta.color}22;color:${r.catMeta.color}">${r.catMeta.icon} ${r.catMeta.name}</span></td>
-      <td style="font-size:11px">${r.name}</td>
-      <td style="font-size:10px;color:var(--text3)">${r.sub}</td>
+      <td><div style="font-size:14px;font-weight:500">${r.client}</div></td>
+      <td><span style="font-size:12px;padding:2px 7px;border-radius:8px;background:${r.catMeta.color}22;color:${r.catMeta.color}">${r.catMeta.icon} ${r.catMeta.name}</span></td>
+      <td style="font-size:13px">${r.name}</td>
+      <td style="font-size:12px;color:var(--text3)">${r.sub}</td>
       <td>${badge(r.status)}</td>
-      ${showDateCol?`<td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text4)">${r.doneAt?new Date(r.doneAt).toLocaleDateString('ko-KR'):'—'}</td>
-      <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:${r.expired?'var(--g3)':r.doneAgo!==null&&r.doneAgo<=3?'var(--ok)':'var(--g1)'}">${r.doneAgo!==null?r.doneAgo+'일 전':'—'}${r.expired?' 🗂️':''}</td>`:''}
-      <td><span style="font-size:9px;padding:2px 7px;border-radius:8px;background:var(--surface2);color:var(--text4)">${r.source}</span></td>
+      ${showDateCol?`<td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text4)">${r.doneAt?new Date(r.doneAt).toLocaleDateString('ko-KR'):'—'}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:${r.expired?'var(--g3)':r.doneAgo!==null&&r.doneAgo<=3?'var(--ok)':'var(--g1)'}">${r.doneAgo!==null?r.doneAgo+'일 전':'—'}${r.expired?' 🗂️':''}</td>`:''}
+      <td><span style="font-size:11px;padding:2px 7px;border-radius:8px;background:var(--surface2);color:var(--text4)">${r.source}</span></td>
     </tr>`).join(''):`<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text4)">해당 항목이 없습니다</td></tr>`;
   }
 
@@ -2828,7 +2828,7 @@ function renderHistoryPage(){
   const pgEl=document.getElementById('hist-pagination');
   if(pgEl){
     pgEl.innerHTML=(total>perPage?makePagination(safePage,totalPages,'setHistPage'):'')
-      +`<div style="text-align:center;font-size:10px;color:var(--text4);padding:4px">총 ${total}건${total>perPage?' 중 '+(((safePage-1)*perPage+1))+'~'+Math.min(safePage*perPage,total)+'건':''}</div>`;
+      +`<div style="text-align:center;font-size:12px;color:var(--text4);padding:4px">총 ${total}건${total>perPage?' 중 '+(((safePage-1)*perPage+1))+'~'+Math.min(safePage*perPage,total)+'건':''}</div>`;
   }
   const hc=document.getElementById('sb-history-cnt');if(hc)hc.textContent=workItems.filter(i=>i.status==='done').length+consulting.filter(c=>c.status==='done').length;
 }
@@ -2939,13 +2939,13 @@ function renderCertMaster(){
   const el=document.getElementById('cert-master-body');if(!el)return;
   el.innerHTML=certMaster.length?certMaster.map(m=>`<tr>
     <td style="font-size:20px;text-align:center">${m.icon||'📋'}</td>
-    <td><div style="font-size:12px;font-weight:500">${m.certName}</div></td>
-    <td><span style="font-size:10px;padding:2px 7px;border-radius:8px;background:${m.cycleType==='complex'?'rgba(245,158,11,.2)':'rgba(59,130,246,.2)'};color:${m.cycleType==='complex'?'#FCD34D':'#93C5FD'}">${m.cycleType==='complex'?'복합주기':'고정주기'}</span></td>
-    <td style="font-size:11px;color:var(--text3)">${m.cycleType==='complex'?'사후심사':m.cycleMonths+'개월'}</td>
-    <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text4)">${(m.alertDays||[90,30,7]).join(', ')}일</td>
-    <td style="font-size:10px;color:var(--text4);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.description||'—'}</td>
+    <td><div style="font-size:14px;font-weight:500">${m.certName}</div></td>
+    <td><span style="font-size:12px;padding:2px 7px;border-radius:8px;background:${m.cycleType==='complex'?'rgba(245,158,11,.2)':'rgba(59,130,246,.2)'};color:${m.cycleType==='complex'?'#FCD34D':'#93C5FD'}">${m.cycleType==='complex'?'복합주기':'고정주기'}</span></td>
+    <td style="font-size:13px;color:var(--text3)">${m.cycleType==='complex'?'사후심사':m.cycleMonths+'개월'}</td>
+    <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text4)">${(m.alertDays||[90,30,7]).join(', ')}일</td>
+    <td style="font-size:12px;color:var(--text4);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.description||'—'}</td>
     <td>
-      <button onclick="openCertMasterModal('${m.id}')" style="background:none;border:none;color:var(--text4);font-size:12px;cursor:pointer;padding:2px">✏️</button>
+      <button onclick="openCertMasterModal('${m.id}')" style="background:none;border:none;color:var(--text4);font-size:14px;cursor:pointer;padding:2px">✏️</button>
     </td>
   </tr>`).join(''):`<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text4)">등록된 인증 종류가 없습니다</td></tr>`;
 }
@@ -2969,9 +2969,9 @@ function renderCmPhases(){
     <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
       <input class="fi" value="${p.name}" placeholder="단계명 (예: 최초인증)" style="flex:2" oninput="cmPhases[${i}].name=this.value">
       <input class="fi" type="number" value="${p.months}" placeholder="개월" style="width:70px;text-align:center" oninput="cmPhases[${i}].months=+this.value">
-      <span style="font-size:10px;color:var(--text4);white-space:nowrap">개월</span>
+      <span style="font-size:12px;color:var(--text4);white-space:nowrap">개월</span>
       <button onclick="cmPhases.splice(${i},1);renderCmPhases()" style="background:none;border:none;color:var(--text4);cursor:pointer;font-size:16px">×</button>
-    </div>`).join(''):'<div style="font-size:11px;color:var(--text4);padding:4px">단계를 추가해주세요</div>';
+    </div>`).join(''):'<div style="font-size:13px;color:var(--text4);padding:4px">단계를 추가해주세요</div>';
 }
 function addCmPhase(){
   cmPhases.push({name:'',months:12});
@@ -3061,7 +3061,7 @@ function certDdayBadge(diff){
   if(diff===null)return '<span style="color:var(--text4)">—</span>';
   const color=diff<0?'var(--danger)':diff<=30?'var(--danger)':diff<=90?'var(--warn)':'var(--ok)';
   const label=diff<0?`만료 D+${Math.abs(diff)}`:diff===0?'D-Day':`D-${diff}`;
-  return `<span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;color:${color}">${label}</span>`;
+  return `<span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:${color}">${label}</span>`;
 }
 function certStatusBadge(cert){
   const diff=getCertDday(cert.expDate);
@@ -3078,28 +3078,28 @@ function certRow(c){
   const isAnnual=m.reportType==='annual';
   const isComplex=m.cycleType==='complex';
   const phaseLabel=c.currentPhase
-    ?`<span style="font-size:9px;padding:1px 5px;border-radius:4px;background:var(--warn-pale);color:var(--warn);margin-left:4px">${c.currentPhase}</span>`
+    ?`<span style="font-size:11px;padding:1px 5px;border-radius:4px;background:var(--warn-pale);color:var(--warn);margin-left:4px">${c.currentPhase}</span>`
     :'';
   const linkedWork=c.workItemId?workItems.find(w=>w.id===c.workItemId):null;
-  const workLink=linkedWork?`<div style="font-size:9px;color:var(--teal);margin-top:2px">&#128279; ${linkedWork.name} [${ST[linkedWork.status]?.label||linkedWork.status}]</div>`:'';
+  const workLink=linkedWork?`<div style="font-size:11px;color:var(--teal);margin-top:2px">&#128279; ${linkedWork.name} [${ST[linkedWork.status]?.label||linkedWork.status}]</div>`:'';
   const statusCell=isAnnual?getAnnualStatusDisplay(c.id):certDdayBadge(diff);
   return `<tr${c.status==='완료'?' style="opacity:.6"':''}>
     <td>
-      <div style="font-size:12px;font-weight:500;cursor:pointer;color:var(--blue-l)" onclick="openCertModal('${c.id}')">${comp?.name||c.companyName||'&#8212;'}</div>
+      <div style="font-size:14px;font-weight:500;cursor:pointer;color:var(--blue-l)" onclick="openCertModal('${c.id}')">${comp?.name||c.companyName||'&#8212;'}</div>
       ${workLink}
     </td>
     <td>
-      <span style="font-size:11px">${m.icon} ${m.certName}</span>${phaseLabel}
-      ${c.status==='완료'?'<span style="font-size:9px;padding:1px 5px;border-radius:4px;background:var(--ok-pale);color:var(--ok);margin-left:4px">&#10003;완료</span>':''}
+      <span style="font-size:13px">${m.icon} ${m.certName}</span>${phaseLabel}
+      ${c.status==='완료'?'<span style="font-size:11px;padding:1px 5px;border-radius:4px;background:var(--ok-pale);color:var(--ok);margin-left:4px">&#10003;완료</span>':''}
     </td>
-    <td style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--text4)">${c.acqDate||'&#8212;'}</td>
-    <td style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--text4)">${c.expDate||'&#8212;'}</td>
-    <td style="font-size:10px;color:var(--text3)">${isAnnual?`매년 ${m.annualMonth||4}월 ${m.annualDay||30}일`:isComplex?`${c.cycleMonths||12}개월`:(m.cycleMonths||12)+'개월'}</td>
+    <td style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--text4)">${c.acqDate||'&#8212;'}</td>
+    <td style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--text4)">${c.expDate||'&#8212;'}</td>
+    <td style="font-size:12px;color:var(--text3)">${isAnnual?`매년 ${m.annualMonth||4}월 ${m.annualDay||30}일`:isComplex?`${c.cycleMonths||12}개월`:(m.cycleMonths||12)+'개월'}</td>
     <td>${isAnnual?'<span class="badge" style="background:var(--blue-pale);color:var(--blue)">연간신고</span>':certStatusBadge(c)}</td>
     <td>${statusCell}</td>
     <td>
-      ${isComplex&&c.status!=='완료'?`<button onclick="markCertPhaseDone('${c.id}')" style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:6px;color:var(--ok);font-size:9px;padding:2px 6px;cursor:pointer;margin-right:4px">완료</button>`:''}
-      <button onclick="openCertModal('${c.id}')" style="background:none;border:none;color:var(--text4);font-size:12px;cursor:pointer">&#9998;</button>
+      ${isComplex&&c.status!=='완료'?`<button onclick="markCertPhaseDone('${c.id}')" style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:6px;color:var(--ok);font-size:11px;padding:2px 6px;cursor:pointer;margin-right:4px">완료</button>`:''}
+      <button onclick="openCertModal('${c.id}')" style="background:none;border:none;color:var(--text4);font-size:14px;cursor:pointer">&#9998;</button>
     </td>
   </tr>`;
 }
@@ -3164,7 +3164,7 @@ function renderCertAlert(){
 
   el.innerHTML=
     '<div style="margin-bottom:20px">'+
-    '<div style="font-size:12px;font-weight:500;color:var(--text3);margin-bottom:10px">🔄 갱신형 인증 (벤처·ISO 등)</div>'+
+    '<div style="font-size:14px;font-weight:500;color:var(--text3);margin-bottom:10px">🔄 갱신형 인증 (벤처·ISO 등)</div>'+
     '<div class="grid4" style="margin-bottom:12px">'+
     '<div class="stat-mini"><div class="stat-mini-val" style="color:var(--danger)">'+rExpired+'</div><div class="stat-mini-label">⚠️ 만료</div></div>'+
     '<div class="stat-mini"><div class="stat-mini-val" style="color:var(--danger)">'+rD30+'</div><div class="stat-mini-label">🔴 D-30 임박</div></div>'+
@@ -3172,7 +3172,7 @@ function renderCertAlert(){
     '<div class="stat-mini"><div class="stat-mini-val" style="color:var(--ok)">'+rSafe+'</div><div class="stat-mini-label">✅ 유효</div></div>'+
     '</div>'+renewalTableHtml+'</div>'+
     '<div>'+
-    '<div style="font-size:12px;font-weight:500;color:var(--text3);margin-bottom:10px">📋 연간 신고 (연구소·전담부서)</div>'+
+    '<div style="font-size:14px;font-weight:500;color:var(--text3);margin-bottom:10px">📋 연간 신고 (연구소·전담부서)</div>'+
     '<div class="grid4" style="margin-bottom:12px">'+
     '<div class="stat-mini"><div class="stat-mini-val" style="color:var(--danger)">'+aMissed+'</div><div class="stat-mini-label">❌ 미신고</div></div>'+
     '<div class="stat-mini"><div class="stat-mini-val" style="color:var(--warn)">'+aPending+'</div><div class="stat-mini-label">🔜 신고예정</div></div>'+
@@ -3222,13 +3222,13 @@ function renderCertByComp(){
     const m=getCertMasterInfo(w.category==='lab'?'lab':'rnd_dept');
     return `<tr style="opacity:.7">
       <td>
-        <div style="font-size:12px;font-weight:500">${comp?.name||w.client||'—'}</div>
-        <div style="font-size:9px;color:var(--warn)">⚠️ 인증 미등록 (업무만 등록됨)</div>
+        <div style="font-size:14px;font-weight:500">${comp?.name||w.client||'—'}</div>
+        <div style="font-size:11px;color:var(--warn)">⚠️ 인증 미등록 (업무만 등록됨)</div>
       </td>
-      <td><span style="font-size:11px">${m.icon||'🔬'} ${m.certName||w.category}</span></td>
-      <td colspan="4" style="font-size:10px;color:var(--text4)">인증 등록 필요</td>
+      <td><span style="font-size:13px">${m.icon||'🔬'} ${m.certName||w.category}</span></td>
+      <td colspan="4" style="font-size:12px;color:var(--text4)">인증 등록 필요</td>
       <td>${badge(w.status)}</td>
-      <td><button onclick="openCertModal()" style="background:var(--blue-pale);border:1px solid rgba(37,99,235,.3);border-radius:6px;color:var(--blue);font-size:10px;padding:2px 8px;cursor:pointer">인증등록</button></td>
+      <td><button onclick="openCertModal()" style="background:var(--blue-pale);border:1px solid rgba(37,99,235,.3);border-radius:6px;color:var(--blue);font-size:12px;padding:2px 8px;cursor:pointer">인증등록</button></td>
     </tr>`;
   }).join('');
 
@@ -3248,7 +3248,7 @@ function onCertTypeChange(){
   const cycleWrap=document.getElementById('cert-cycle-wrap');
   const annualSection=document.getElementById('cert-annual-section');
   if(acqLabel)acqLabel.textContent=isAnnual?'설립일 (인정서 발급일) *':'취득일 (인증서 발급일) *';
-  if(expLabel)expLabel.innerHTML=isAnnual?'다음 신고 기한 <span style="font-size:9px;color:var(--text4)">(다음연도 4월 30일 자동)</span>':'만료·갱신일 * <span style="font-size:9px;color:var(--text4)">(취득일+주기 자동계산)</span>';
+  if(expLabel)expLabel.innerHTML=isAnnual?'다음 신고 기한 <span style="font-size:11px;color:var(--text4)">(다음연도 4월 30일 자동)</span>':'만료·갱신일 * <span style="font-size:11px;color:var(--text4)">(취득일+주기 자동계산)</span>';
   if(cycleWrap)cycleWrap.style.display=isAnnual?'none':'';
   if(annualSection){
     annualSection.style.display=isAnnual?'':'none';
@@ -3507,8 +3507,8 @@ function renderCertAlertBanner(){
       let bannerHtml=`<div style="background:var(--danger-pale);border:1px solid #FECACA;border-radius:var(--r);padding:12px 16px;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
           <span>⚠️</span>
-          <span style="font-size:12px;font-weight:500;color:var(--danger)">긴급 알림 ${urgentRenewal.length+urgentAnnual.length}건</span>
-          <button onclick="navTo('cert')" style="margin-left:auto;background:var(--danger-pale);border:1px solid rgba(239,68,68,.3);border-radius:6px;color:var(--danger);font-size:10px;padding:3px 10px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">전체보기 →</button>
+          <span style="font-size:14px;font-weight:500;color:var(--danger)">긴급 알림 ${urgentRenewal.length+urgentAnnual.length}건</span>
+          <button onclick="navTo('cert')" style="margin-left:auto;background:var(--danger-pale);border:1px solid rgba(239,68,68,.3);border-radius:6px;color:var(--danger);font-size:12px;padding:3px 10px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">전체보기 →</button>
         </div>`;
       // 갱신형 임박
       [...urgentRenewal].slice(0,2).forEach(c=>{
@@ -3516,7 +3516,7 @@ function renderCertAlertBanner(){
         const m=getCertMasterInfo(c.certMasterId);
         const diff=getCertDday(c.expDate);
         const label=diff<0?`만료 D+${Math.abs(diff)}`:diff===0?'D-Day':`D-${diff}`;
-        bannerHtml+=`<div style="display:flex;align-items:center;gap:8px;font-size:11px;padding:2px 0">
+        bannerHtml+=`<div style="display:flex;align-items:center;gap:8px;font-size:13px;padding:2px 0">
           <span style="font-family:'JetBrains Mono',monospace;color:var(--danger);font-weight:600;width:65px;flex-shrink:0">${label}</span>
           <span style="font-weight:500">${comp?.name||c.companyName||'—'}</span>
           <span style="color:var(--text3)">${m.icon} ${m.certName} 갱신</span>
@@ -3527,7 +3527,7 @@ function renderCertAlertBanner(){
         const comp=companies.find(x=>x._id===cert.bizno);
         const m=getCertMasterInfo(cert.certMasterId);
         const diff=Math.ceil((new Date(report.dueDate)-Date.now())/(1000*60*60*24));
-        bannerHtml+=`<div style="display:flex;align-items:center;gap:8px;font-size:11px;padding:2px 0">
+        bannerHtml+=`<div style="display:flex;align-items:center;gap:8px;font-size:13px;padding:2px 0">
           <span style="font-family:'JetBrains Mono',monospace;color:var(--danger);font-weight:600;width:65px;flex-shrink:0">미신고</span>
           <span style="font-weight:500">${comp?.name||cert.companyName||'—'}</span>
           <span style="color:var(--text3)">${m.icon} ${m.certName} ${report.year}년 신고</span>
@@ -3546,54 +3546,54 @@ function renderCertAlertBanner(){
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:8px">
           <div style="width:28px;height:28px;border-radius:8px;background:var(--gold-pale);display:flex;align-items:center;justify-content:center">📋</div>
-          <span style="font-size:14px;font-weight:500">인증·갱신 현황</span>
-          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);background:var(--surface2);padding:2px 8px;border-radius:10px">총 ${totalAll}건</span>
+          <span style="font-size:16px;font-weight:500">인증·갱신 현황</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text3);background:var(--surface2);padding:2px 8px;border-radius:10px">총 ${totalAll}건</span>
         </div>
-        <button onclick="navTo('cert')" style="background:var(--surface2);border:1px solid var(--border2);border-radius:7px;color:var(--text3);font-size:11px;padding:5px 12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">자세히 보기 →</button>
+        <button onclick="navTo('cert')" style="background:var(--surface2);border:1px solid var(--border2);border-radius:7px;color:var(--text3);font-size:13px;padding:5px 12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">자세히 보기 →</button>
       </div>
 
       <!-- 갱신형 인증 -->
       <div style="margin-bottom:8px">
-        <div style="font-size:11px;color:var(--text4);margin-bottom:6px;font-weight:500">🔄 갱신형 인증 (벤처·ISO 등)</div>
+        <div style="font-size:13px;color:var(--text4);margin-bottom:6px;font-weight:500">🔄 갱신형 인증 (벤처·ISO 등)</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <div style="flex:1;min-width:70px;background:var(--danger-pale);border:1px solid #FECACA;border-radius:10px;padding:10px;text-align:center;cursor:pointer" onclick="navTo('cert')">
             <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;color:var(--danger)">${rExpired.length+rD30.length}</div>
-            <div style="font-size:9px;color:var(--text3);margin-top:3px">⚠️ 만료·D-30</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px">⚠️ 만료·D-30</div>
           </div>
           <div style="flex:1;min-width:70px;background:var(--warn-pale);border:1px solid #FDE68A;border-radius:10px;padding:10px;text-align:center;cursor:pointer" onclick="navTo('cert')">
             <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;color:var(--warn)">${rD90.length}</div>
-            <div style="font-size:9px;color:var(--text3);margin-top:3px">🟡 D-90 주의</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px">🟡 D-90 주의</div>
           </div>
           <div style="flex:1;min-width:70px;background:var(--ok-pale);border:1px solid #A7F3D0;border-radius:10px;padding:10px;text-align:center">
             <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;color:var(--ok)">${rSafe.length}</div>
-            <div style="font-size:9px;color:var(--text3);margin-top:3px">✅ 유효</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px">✅ 유효</div>
           </div>
           <div style="flex:1;min-width:70px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center">
             <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;color:var(--blue-l)">${renewalCerts.length}</div>
-            <div style="font-size:9px;color:var(--text3);margin-top:3px">📋 전체</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px">📋 전체</div>
           </div>
         </div>
       </div>
 
       <!-- 연간신고 (연구소/전담부서) -->
       <div>
-        <div style="font-size:11px;color:var(--text4);margin-bottom:6px;font-weight:500">📋 연간 신고 (연구소·전담부서)</div>
+        <div style="font-size:13px;color:var(--text4);margin-bottom:6px;font-weight:500">📋 연간 신고 (연구소·전담부서)</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <div style="flex:1;min-width:70px;background:var(--danger-pale);border:1px solid #FECACA;border-radius:10px;padding:10px;text-align:center;cursor:pointer" onclick="navTo('cert')">
             <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;color:var(--danger)">${aMissed.length}</div>
-            <div style="font-size:9px;color:var(--text3);margin-top:3px">❌ 미신고</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px">❌ 미신고</div>
           </div>
           <div style="flex:1;min-width:70px;background:var(--warn-pale);border:1px solid #FDE68A;border-radius:10px;padding:10px;text-align:center;cursor:pointer" onclick="navTo('cert')">
             <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;color:var(--warn)">${aPending.length}</div>
-            <div style="font-size:9px;color:var(--text3);margin-top:3px">🔜 신고예정</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px">🔜 신고예정</div>
           </div>
           <div style="flex:1;min-width:70px;background:var(--ok-pale);border:1px solid #A7F3D0;border-radius:10px;padding:10px;text-align:center">
             <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;color:var(--ok)">${aDone.length}</div>
-            <div style="font-size:9px;color:var(--text3);margin-top:3px">✅ 신고완료</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px">✅ 신고완료</div>
           </div>
           <div style="flex:1;min-width:70px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center">
             <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;color:var(--blue-l)">${annualCerts.length}</div>
-            <div style="font-size:9px;color:var(--text3);margin-top:3px">📋 전체</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px">📋 전체</div>
           </div>
         </div>
       </div>`;
@@ -3605,7 +3605,7 @@ function renderAnnualReportList(){
   const el=document.getElementById('cert-annual-list');if(!el)return;
   const reports=annualReports.filter(r=>r.certId===certId).sort((a,b)=>b.year-a.year);
   if(!reports.length){
-    el.innerHTML='<div style="font-size:11px;color:var(--text4);padding:8px 0">신고 이력 없음. 신고 추가 버튼으로 등록하세요.</div>';
+    el.innerHTML='<div style="font-size:13px;color:var(--text4);padding:8px 0">신고 이력 없음. 신고 추가 버튼으로 등록하세요.</div>';
     return;
   }
   el.innerHTML=reports.map(r=>{
@@ -3617,12 +3617,12 @@ function renderAnnualReportList(){
       ?'<span class="badge" style="background:var(--danger-pale);color:var(--danger)">&#x274C; 미신고(기한초과)</span>'
       :'<span class="badge" style="background:var(--warn-pale);color:var(--warn)">&#x1F6DC; 신고예정</span>';
     const doneBtn=!isDone
-      ?'<button onclick="markAnnualDone(\'' + r.id + '\')" style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:6px;color:var(--ok);font-size:10px;padding:3px 8px;cursor:pointer;white-space:nowrap;font-family:Noto Sans KR,sans-serif">신고완료</button>'
+      ?'<button onclick="markAnnualDone(\'' + r.id + '\')" style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:6px;color:var(--ok);font-size:12px;padding:3px 8px;cursor:pointer;white-space:nowrap;font-family:Noto Sans KR,sans-serif">신고완료</button>'
       :'';
     const delBtn='<button onclick="deleteAnnualReport(\'' + r.id + '\')" style="background:none;border:none;color:var(--text4);cursor:pointer;font-size:16px;padding:0 2px">&times;</button>';
     return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:4px">'
-      +'<div style="font-family:JetBrains Mono,monospace;font-size:12px;font-weight:500;width:45px;flex-shrink:0">'+r.year+'년</div>'
-      +'<div style="font-size:10px;color:var(--text4);flex-shrink:0">기한: '+r.dueDate+'</div>'
+      +'<div style="font-family:JetBrains Mono,monospace;font-size:14px;font-weight:500;width:45px;flex-shrink:0">'+r.year+'년</div>'
+      +'<div style="font-size:12px;color:var(--text4);flex-shrink:0">기한: '+r.dueDate+'</div>'
       +'<div style="flex:1">'+sb+'</div>'
       +doneBtn+delBtn+'</div>';
   }).join('');
@@ -3654,12 +3654,12 @@ async function deleteAnnualReport(reportId){
 }
 function getAnnualStatusDisplay(certId){
   const reports=annualReports.filter(r=>r.certId===certId).sort((a,b)=>b.year-a.year);
-  if(!reports.length)return '<span style="font-size:10px;color:var(--text4)">신고이력 없음</span>';
+  if(!reports.length)return '<span style="font-size:12px;color:var(--text4)">신고이력 없음</span>';
   const r=reports[0];const isDone=r.status==='done';const isOver=!isDone&&new Date(r.dueDate)<new Date();
-  if(isDone)return `<span style="font-size:10px;color:var(--ok)">✅ ${r.year}년 신고완료</span>`;
-  if(isOver)return `<span style="font-size:10px;color:var(--danger)">❌ ${r.year}년 미신고</span>`;
+  if(isDone)return `<span style="font-size:12px;color:var(--ok)">✅ ${r.year}년 신고완료</span>`;
+  if(isOver)return `<span style="font-size:12px;color:var(--danger)">❌ ${r.year}년 미신고</span>`;
   const diff=Math.ceil((new Date(r.dueDate)-Date.now())/(1000*60*60*24));
-  return `<span style="font-size:10px;color:var(--warn)">🔜 ${r.year}년 D-${diff}</span>`;
+  return `<span style="font-size:12px;color:var(--warn)">🔜 ${r.year}년 D-${diff}</span>`;
 }
 
 function openCompanyModal(bizno){
@@ -3804,19 +3804,19 @@ function renderCompaniesPage(){
     const id=c._id.replace(/'/g,"\\'"); // 사업자번호 따옴표 이스케이프
     return '<tr style="'+(isInactive?'opacity:.5':'')+'\">'
       +'<td>'
-        +'<div style="font-size:12px;font-weight:500;cursor:pointer;color:var(--blue-l)" onclick="openCompanyModal(\''+id+'\')" title="클릭하여 수정">'+c.name+'</div>'
-        +(isInactive?'<span style="font-size:9px;color:var(--danger)">비활성</span>':'')
+        +'<div style="font-size:14px;font-weight:500;cursor:pointer;color:var(--blue-l)" onclick="openCompanyModal(\''+id+'\')" title="클릭하여 수정">'+c.name+'</div>'
+        +(isInactive?'<span style="font-size:11px;color:var(--danger)">비활성</span>':'')
       +'</td>'
-      +'<td><span style="font-size:10px">'+grpIcon+' '+(c.group||'일반고객')+'</span></td>'
+      +'<td><span style="font-size:12px">'+grpIcon+' '+(c.group||'일반고객')+'</span></td>'
       +'<td>'+(c.ceo||'—')+'</td>'
       +'<td style="color:var(--text3)">'+(c.biztype||'—')+'</td>'
-      +'<td style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--text4)">'+c._id+'</td>'
+      +'<td style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--text4)">'+c._id+'</td>'
       +'<td style="color:var(--text3)">'+(c.tel||'—')+'</td>'
-      +'<td style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--gold-l)">'+(amt?fmtAmt(amt):'—')+'</td>'
-      +'<td style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--text4)">'+(c.joinDate||'—')+'</td>'
+      +'<td style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--gold-l)">'+(amt?fmtAmt(amt):'—')+'</td>'
+      +'<td style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--text4)">'+(c.joinDate||'—')+'</td>'
       +'<td>'
-        +'<button onclick="openCompanyModal(\''+id+'\')" style="background:none;border:none;color:var(--text4);font-size:13px;cursor:pointer;padding:2px" title="수정">✏️</button>'
-        +(isInactive?'<button onclick="restoreCompany(\''+id+'\')" style="background:none;border:none;color:var(--ok);font-size:11px;cursor:pointer;padding:2px" title="복구">↩️복구</button>':'')
+        +'<button onclick="openCompanyModal(\''+id+'\')" style="background:none;border:none;color:var(--text4);font-size:15px;cursor:pointer;padding:2px" title="수정">✏️</button>'
+        +(isInactive?'<button onclick="restoreCompany(\''+id+'\')" style="background:none;border:none;color:var(--ok);font-size:13px;cursor:pointer;padding:2px" title="복구">↩️복구</button>':'')
       +'</td>'
       +'</tr>';
   }).join('')+'':'<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text4)">등록된 기업이 없습니다</td></tr>';
@@ -3828,7 +3828,7 @@ function showCorpDrop(inputId){
   if(!inp||!dd)return;const q=inp.value.toLowerCase();
   const matches=companies.filter(c=>c.name.toLowerCase().includes(q)||(c.ceo||'').toLowerCase().includes(q)).slice(0,8);
   if(!matches.length||!q){dd.classList.remove('open');return;}
-  dd.innerHTML=matches.map(c=>`<div class="corp-dropdown-item" onclick="selectCorpDrop('${inputId}','${c.name.replace(/'/g,"\\'")}')">🏢 ${c.name}${c.ceo?` <span style="color:var(--text4);font-size:10px">· ${c.ceo}</span>`:''}<span style="color:var(--text4);font-size:9px;margin-left:4px">${c._id}</span></div>`).join('');
+  dd.innerHTML=matches.map(c=>`<div class="corp-dropdown-item" onclick="selectCorpDrop('${inputId}','${c.name.replace(/'/g,"\\'")}')">🏢 ${c.name}${c.ceo?` <span style="color:var(--text4);font-size:12px">· ${c.ceo}</span>`:''}<span style="color:var(--text4);font-size:11px;margin-left:4px">${c._id}</span></div>`).join('');
   dd.classList.add('open');
 }
 function hideCorpDrop(id){document.getElementById('dd-'+id)?.classList.remove('open');}
