@@ -3412,9 +3412,9 @@ function renderAnnualReportList(){
       :isOverdue?'<span style="font-size:11px;color:var(--danger)">❌ 미신고(기한초과)</span>'
       :'<span style="font-size:11px;color:var(--warn)">🔜 신고예정</span>';
     const doneBtn=!isDone
-      ?'<button onclick="markAnnualDone(''+r.id+'')" style="background:var(--ok-pale);border:1px solid #A7F3D0;border-radius:6px;color:var(--ok);font-size:11px;padding:3px 8px;cursor:pointer;white-space:nowrap">신고완료</button>'
+      ?'<button onclick="markAnnualDone('"+r.id+"')" style="background:var(--ok-pale);border:1px solid #A7F3D0;border-radius:6px;color:var(--ok);font-size:11px;padding:3px 8px;cursor:pointer;white-space:nowrap">신고완료</button>'
       :'';
-    const delBtn='<button onclick="deleteAnnualReport(''+r.id+'')" style="background:none;border:none;color:var(--text4);cursor:pointer;font-size:16px;padding:0 2px">&times;</button>';
+    const delBtn='<button onclick="deleteAnnualReport('"+r.id+"')" style="background:none;border:none;color:var(--text4);cursor:pointer;font-size:16px;padding:0 2px">&times;</button>';
     return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:4px">'
       +'<div style="font-family:JetBrains Mono,monospace;font-size:12px;font-weight:500;width:45px;flex-shrink:0">'+r.year+'년</div>'
       +'<div style="font-size:11px;color:var(--text4);flex-shrink:0">기한: '+r.dueDate+'</div>'
@@ -3549,7 +3549,7 @@ function renderCompaniesPage(){
     const grpIcon=GROUP_BADGE[c.group]||'🏢';
     const cid=c._id.replace(/'/g,"\'");
     return '<tr style="'+(isInactive?'opacity:.5':'')+'">'
-      +'<td><div style="font-size:13px;font-weight:500;cursor:pointer;color:var(--blue)" onclick="openCompanyModal(''+cid+'')" title="클릭하여 수정">'+c.name+'</div>'+(isInactive?'<span style="font-size:11px;color:var(--danger)">비활성</span>':'')+'</td>'
+      +'<td><div style="font-size:13px;font-weight:500;cursor:pointer;color:var(--blue)" onclick="openCompanyModal('"+cid+"')" title="클릭하여 수정">'+c.name+'</div>'+(isInactive?'<span style="font-size:11px;color:var(--danger)">비활성</span>':'')+'</td>'
       +'<td><span style="font-size:12px">'+grpIcon+' '+(c.group||'일반고객')+'</span></td>'
       +'<td>'+(c.ceo||'—')+'</td>'
       +'<td style="color:var(--text3)">'+(c.biztype||'—')+'</td>'
@@ -3558,8 +3558,8 @@ function renderCompaniesPage(){
       +'<td style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--gold)">'+(amt?fmtAmt(amt):'—')+'</td>'
       +'<td style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--text4)">'+(c.joinDate||'—')+'</td>'
       +'<td>'
-        +'<button onclick="openCompanyModal(''+cid+'')" style="background:none;border:none;color:var(--text4);font-size:14px;cursor:pointer;padding:2px" title="수정">✏️</button>'
-        +(isInactive?'<button onclick="restoreCompany(''+cid+'')" style="background:none;border:none;color:var(--ok);font-size:12px;cursor:pointer;padding:2px" title="복구">↩️복구</button>':'')
+        +'<button onclick="openCompanyModal('"+cid+"')" style="background:none;border:none;color:var(--text4);font-size:14px;cursor:pointer;padding:2px" title="수정">✏️</button>'
+        +(isInactive?'<button onclick="restoreCompany('"+cid+"')" style="background:none;border:none;color:var(--ok);font-size:12px;cursor:pointer;padding:2px" title="복구">↩️복구</button>':'')
       +'</td>'
       +'</tr>';
   }).join(''):'<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text4)">등록된 기업이 없습니다</td></tr>';
@@ -3571,7 +3571,7 @@ function showCorpDrop(inputId){
   if(!inp||!dd)return;const q=inp.value.toLowerCase();
   const matches=companies.filter(c=>c.name.toLowerCase().includes(q)||(c.ceo||'').toLowerCase().includes(q)).slice(0,8);
   if(!matches.length||!q){dd.classList.remove('open');return;}
-  dd.innerHTML=matches.map(c=>'<div class="corp-dropdown-item" onclick="selectCorpDrop(''+inputId+'',''+c.name.replace(/'/g,"\'")+'')">🏢 '+c.name+(c.ceo?' <span style="color:var(--text4);font-size:11px">· '+c.ceo+'</span>':'')+'<span style="color:var(--text4);font-size:10px;margin-left:4px">'+c._id+'</span></div>').join('');
+  dd.innerHTML=matches.map(c=>'<div class="corp-dropdown-item" onclick="selectCorpDrop('"+inputId+",''+c.name.replace(/'/g,"\'")+'')">🏢 '+c.name+(c.ceo?' <span style="color:var(--text4);font-size:11px">· '+c.ceo+'</span>':'')+'<span style="color:var(--text4);font-size:10px;margin-left:4px">'+c._id+'</span></div>').join('');
   dd.classList.add('open');
 }
 function hideCorpDrop(id){document.getElementById('dd-'+id)?.classList.remove('open');}
