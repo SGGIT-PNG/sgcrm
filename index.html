@@ -3358,66 +3358,34 @@ async function permanentDeleteCompany(){
   const comp=companies.find(c=>c._id===bizno);
   if(!comp)return;
   if(comp.active!=='N'){alert('비활성화 후 완전 삭제할 수 있습니다.');return;}
-
-  // 연관 데이터 수 확인
   const wCount=workItems.filter(w=>w.clientBizno===bizno||w.bizno===bizno).length;
   const cCount=certifications.filter(c=>c.bizno===bizno).length;
   const aCount=annualReports.filter(r=>r.bizno===bizno).length;
   const ccCount=consCompanies.filter(cc=>cc.bizno===bizno).length;
-
-  const msg='【'+comp.name+'】을(를) 완전 삭제합니다.
-
-'
-    +'⚠️ 이 작업은 되돌릴 수 없습니다!
-
-'
-    +'삭제될 연관 데이터:
-'
-    +'• 업무 항목: '+wCount+'건
-'
-    +'• 인증·갱신: '+cCount+'건
-'
-    +'• 연간 신고: '+aCount+'건
-'
-    +'• 지원사업 연결: '+ccCount+'건
-
-'
-    +'정말 삭제하시겠습니까?
-기업명을 입력하여 확인하세요.';
-
+  const msg=comp.name+' 완전 삭제\n\n'
+    +'되돌릴 수 없습니다!\n\n'
+    +'업무: '+wCount+'건, 인증: '+cCount+'건\n'
+    +'연간신고: '+aCount+'건, 지원사업: '+ccCount+'건\n\n'
+    +'확인: 기업명을 정확히 입력하세요';
   const input=prompt(msg);
   if(input===null)return;
-  if(input.trim()!==comp.name.trim()){
-    alert('기업명이 일치하지 않습니다. 삭제가 취소되었습니다.');return;
-  }
-
-  setBadge('🔄 삭제 중...');
+  if(input.trim()!==comp.name.trim()){alert('기업명 불일치. 삭제 취소.');return;}
+  setBadge('삭제 중...');
   try{
-    // 연관 데이터 삭제
     const wItems=workItems.filter(w=>w.clientBizno===bizno||w.bizno===bizno);
     for(const w of wItems) await deleteDoc(doc(db,'work_items',w.id));
-
     const certs=certifications.filter(c=>c.bizno===bizno);
     for(const c of certs) await deleteDoc(doc(db,'certifications',c.id));
-
     const aReps=annualReports.filter(r=>r.bizno===bizno);
     for(const r of aReps) await deleteDoc(doc(db,'annual_reports',r.id));
-
     const ccItems=consCompanies.filter(cc=>cc.bizno===bizno);
     for(const cc of ccItems) await deleteDoc(doc(db,'consulting_company',cc.id));
-
-    // 기업 문서 삭제
     await deleteDoc(doc(db,'companies',bizno));
-
-    setBadge('✅ 삭제 완료',3000);
+    setBadge('삭제 완료',3000);
     closeModal('company-modal');
-    alert('✅ 완전 삭제 완료
-
-'
-      +'업무 '+wItems.length+'건, 인증 '+certs.length+'건, '
-      +'연간신고 '+aReps.length+'건, 지원사업 연결 '+ccItems.length+'건 삭제');
+    alert('완전 삭제 완료 - 업무 '+wItems.length+'건, 인증 '+certs.length+'건 삭제됨');
   }catch(e){
-    setBadge('⚠️ 삭제 실패');
+    setBadge('삭제 실패');
     alert('삭제 실패: '+e.message);
   }
 }
