@@ -555,8 +555,8 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
       <div class="fg"><label class="fl">법인번호</label><input class="fi" id="comp-corp-no" placeholder="000000-0000000"></div>
     </div>
     <div class="frow">
-      <div class="fg"><label class="fl">사업자번호 * <span id="comp-bizno-auto" style="color:var(--gold);font-size:11px"></span></label>
-        <input class="fi" id="comp-bizno" placeholder="000-00-00000" oninput="checkBizno()"></div>
+      <div class="fg"><label class="fl">사업자번호 <span id="comp-bizno-auto" style="color:var(--gold);font-size:11px"></span></label>
+        <input class="fi" id="comp-bizno" placeholder="000-00-00000 (예비창업자는 비워두세요)" oninput="checkBizno()"></div>
       <div class="fg"><label class="fl">업종</label><input class="fi" id="comp-biztype" placeholder="제조업"></div>
     </div>
     <div class="frow">
@@ -568,6 +568,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
         <select class="fs" id="comp-bizclass" onchange="toggleBizDateFields()">
           <option value="법인">🏛️ 법인사업자</option>
           <option value="개인">👤 개인사업자</option>
+          <option value="예비">🌱 예비창업자</option>
         </select>
       </div>
       <div class="fg"><label class="fl">업종</label><input class="fi" id="comp-biztype" placeholder="제조업"></div>
@@ -583,7 +584,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
         <input class="fi" id="comp-reg-d" placeholder="DD" maxlength="2" style="width:48px;text-align:center">
       </div>
     </div>
-    <div class="fg">
+    <div class="fg" id="comp-est-date-wrap">
       <label class="fl" id="comp-est-label">사업개시일</label>
       <div style="display:flex;gap:4px;align-items:center">
         <input class="fi" id="comp-est-y" placeholder="YYYY" maxlength="4" style="width:64px;text-align:center" oninput="autoTabDate(this,'comp-est-m',4)">
@@ -1282,15 +1283,37 @@ function toggleBizDateFields(){
   const bizclass=document.getElementById('comp-bizclass')?.value||'법인';
   const regWrap=document.getElementById('comp-reg-date-wrap');
   const estLabel=document.getElementById('comp-est-label');
-  if(bizclass==='법인'){
-    // 법인: 등기일 + 사업개시일 모두 표시
-    if(regWrap)regWrap.style.display='';
-    if(estLabel)estLabel.textContent='사업개시일';
-  } else {
-    // 개인: 등기일 숨기고, 사업개시일만
+  const biznoEl=document.getElementById('comp-bizno');
+  const biznoAuto=document.getElementById('comp-bizno-auto');
+  const estWrap=document.getElementById('comp-est-date-wrap');
+
+  if(bizclass==='예비'){
+    // 예비창업자: 등기일/사업개시일 숨기고, 사업자번호 비활성화
     if(regWrap)regWrap.style.display='none';
-    ['comp-reg-y','comp-reg-m','comp-reg-d'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    if(estWrap)estWrap.style.display='none';
+    if(biznoEl){
+      biznoEl.value='';
+      biznoEl.disabled=true;
+      biznoEl.style.background='var(--surface2)';
+      biznoEl.placeholder='예비창업자 - 자동 임시번호 발급';
+    }
+    if(biznoAuto)biznoAuto.textContent='(저장 시 임시번호 자동발급)';
+    ['comp-reg-y','comp-reg-m','comp-reg-d','comp-est-y','comp-est-m','comp-est-d'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  } else if(bizclass==='법인'){
+    // 법인: 등기일 + 사업개시일
+    if(regWrap)regWrap.style.display='';
+    if(estWrap)estWrap.style.display='';
     if(estLabel)estLabel.textContent='사업개시일';
+    if(biznoEl){biznoEl.disabled=false;biznoEl.style.background='';biznoEl.placeholder='000-00-00000 (예비창업자는 비워두세요)';}
+    if(biznoAuto)biznoAuto.textContent='';
+  } else {
+    // 개인: 등기일 숨기고 사업개시일만
+    if(regWrap)regWrap.style.display='none';
+    if(estWrap)estWrap.style.display='';
+    if(estLabel)estLabel.textContent='사업개시일';
+    ['comp-reg-y','comp-reg-m','comp-reg-d'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    if(biznoEl){biznoEl.disabled=false;biznoEl.style.background='';biznoEl.placeholder='000-00-00000 (예비창업자는 비워두세요)';}
+    if(biznoAuto)biznoAuto.textContent='';
   }
 }
 
@@ -3304,8 +3327,15 @@ function openCompanyModal(bizno){
     document.getElementById('comp-group').value='일반고객';
     document.getElementById('comp-active').value='Y';
     document.getElementById('comp-bizclass').value='법인';
+    // bizno 필드 초기화 (예비창업자에서 돌아올 때 disabled 해제)
+    const biznoInit=document.getElementById('comp-bizno');
+    if(biznoInit){biznoInit.disabled=false;biznoInit.style.background='';}
+    const migrateWrapNew=document.getElementById('comp-bizno-migrate-wrap');
+    if(migrateWrapNew)migrateWrapNew.style.display='none';
     toggleBizDateFields();
     document.getElementById('comp-del-btn').style.display='none';
+    const permDelInit=document.getElementById('comp-perm-del-btn');
+    if(permDelInit)permDelInit.style.display='none';
   }
   openModal('company-modal');
 }
