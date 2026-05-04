@@ -3328,7 +3328,7 @@ function renderCertAlertBanner(){
       var bHtml='<div style="background:#FFF5F5;border:1px solid #FECACA;border-radius:10px;padding:12px 16px;margin-bottom:16px">';
       bHtml+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">';
       bHtml+='<span style="font-size:14px;font-weight:600;color:#DC2626">⚠️ 긴급 갱신 알림 '+urgent.length+'건</span>';
-      bHtml+='<button onclick="navTo('cert')" style="margin-left:auto;background:#FEE2E2;border:1px solid #FECACA;border-radius:6px;color:#DC2626;font-size:12px;padding:4px 12px;cursor:pointer;font-family:Pretendard,sans-serif">전체보기 →</button>';
+      bHtml+='<button onclick="navTo(\'cert\')" style="margin-left:auto;background:#FEE2E2;border:1px solid #FECACA;border-radius:6px;color:#DC2626;font-size:12px;padding:4px 12px;cursor:pointer;font-family:Pretendard,sans-serif">전체보기 →</button>';
       bHtml+='</div>';
       urgent.slice(0,3).forEach(function(item){
         var cert=item.cert||item;
@@ -3356,17 +3356,17 @@ function renderCertAlertBanner(){
     h+='<span style="font-size:15px;font-weight:600;color:#1C1C1E">📋 인증·갱신 현황</span>';
     h+='<span style="font-size:12px;color:#6C6C70;background:#F5F5F7;padding:2px 8px;border-radius:10px">총 '+certifications.length+'건</span>';
     h+='</div>';
-    h+='<button onclick="navTo('cert')" style="background:#F5F5F7;border:1px solid #D0D0D0;border-radius:7px;color:#6C6C70;font-size:12px;padding:5px 12px;cursor:pointer;font-family:Pretendard,sans-serif">자세히 보기 →</button>';
+    h+='<button onclick="navTo(\'cert\')" style="background:#F5F5F7;border:1px solid #D0D0D0;border-radius:7px;color:#6C6C70;font-size:12px;padding:5px 12px;cursor:pointer;font-family:Pretendard,sans-serif">자세히 보기 →</button>';
     h+='</div>';
     h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
     // 갱신형
     h+='<div>';
     h+='<div style="font-size:12px;color:#6C6C70;margin-bottom:8px;font-weight:500">🔄 갱신형 인증 (벤처·ISO 등)</div>';
     h+='<div style="display:flex;gap:8px">';
-    h+='<div onclick="navTo('cert')" style="flex:1;background:#FFF5F5;border:1px solid #FECACA;border-radius:8px;padding:10px;text-align:center;cursor:pointer">';
+    h+='<div onclick="navTo(\'cert\')" style="flex:1;background:#FFF5F5;border:1px solid #FECACA;border-radius:8px;padding:10px;text-align:center;cursor:pointer">';
     h+='<div style="font-size:20px;font-weight:700;color:#DC2626;font-family:JetBrains Mono,monospace">'+(rExpired.length+rD30.length)+'</div>';
     h+='<div style="font-size:11px;color:#6C6C70;margin-top:2px">⚠️ 만료·D-30</div></div>';
-    h+='<div onclick="navTo('cert')" style="flex:1;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:10px;text-align:center;cursor:pointer">';
+    h+='<div onclick="navTo(\'cert\')" style="flex:1;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:10px;text-align:center;cursor:pointer">';
     h+='<div style="font-size:20px;font-weight:700;color:#D97706;font-family:JetBrains Mono,monospace">'+rD90.length+'</div>';
     h+='<div style="font-size:11px;color:#6C6C70;margin-top:2px">🟡 D-90</div></div>';
     h+='<div style="flex:1;background:#F0FDF4;border:1px solid #A7F3D0;border-radius:8px;padding:10px;text-align:center">';
