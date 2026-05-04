@@ -66,7 +66,7 @@ body{
 }
 .sb-logo{
   padding:20px 16px 16px;
-  border-bottom:1px solid rgba(255,255,255,.08);
+  border-bottom:1px solid var(--border);
   cursor:pointer;
 }
 .sb-logo-title{font-size:15px;font-weight:700;color:#FFFFFF;letter-spacing:-.3px;}
@@ -944,7 +944,7 @@ body{
       <label class="fl">심사 단계 설정</label>
       <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:4px">
         <div id="cm-phases-list"></div>
-        <button onclick="addCmPhase()" style="width:100%;padding:6px;background:none;border:1px dashed #D1D5DB;border-radius:7px;color:var(--text4);font-size:13px;cursor:pointer;margin-top:6px;font-family:'Noto Sans KR',sans-serif">+ 단계 추가</button>
+        <button onclick="addCmPhase()" style="width:100%;padding:6px;background:none;border:1px dashed var(--border2);border-radius:7px;color:var(--text4);font-size:13px;cursor:pointer;margin-top:6px;font-family:'Noto Sans KR',sans-serif">+ 단계 추가</button>
       </div>
     </div>
     <div class="fg"><label class="fl">알림 기준일 <span style="font-size:11px;color:var(--text4)">(쉼표로 구분, 예: 90,30,7)</span></label>
@@ -1118,7 +1118,7 @@ body{
           🔄 갱신 있음
         </button>
         <button id="cat-cert-no" onclick="setCatRequiresCert(false)"
-          style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(37,99,235,.4);background:#EFF6FF;color:#2563EB;font-size:13px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .15s">
+          style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(37,99,235,.4);background:#F0F0F0;color:#2563EB;font-size:13px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .15s">
           ✅ 갱신 없음
         </button>
       </div>
@@ -1401,7 +1401,7 @@ function setCatRequiresCert(val){
     }
   } else {
     yesBtn.style.cssText='flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:#F9FAFB;color:var(--text3);font-size:13px;cursor:pointer;font-family:Noto Sans KR,sans-serif';
-    noBtn.style.cssText='flex:1;padding:8px;border-radius:8px;border:1px solid rgba(37,99,235,.4);background:#EFF6FF;color:#2563EB;font-size:13px;cursor:pointer;font-family:Noto Sans KR,sans-serif';
+    noBtn.style.cssText='flex:1;padding:8px;border-radius:8px;border:1px solid rgba(37,99,235,.4);background:#F0F0F0;color:#2563EB;font-size:13px;cursor:pointer;font-family:Noto Sans KR,sans-serif';
     if(hint)hint.textContent='완료 처리 시 인증 팝업이 표시되지 않습니다';
     if(masterWrap)masterWrap.style.display='none';
   }
@@ -1683,13 +1683,13 @@ function renderGantt(sfx){
     if(allCompaniesInactive)return;
     body+=`<tr class="cat-row${isDone?' gantt-row-done':''}${isExpired?' gantt-row-expired':''}" onclick="toggleCat('${c.id}')"><td class="cat-label-td">
       <div class="cat-name">${cm.icon} ${c.title} ${badge(c.status||'wait')}<span class="cat-arrow${exp?' open':''}">▶</span>
-        <button onclick="event.stopPropagation();openConsultingModal('${c.id}')" style="margin-left:6px;padding:2px 8px;background:#EFF6FF;border:1px solid rgba(37,99,235,.4);border-radius:5px;color:var(--blue);font-size:11px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">관리</button>
+        <button onclick="event.stopPropagation();openConsultingModal('${c.id}')" style="margin-left:6px;padding:2px 8px;background:#F0F0F0;border:1px solid rgba(37,99,235,.4);border-radius:5px;color:var(--blue);font-size:11px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">관리</button>
       </div>
       <div style="font-size:11px;color:var(--text4);margin-top:2px">${c.org||''} ${c.endDate?'· ~'+c.endDate:''} ${c.amount?'· '+fmtAmt(c.amount):''}</div>
     </td>`;
     for(let d=1;d<=days;d++){
       const ds=dateStr(y,m,d);const inR=c.startDate&&c.endDate&&ds>=c.startDate&&ds<=c.endDate;const isS=c.startDate&&ds===c.startDate;
-      body+=`<td class="cat-bar-td">${inR?`<div style="position:absolute;inset:6px 0;background:${color}44;border-radius:${isS?'9px 0 0 9px':'0'}"></div>`:''}${isS?`<div class="gbar" style="left:2px;right:0;background:${color}" onclick="event.stopPropagation();openConsultingModal('${c.id}')"><span class="gbar-label">${c.title}</span></div>`:''}</td>`;
+      body+=`<td class="cat-bar-td">${inR?`<div style="position:absolute;inset:6px 0;background:${color}20;border-radius:${isS?'9px 0 0 9px':'0'}"></div>`:''}${isS?`<div class="gbar" style="left:2px;right:0;background:${color}" onclick="event.stopPropagation();openConsultingModal('${c.id}')"><span class="gbar-label">${c.title}</span></div>`:''}</td>`;
     }
     body+=`</tr>`;
     ccs.forEach(cc=>{
@@ -1700,7 +1700,7 @@ function renderGantt(sfx){
       </td>`;
       for(let d=1;d<=days;d++){
         const ds=dateStr(y,m,d);const inR=c.startDate&&c.endDate&&ds>=c.startDate&&ds<=c.endDate;
-        body+=`<td class="cli-bar-td">${inR?`<div style="position:absolute;inset:4px 0;background:${color}33;border-radius:3px"></div>`:''}</td>`;
+        body+=`<td class="cli-bar-td">${inR?`<div style="position:absolute;inset:4px 0;background:${color}18;border-radius:3px"></div>`:''}</td>`;
       }
       body+=`</tr>`;
     });
@@ -1857,7 +1857,7 @@ function renderTodo(sfx){
           </div>
           <button onclick="deleteTodoItem('${t.id}')" style="background:none;border:none;color:var(--text4);font-size:16px;cursor:pointer;padding:0 2px;flex-shrink:0">×</button>
         </div>`).join('')||`<div style="font-size:13px;color:var(--text4);padding:8px 6px">없음</div>`}</div>
-      <button onclick="openTodoModal('${st}')" style="width:100%;padding:6px;background:none;border:1px dashed #D1D5DB;border-radius:7px;color:var(--text4);font-size:13px;cursor:pointer;margin-top:6px;font-family:'Noto Sans KR',sans-serif">+ 추가</button>
+      <button onclick="openTodoModal('${st}')" style="width:100%;padding:6px;background:none;border:1px dashed var(--border2);border-radius:7px;color:var(--text4);font-size:13px;cursor:pointer;margin-top:6px;font-family:'Noto Sans KR',sans-serif">+ 추가</button>
     </div>`).join('');
 }
 function openTodoModal(st){document.getElementById('td-text').value='';document.getElementById('td-status').value=st||'ing';document.getElementById('td-tag').value='';openModal('todo-modal');}
@@ -1884,13 +1884,13 @@ function renderWork(gridId){
     const isCustom=m.custom===true; // 사용자 추가 분야만 수정 버튼 표시
     const tot=allFull.length,dn=allFull.filter(i=>i.status==='done').length,pct=tot?Math.round(dn/tot*100):0;
     return `<div class="card">
-      <div class="card-hd" style="border-bottom:2px solid ${m.color}33">
-        <div style="width:30px;height:30px;border-radius:8px;background:${m.color}22;display:flex;align-items:center;justify-content:center;font-size:16px">${m.icon}</div>
+      <div class="card-hd" style="border-bottom:2px solid var(--border)">
+        <div style="width:30px;height:30px;border-radius:8px;background:${m.color}18;display:flex;align-items:center;justify-content:center;font-size:16px">${m.icon}</div>
         <div style="flex:1"><div class="card-hd-title">${m.name}</div>
         <div class="card-hd-sub">${tot}건 · 완료 ${dn}건 (${pct}%)${dn>0?`<span class="done-hint" style="color:var(--ok);font-size:11px"> · 완료 ${dn}건 숨김중</span>`:''}</div></div>
         ${isCustom?`<button onclick="openCatAddModal('${cat}')" style="background:none;border:none;color:var(--text4);font-size:14px;cursor:pointer;padding:2px 4px" title="분야 수정/삭제">⚙️</button>`:''}
       </div>
-      <div style="height:3px;background:#F9FAFB"><div style="height:100%;width:${pct}%;background:${m.color};transition:width .6s ease"></div></div>
+      <div style="height:3px;background:#EEEEEE"><div style="height:100%;width:${pct}%;background:${m.color};transition:width .6s ease"></div></div>
       <div style="padding:10px 12px;max-height:220px;overflow-y:auto">
         ${!allFull.length?`<div class="empty" style="padding:12px"><div class="empty-txt">항목을 추가해 보세요</div></div>`:''}
         ${allItems.map(it=>{
@@ -1915,7 +1915,7 @@ function renderWork(gridId){
             </div>`;
           }).join('')}
         </div>`:''}
-        <button onclick="openWorkModal('${cat}',null)" style="width:100%;padding:6px;background:none;border:1px dashed #D1D5DB;border-radius:7px;color:var(--text4);font-size:13px;cursor:pointer;margin-top:4px;font-family:'Noto Sans KR',sans-serif">+ 항목 추가</button>
+        <button onclick="openWorkModal('${cat}',null)" style="width:100%;padding:6px;background:none;border:1px dashed var(--border2);border-radius:7px;color:var(--text4);font-size:13px;cursor:pointer;margin-top:4px;font-family:'Noto Sans KR',sans-serif">+ 항목 추가</button>
       </div>
     </div>`;
   }).join('');
@@ -2295,7 +2295,7 @@ function setStatsCompPage(p){
 function makeMonthBar(key, val, maxVal){
   const h=val?Math.max(Math.round(val/maxVal*80),4):2;
   const mon=key.slice(5);
-  const color=val>0?'var(--ok)':'rgba(255,255,255,.1)';
+  const color=val>0?'var(--ok)':'#E5E7EB';
   const numHtml=val>0
     ? '<div style="font-size:8px;color:var(--ok);font-family:JetBrains Mono,monospace">'+val+'</div>'
     : '<div style="font-size:8px;color:transparent">0</div>';
@@ -2651,7 +2651,7 @@ function renderHistoryPage(){
   if(bodyEl){
     bodyEl.innerHTML=pageData.length?pageData.map(r=>`<tr>
       <td><div style="font-size:14px;font-weight:500">${r.client}</div></td>
-      <td><span style="font-size:12px;padding:2px 7px;border-radius:8px;background:${r.catMeta.color}22;color:${r.catMeta.color}">${r.catMeta.icon} ${r.catMeta.name}</span></td>
+      <td><span style="font-size:12px;padding:2px 7px;border-radius:8px;background:${r.catMeta.color}15;color:${r.catMeta.color}">${r.catMeta.icon} ${r.catMeta.name}</span></td>
       <td style="font-size:13px">${r.name}</td>
       <td style="font-size:12px;color:var(--text3)">${r.sub}</td>
       <td>${badge(r.status)}</td>
@@ -2932,7 +2932,7 @@ function certRow(c){
     <td style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--text4)">${c.acqDate||'&#8212;'}</td>
     <td style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--text4)">${c.expDate||'&#8212;'}</td>
     <td style="font-size:12px;color:var(--text3)">${isAnnual?`매년 ${m.annualMonth||4}월 ${m.annualDay||30}일`:isComplex?`${c.cycleMonths||12}개월`:(m.cycleMonths||12)+'개월'}</td>
-    <td>${isAnnual?'<span class="badge" style="background:#EFF6FF;color:#2563EB">연간신고</span>':certStatusBadge(c)}</td>
+    <td>${isAnnual?'<span class="badge" style="background:#F0F0F0;color:#2563EB">연간신고</span>':certStatusBadge(c)}</td>
     <td>${statusCell}</td>
     <td>
       ${isComplex&&c.status!=='완료'?`<button onclick="markCertPhaseDone('${c.id}')" style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:6px;color:var(--ok);font-size:11px;padding:2px 6px;cursor:pointer;margin-right:4px">완료</button>`:''}
@@ -3065,7 +3065,7 @@ function renderCertByComp(){
       <td><span style="font-size:13px">${m.icon||'🔬'} ${m.certName||w.category}</span></td>
       <td colspan="4" style="font-size:12px;color:var(--text4)">인증 등록 필요</td>
       <td>${badge(w.status)}</td>
-      <td><button onclick="openCertModal()" style="background:#EFF6FF;border:1px solid rgba(37,99,235,.3);border-radius:6px;color:var(--blue);font-size:12px;padding:2px 8px;cursor:pointer">인증등록</button></td>
+      <td><button onclick="openCertModal()" style="background:#F0F0F0;border:1px solid rgba(37,99,235,.3);border-radius:6px;color:var(--blue);font-size:12px;padding:2px 8px;cursor:pointer">인증등록</button></td>
     </tr>`;
   }).join('');
 
@@ -3297,169 +3297,129 @@ async function deleteCert(){
 
 // 전체현황 인증 요약 카드 (갱신형 / 연간신고 2줄 분리)
 function renderCertAlertBanner(){
-  const bannerEl=document.getElementById('cert-banner');
-  const summaryEl=document.getElementById('cert-summary-ov');
+  var bannerEl=document.getElementById('cert-banner');
+  var summaryEl=document.getElementById('cert-summary-ov');
   if(!bannerEl&&!summaryEl)return;
-  // certMaster 미로드 시 안전 처리
   if(!certMaster||!certMaster.length){
     if(bannerEl)bannerEl.style.display='none';
     if(summaryEl)summaryEl.innerHTML='';
     return;
   }
-
-  // 갱신형 (renewal) 인증 통계
-  const renewalCerts=certifications.filter(c=>{
-    const m=getCertMasterInfo(c.certMasterId);
-    return m.reportType!=='annual';
+  var renewalCerts=certifications.filter(function(c){return getCertMasterInfo(c.certMasterId).reportType!=='annual';});
+  var annualCerts=certifications.filter(function(c){return getCertMasterInfo(c.certMasterId).reportType==='annual';});
+  var rExpired=renewalCerts.filter(function(c){return getCertDday(c.expDate)<0||c.status==='만료';});
+  var rD30=renewalCerts.filter(function(c){var d=getCertDday(c.expDate);return d>=0&&d<=30;});
+  var rD90=renewalCerts.filter(function(c){var d=getCertDday(c.expDate);return d>30&&d<=90;});
+  var rSafe=renewalCerts.filter(function(c){var d=getCertDday(c.expDate);return d>90;});
+  var aReports=annualCerts.map(function(c){
+    var r=annualReports.filter(function(x){return x.certId===c.id;}).sort(function(a,b){return b.year-a.year;})[0];
+    return {cert:c,report:r};
   });
-  const annualCerts=certifications.filter(c=>{
-    const m=getCertMasterInfo(c.certMasterId);
-    return m.reportType==='annual';
-  });
+  var aMissed=aReports.filter(function(r){return r.report&&r.report.status!=='done'&&new Date(r.report.dueDate)<new Date();});
+  var aPending=aReports.filter(function(r){return r.report&&r.report.status!=='done'&&new Date(r.report.dueDate)>=new Date();});
+  var aDone=aReports.filter(function(r){return r.report&&r.report.status==='done';});
 
-  // 갱신형 D-Day 분류
-  const rExpired=renewalCerts.filter(c=>getCertDday(c.expDate)<0||c.status==='만료');
-  const rD30=renewalCerts.filter(c=>{const d=getCertDday(c.expDate);return d>=0&&d<=30;});
-  const rD90=renewalCerts.filter(c=>{const d=getCertDday(c.expDate);return d>30&&d<=90;});
-  const rSafe=renewalCerts.filter(c=>{const d=getCertDday(c.expDate);return d>90;});
-
-  // 연간신고 분류 (annual_reports 기반)
-  const aReports=annualCerts.map(c=>{
-    const reports=annualReports.filter(r=>r.certId===c.id).sort((a,b)=>b.year-a.year);
-    const latest=reports[0];
-    return {cert:c,report:latest};
-  });
-  const aMissed=aReports.filter(r=>r.report&&r.report.status!=='done'&&new Date(r.report.dueDate)<new Date());
-  const aPending=aReports.filter(r=>r.report&&r.report.status!=='done'&&new Date(r.report.dueDate)>=new Date());
-  const aDone=aReports.filter(r=>r.report&&r.report.status==='done');
-  const aNoReport=aReports.filter(r=>!r.report);
-
-  // 긴급 배너 (갱신형 D-30 이내 + 연간신고 미신고)
+  // 긴급 배너
   if(bannerEl){
-    const urgentRenewal=[...rExpired,...rD30];
-    const urgentAnnual=aMissed;
-    if(!urgentRenewal.length&&!urgentAnnual.length){bannerEl.style.display='none';}
+    var urgent=rExpired.concat(rD30).concat(aMissed);
+    if(!urgent.length){bannerEl.style.display='none';}
     else{
       bannerEl.style.display='';
-      let bannerHtml=`<div style="background:var(--danger-pale);border:1px solid #FECACA;border-radius:var(--r);padding:12px 16px;margin-bottom:12px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <span>⚠️</span>
-          <span style="font-size:14px;font-weight:500;color:var(--danger)">긴급 알림 ${urgentRenewal.length+urgentAnnual.length}건</span>
-          <button onclick="navTo('cert')" style="margin-left:auto;background:var(--danger-pale);border:1px solid rgba(239,68,68,.3);border-radius:6px;color:var(--danger);font-size:12px;padding:3px 10px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">전체보기 →</button>
-        </div>`;
-      // 갱신형 임박
-      [...urgentRenewal].slice(0,2).forEach(c=>{
-        const comp=companies.find(x=>x._id===c.bizno);
-        const m=getCertMasterInfo(c.certMasterId);
-        const diff=getCertDday(c.expDate);
-        const label=diff<0?`만료 D+${Math.abs(diff)}`:diff===0?'D-Day':`D-${diff}`;
-        bannerHtml+=`<div style="display:flex;align-items:center;gap:8px;font-size:13px;padding:2px 0">
-          <span style="font-family:'JetBrains Mono',monospace;color:var(--danger);font-weight:600;width:65px;flex-shrink:0">${label}</span>
-          <span style="font-weight:500">${comp?.name||c.companyName||'—'}</span>
-          <span style="color:var(--text3)">${m.icon} ${m.certName} 갱신</span>
-        </div>`;
+      var bHtml='<div style="background:#FFF5F5;border:1px solid #FECACA;border-radius:10px;padding:12px 16px;margin-bottom:16px">';
+      bHtml+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">';
+      bHtml+='<span style="font-size:14px;font-weight:600;color:#DC2626">⚠️ 긴급 갱신 알림 '+urgent.length+'건</span>';
+      bHtml+='<button onclick="navTo('cert')" style="margin-left:auto;background:#FEE2E2;border:1px solid #FECACA;border-radius:6px;color:#DC2626;font-size:12px;padding:4px 12px;cursor:pointer;font-family:Pretendard,sans-serif">전체보기 →</button>';
+      bHtml+='</div>';
+      urgent.slice(0,3).forEach(function(item){
+        var cert=item.cert||item;
+        var comp=companies.find(function(x){return x._id===cert.bizno;});
+        var m=getCertMasterInfo(cert.certMasterId);
+        var diff=getCertDday(cert.expDate);
+        var label=diff<0?'만료 D+'+Math.abs(diff):diff===0?'D-Day':'D-'+diff;
+        bHtml+='<div style="display:flex;gap:8px;font-size:12px;padding:3px 0">';
+        bHtml+='<span style="font-family:JetBrains Mono,monospace;color:#DC2626;font-weight:600;width:70px;flex-shrink:0">'+label+'</span>';
+        bHtml+='<span style="font-weight:500;color:#1C1C1E">'+(comp?comp.name:cert.companyName||'—')+'</span>';
+        bHtml+='<span style="color:#6C6C70">'+m.icon+' '+m.certName+'</span>';
+        bHtml+='</div>';
       });
-      // 연간신고 미신고
-      urgentAnnual.slice(0,2).forEach(({cert,report})=>{
-        const comp=companies.find(x=>x._id===cert.bizno);
-        const m=getCertMasterInfo(cert.certMasterId);
-        const diff=Math.ceil((new Date(report.dueDate)-Date.now())/(1000*60*60*24));
-        bannerHtml+=`<div style="display:flex;align-items:center;gap:8px;font-size:13px;padding:2px 0">
-          <span style="font-family:'JetBrains Mono',monospace;color:var(--danger);font-weight:600;width:65px;flex-shrink:0">미신고</span>
-          <span style="font-weight:500">${comp?.name||cert.companyName||'—'}</span>
-          <span style="color:var(--text3)">${m.icon} ${m.certName} ${report.year}년 신고</span>
-        </div>`;
-      });
-      bannerHtml+=`</div>`;
-      bannerEl.innerHTML=bannerHtml;
+      bHtml+='</div>';
+      bannerEl.innerHTML=bHtml;
     }
   }
 
-  // 요약 카드 (갱신형 / 연간신고 2줄)
+  // 요약 카드
   if(summaryEl){
-    const totalAll=certifications.length;
-    if(!totalAll){summaryEl.innerHTML='';return;}
-    summaryEl.innerHTML=`
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <div style="display:flex;align-items:center;gap:8px">
-          <div style="width:28px;height:28px;border-radius:8px;background:var(--gold-pale);display:flex;align-items:center;justify-content:center">📋</div>
-          <span style="font-size:16px;font-weight:500">인증·갱신 현황</span>
-          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text3);background:var(--surface2);padding:2px 8px;border-radius:10px">총 ${totalAll}건</span>
-        </div>
-        <button onclick="navTo('cert')" style="background:var(--surface2);border:1px solid var(--border2);border-radius:7px;color:var(--text3);font-size:13px;padding:5px 12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">자세히 보기 →</button>
-      </div>
-
-      <!-- 갱신형 인증 -->
-      <div style="margin-bottom:8px">
-        <div style="font-size:13px;color:var(--text4);margin-bottom:6px;font-weight:500">🔄 갱신형 인증 (벤처·ISO 등)</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <div style="flex:1;min-width:70px;background:var(--danger-pale);border:1px solid #FECACA;border-radius:10px;padding:10px;text-align:center;cursor:pointer" onclick="navTo('cert')">
-            <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;color:var(--danger)">${rExpired.length+rD30.length}</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:3px">⚠️ 만료·D-30</div>
-          </div>
-          <div style="flex:1;min-width:70px;background:var(--warn-pale);border:1px solid #FDE68A;border-radius:10px;padding:10px;text-align:center;cursor:pointer" onclick="navTo('cert')">
-            <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;color:var(--warn)">${rD90.length}</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:3px">🟡 D-90 주의</div>
-          </div>
-          <div style="flex:1;min-width:70px;background:var(--ok-pale);border:1px solid #A7F3D0;border-radius:10px;padding:10px;text-align:center">
-            <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;color:var(--ok)">${rSafe.length}</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:3px">✅ 유효</div>
-          </div>
-          <div style="flex:1;min-width:70px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center">
-            <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;color:var(--blue-l)">${renewalCerts.length}</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:3px">📋 전체</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 연간신고 (연구소/전담부서) -->
-      <div>
-        <div style="font-size:13px;color:var(--text4);margin-bottom:6px;font-weight:500">📋 연간 신고 (연구소·전담부서)</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <div style="flex:1;min-width:70px;background:var(--danger-pale);border:1px solid #FECACA;border-radius:10px;padding:10px;text-align:center;cursor:pointer" onclick="navTo('cert')">
-            <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;color:var(--danger)">${aMissed.length}</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:3px">❌ 미신고</div>
-          </div>
-          <div style="flex:1;min-width:70px;background:var(--warn-pale);border:1px solid #FDE68A;border-radius:10px;padding:10px;text-align:center;cursor:pointer" onclick="navTo('cert')">
-            <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;color:var(--warn)">${aPending.length}</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:3px">🔜 신고예정</div>
-          </div>
-          <div style="flex:1;min-width:70px;background:var(--ok-pale);border:1px solid #A7F3D0;border-radius:10px;padding:10px;text-align:center">
-            <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;color:var(--ok)">${aDone.length}</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:3px">✅ 신고완료</div>
-          </div>
-          <div style="flex:1;min-width:70px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center">
-            <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;color:var(--blue-l)">${annualCerts.length}</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:3px">📋 전체</div>
-          </div>
-        </div>
-      </div>`;
+    if(!certifications.length){summaryEl.innerHTML='';return;}
+    var h='<div style="background:#FFFFFF;border:1px solid #E5E5E5;border-radius:10px;padding:16px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,.06)">';
+    h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">';
+    h+='<div style="display:flex;align-items:center;gap:8px">';
+    h+='<span style="font-size:15px;font-weight:600;color:#1C1C1E">📋 인증·갱신 현황</span>';
+    h+='<span style="font-size:12px;color:#6C6C70;background:#F5F5F7;padding:2px 8px;border-radius:10px">총 '+certifications.length+'건</span>';
+    h+='</div>';
+    h+='<button onclick="navTo('cert')" style="background:#F5F5F7;border:1px solid #D0D0D0;border-radius:7px;color:#6C6C70;font-size:12px;padding:5px 12px;cursor:pointer;font-family:Pretendard,sans-serif">자세히 보기 →</button>';
+    h+='</div>';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
+    // 갱신형
+    h+='<div>';
+    h+='<div style="font-size:12px;color:#6C6C70;margin-bottom:8px;font-weight:500">🔄 갱신형 인증 (벤처·ISO 등)</div>';
+    h+='<div style="display:flex;gap:8px">';
+    h+='<div onclick="navTo('cert')" style="flex:1;background:#FFF5F5;border:1px solid #FECACA;border-radius:8px;padding:10px;text-align:center;cursor:pointer">';
+    h+='<div style="font-size:20px;font-weight:700;color:#DC2626;font-family:JetBrains Mono,monospace">'+(rExpired.length+rD30.length)+'</div>';
+    h+='<div style="font-size:11px;color:#6C6C70;margin-top:2px">⚠️ 만료·D-30</div></div>';
+    h+='<div onclick="navTo('cert')" style="flex:1;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:10px;text-align:center;cursor:pointer">';
+    h+='<div style="font-size:20px;font-weight:700;color:#D97706;font-family:JetBrains Mono,monospace">'+rD90.length+'</div>';
+    h+='<div style="font-size:11px;color:#6C6C70;margin-top:2px">🟡 D-90</div></div>';
+    h+='<div style="flex:1;background:#F0FDF4;border:1px solid #A7F3D0;border-radius:8px;padding:10px;text-align:center">';
+    h+='<div style="font-size:20px;font-weight:700;color:#059669;font-family:JetBrains Mono,monospace">'+rSafe.length+'</div>';
+    h+='<div style="font-size:11px;color:#6C6C70;margin-top:2px">✅ 유효</div></div>';
+    h+='<div style="flex:1;background:#F5F5F7;border:1px solid #E5E5E5;border-radius:8px;padding:10px;text-align:center">';
+    h+='<div style="font-size:20px;font-weight:700;color:#3B82F6;font-family:JetBrains Mono,monospace">'+renewalCerts.length+'</div>';
+    h+='<div style="font-size:11px;color:#6C6C70;margin-top:2px">📋 전체</div></div>';
+    h+='</div></div>';
+    // 연간신고
+    h+='<div>';
+    h+='<div style="font-size:12px;color:#6C6C70;margin-bottom:8px;font-weight:500">📋 연간 신고 (연구소·전담부서)</div>';
+    h+='<div style="display:flex;gap:8px">';
+    h+='<div style="flex:1;background:#FFF5F5;border:1px solid #FECACA;border-radius:8px;padding:10px;text-align:center">';
+    h+='<div style="font-size:20px;font-weight:700;color:#DC2626;font-family:JetBrains Mono,monospace">'+aMissed.length+'</div>';
+    h+='<div style="font-size:11px;color:#6C6C70;margin-top:2px">❌ 미신고</div></div>';
+    h+='<div style="flex:1;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:10px;text-align:center">';
+    h+='<div style="font-size:20px;font-weight:700;color:#D97706;font-family:JetBrains Mono,monospace">'+aPending.length+'</div>';
+    h+='<div style="font-size:11px;color:#6C6C70;margin-top:2px">🔜 신고예정</div></div>';
+    h+='<div style="flex:1;background:#F0FDF4;border:1px solid #A7F3D0;border-radius:8px;padding:10px;text-align:center">';
+    h+='<div style="font-size:20px;font-weight:700;color:#059669;font-family:JetBrains Mono,monospace">'+aDone.length+'</div>';
+    h+='<div style="font-size:11px;color:#6C6C70;margin-top:2px">✅ 완료</div></div>';
+    h+='<div style="flex:1;background:#F5F5F7;border:1px solid #E5E5E5;border-radius:8px;padding:10px;text-align:center">';
+    h+='<div style="font-size:20px;font-weight:700;color:#3B82F6;font-family:JetBrains Mono,monospace">'+annualCerts.length+'</div>';
+    h+='<div style="font-size:11px;color:#6C6C70;margin-top:2px">📋 전체</div></div>';
+    h+='</div></div>';
+    h+='</div></div>';
+    summaryEl.innerHTML=h;
   }
 }
-// ── ANNUAL REPORTS (연구소 연간 신고 이력) ──
+
+}
+
+// ── ANNUAL REPORTS ──
 function renderAnnualReportList(){
   const certId=document.getElementById('cert-edit-id')?.value;
   const el=document.getElementById('cert-annual-list');if(!el)return;
   const reports=annualReports.filter(r=>r.certId===certId).sort((a,b)=>b.year-a.year);
-  if(!reports.length){
-    el.innerHTML='<div style="font-size:13px;color:var(--text4);padding:8px 0">신고 이력 없음. 신고 추가 버튼으로 등록하세요.</div>';
-    return;
-  }
+  if(!reports.length){el.innerHTML='<div style="font-size:12px;color:var(--text4);padding:8px 0">신고 이력 없음. 신고 추가 버튼으로 등록하세요.</div>';return;}
   el.innerHTML=reports.map(r=>{
     const isDone=r.status==='done';
     const isOverdue=!isDone&&new Date(r.dueDate)<new Date();
     const sb=isDone
-      ?'<span class="badge" style="background:var(--ok-pale);color:var(--ok)">&#x2705; 신고완료 '+(r.reportedDate||'')+'</span>'
-      :isOverdue
-      ?'<span class="badge" style="background:var(--danger-pale);color:var(--danger)">&#x274C; 미신고(기한초과)</span>'
-      :'<span class="badge" style="background:var(--warn-pale);color:var(--warn)">&#x1F6DC; 신고예정</span>';
+      ?'<span style="font-size:11px;color:var(--ok)">✅ 신고완료 '+(r.reportedDate||'')+'</span>'
+      :isOverdue?'<span style="font-size:11px;color:var(--danger)">❌ 미신고(기한초과)</span>'
+      :'<span style="font-size:11px;color:var(--warn)">🔜 신고예정</span>';
     const doneBtn=!isDone
-      ?'<button onclick="markAnnualDone(\'' + r.id + '\')" style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:6px;color:var(--ok);font-size:12px;padding:3px 8px;cursor:pointer;white-space:nowrap;font-family:Noto Sans KR,sans-serif">신고완료</button>'
+      ?'<button onclick="markAnnualDone(''+r.id+'')" style="background:var(--ok-pale);border:1px solid #A7F3D0;border-radius:6px;color:var(--ok);font-size:11px;padding:3px 8px;cursor:pointer;white-space:nowrap">신고완료</button>'
       :'';
-    const delBtn='<button onclick="deleteAnnualReport(\'' + r.id + '\')" style="background:none;border:none;color:var(--text4);cursor:pointer;font-size:16px;padding:0 2px">&times;</button>';
+    const delBtn='<button onclick="deleteAnnualReport(''+r.id+'')" style="background:none;border:none;color:var(--text4);cursor:pointer;font-size:16px;padding:0 2px">&times;</button>';
     return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:4px">'
-      +'<div style="font-family:JetBrains Mono,monospace;font-size:14px;font-weight:500;width:45px;flex-shrink:0">'+r.year+'년</div>'
-      +'<div style="font-size:12px;color:var(--text4);flex-shrink:0">기한: '+r.dueDate+'</div>'
+      +'<div style="font-family:JetBrains Mono,monospace;font-size:12px;font-weight:500;width:45px;flex-shrink:0">'+r.year+'년</div>'
+      +'<div style="font-size:11px;color:var(--text4);flex-shrink:0">기한: '+r.dueDate+'</div>'
       +'<div style="flex:1">'+sb+'</div>'
       +doneBtn+delBtn+'</div>';
   }).join('');
@@ -3473,7 +3433,7 @@ async function addAnnualReport(){
   let targetYear=new Date().getFullYear();
   while(existingYears.has(targetYear))targetYear++;
   const am=master.annualMonth||4,ad=master.annualDay||30;
-  const dueDate=`${targetYear}-${String(am).padStart(2,'0')}-${String(ad).padStart(2,'0')}`;
+  const dueDate=targetYear+'-'+String(am).padStart(2,'0')+'-'+String(ad).padStart(2,'0');
   try{
     await addDoc(COL.annual_reports(),{certId,bizno:cert.bizno,companyName:cert.companyName,certMasterId:cert.certMasterId,year:targetYear,dueDate,status:'pending',reportedDate:null,createdAt:Date.now()});
     renderAnnualReportList();
@@ -3491,14 +3451,15 @@ async function deleteAnnualReport(reportId){
 }
 function getAnnualStatusDisplay(certId){
   const reports=annualReports.filter(r=>r.certId===certId).sort((a,b)=>b.year-a.year);
-  if(!reports.length)return '<span style="font-size:12px;color:var(--text4)">신고이력 없음</span>';
+  if(!reports.length)return '<span style="font-size:11px;color:var(--text4)">신고이력 없음</span>';
   const r=reports[0];const isDone=r.status==='done';const isOver=!isDone&&new Date(r.dueDate)<new Date();
-  if(isDone)return `<span style="font-size:12px;color:var(--ok)">✅ ${r.year}년 신고완료</span>`;
-  if(isOver)return `<span style="font-size:12px;color:var(--danger)">❌ ${r.year}년 미신고</span>`;
+  if(isDone)return '<span style="font-size:11px;color:var(--ok)">✅ '+r.year+'년 신고완료</span>';
+  if(isOver)return '<span style="font-size:11px;color:var(--danger)">❌ '+r.year+'년 미신고</span>';
   const diff=Math.ceil((new Date(r.dueDate)-Date.now())/(1000*60*60*24));
-  return `<span style="font-size:12px;color:var(--warn)">🔜 ${r.year}년 D-${diff}</span>`;
+  return '<span style="font-size:11px;color:var(--warn)">🔜 '+r.year+'년 D-'+diff+'</span>';
 }
 
+// ── COMPANIES ──
 function openCompanyModal(bizno){
   if(bizno){
     const c=companies.find(x=>x._id===bizno);if(!c)return;
@@ -3520,115 +3481,65 @@ function openCompanyModal(bizno){
     setDateFields('comp-reg-y','comp-reg-m','comp-reg-d',c.regDate||'');
     setDateFields('comp-est-y','comp-est-m','comp-est-d',c.estDate||'');
     document.getElementById('comp-memo').value=c.memo||'';
-    toggleBizDateFields(); // 업체구분에 맞게 필드 표시/숨김
-    delBtn.style.display='';
-    if(c.active==='N'){
-      delBtn.textContent='↩️ 복구';delBtn.className='btn btn-ghost btn-sm';delBtn.onclick=()=>restoreCompany(bizno);
-    } else {
-      delBtn.textContent='🚫 비활성화';delBtn.className='btn btn-danger btn-sm';delBtn.onclick=deleteCompany;
-    }
+    toggleBizDateFields();
+    const delBtn=document.getElementById('comp-del-btn');delBtn.style.display='';
+    if(c.active==='N'){delBtn.textContent='↩️ 복구';delBtn.className='btn btn-ghost btn-sm';delBtn.onclick=()=>restoreCompany(bizno);}
+    else{delBtn.textContent='🚫 비활성화';delBtn.className='btn btn-danger btn-sm';delBtn.onclick=deleteCompany;}
   } else {
     document.getElementById('company-modal-title').textContent='🏛️ 기업 등록';
     document.getElementById('comp-edit-bizno').value='';
     ['comp-name','comp-ceo','comp-corp-no','comp-bizno','comp-biztype','comp-tel','comp-email','comp-addr','comp-memo'].forEach(id=>document.getElementById(id).value='');
-    ['comp-birth-y','comp-birth-m','comp-birth-d','comp-reg-y','comp-reg-m','comp-reg-d','comp-est-y','comp-est-m','comp-est-d'].forEach(id=>document.getElementById(id).value='');
+    ['comp-birth-y','comp-birth-m','comp-birth-d','comp-reg-y','comp-reg-m','comp-reg-d','comp-est-y','comp-est-m','comp-est-d'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
     document.getElementById('comp-bizno-auto').textContent='';
     document.getElementById('comp-group').value='일반고객';
     document.getElementById('comp-active').value='Y';
     document.getElementById('comp-bizclass').value='법인';
-    document.getElementById('comp-del-btn').style.display='none';
     toggleBizDateFields();
+    document.getElementById('comp-del-btn').style.display='none';
   }
   openModal('company-modal');
 }
 function checkBizno(){const val=document.getElementById('comp-bizno').value.trim();document.getElementById('comp-bizno-auto').textContent=!val?'(비어있으면 임시번호 자동발급)':'';}
 async function saveCompany(){
-  const name=document.getElementById('comp-name').value.trim();if(!name){alert('기업명을 입력하세요');return;}
+  const name=document.getElementById('comp-name').value.trim();
+  if(!name){alert('기업명을 입력하세요');return;}
   let bizno=document.getElementById('comp-bizno').value.trim();
   const editBizno=document.getElementById('comp-edit-bizno').value;
   if(!bizno&&!editBizno)bizno=genTempBizno();
   const data={
-    name,
-    ceo:document.getElementById('comp-ceo').value,
+    name,ceo:document.getElementById('comp-ceo').value,
     ceoBirth:getDateFields('comp-birth-y','comp-birth-m','comp-birth-d'),
     corpNo:document.getElementById('comp-corp-no').value,
     biztype:document.getElementById('comp-biztype').value,
-    bizclass:document.getElementById('comp-bizclass').value||'법인',
-    regDate:getDateFields('comp-reg-y','comp-reg-m','comp-reg-d'),
-    estDate:getDateFields('comp-est-y','comp-est-m','comp-est-d'),
     tel:document.getElementById('comp-tel').value,
     email:document.getElementById('comp-email').value,
     addr:document.getElementById('comp-addr').value,
+    group:document.getElementById('comp-group').value,
+    active:document.getElementById('comp-active').value,
+    bizclass:document.getElementById('comp-bizclass').value,
+    regDate:getDateFields('comp-reg-y','comp-reg-m','comp-reg-d'),
+    estDate:getDateFields('comp-est-y','comp-est-m','comp-est-d'),
     memo:document.getElementById('comp-memo').value,
-    group:document.getElementById('comp-group').value||'일반고객',
-    active:document.getElementById('comp-active').value||'Y',
-    joinDate:new Date().toISOString().slice(0,10),
+    joinDate:editBizno?(companies.find(c=>c._id===editBizno)?.joinDate||new Date().toISOString().slice(0,10)):new Date().toISOString().slice(0,10),
     updatedAt:Date.now()
   };
   try{
     setBadge('🔄 저장 중...');
     if(editBizno){await updateDoc(doc(db,'companies',editBizno),data);}
-    else{if(companies.find(c=>c.name===name)){alert('이미 등록된 기업명입니다.');return;}data.createdAt=Date.now();await setDoc(doc(db,'companies',bizno),data);}
-    setBadge('✅ 저장됨',2000);closeModal('company-modal');cliPageOv=1;cliPageSub=1;
-  }catch(e){console.error(e);setBadge('⚠️ 저장 실패');}
+    else{data.createdAt=Date.now();await setDoc(doc(db,'companies',bizno),data);}
+    setBadge('✅ 저장됨',2000);closeModal('company-modal');
+  }catch(e){setBadge('⚠️ 저장 실패');}
 }
 async function deleteCompany(){
   const bizno=document.getElementById('comp-edit-bizno').value;
-  if(!bizno)return;
-  const comp=companies.find(x=>x._id===bizno);
-  if(!comp)return;
-
-  // 연관 데이터 조회
-  const relatedWork=workItems.filter(w=>w.clientBizno===bizno);
-  const relatedCC=consCompanies.filter(cc=>cc.bizno===bizno);
-
-  const confirmMsg=`'${comp.name}'을(를) 비활성화 하시겠습니까?\n\n` +
-    `✅ 화면에서 숨겨지는 데이터:\n` +
-    `- 업무 항목: ${relatedWork.length}건\n` +
-    `- 지원사업 참여이력: ${relatedCC.length}건\n\n` +
-    `📊 통계 데이터는 보존됩니다.\n` +
-    `기업관리 → 🚫비활성 필터에서 언제든 복구 가능합니다.`;
-
-  if(!confirm(confirmMsg))return;
-
-  try{
-    setBadge('🔄 처리 중...');
-    const batch=writeBatch(db);
-
-    // 1. 기업 active = 'N' (Soft Delete)
-    batch.update(doc(db,'companies',bizno),{
-      active:'N',
-      deactivatedAt:Date.now(),
-      updatedAt:Date.now()
-    });
-
-    // 2. 해당 업체 work_items → status 유지, clientBizno로 필터링해서 화면에서만 제외
-    // (데이터 삭제 안 함 - 통계 보존)
-
-    // 3. consulting_company → 참여이력 유지 (통계 보존)
-
-    await batch.commit();
-    setBadge('✅ 비활성화 완료',2000);
-    closeModal('company-modal');
-    cliPageOv=1;cliPageSub=1;
-  }catch(e){
-    console.error(e);
-    setBadge('⚠️ 처리 실패');
-    alert('처리 실패: '+e.message);
-  }
+  if(!bizno||!confirm('비활성화하시겠습니까?'))return;
+  try{await updateDoc(doc(db,'companies',bizno),{active:'N',deactivatedAt:Date.now()});closeModal('company-modal');}
+  catch(e){alert('처리 실패');}
 }
-
-// 비활성 기업 복구
 async function restoreCompany(bizno){
-  if(!confirm('이 기업을 다시 활성화 하시겠습니까?'))return;
-  try{
-    await updateDoc(doc(db,'companies',bizno),{
-      active:'Y',
-      deactivatedAt:null,
-      updatedAt:Date.now()
-    });
-    setBadge('✅ 복구 완료',2000);
-  }catch(e){alert('복구 실패: '+e.message);}
+  if(!confirm('복구하시겠습니까?'))return;
+  try{await updateDoc(doc(db,'companies',bizno),{active:'Y',deactivatedAt:null});closeModal('company-modal');}
+  catch(e){alert('처리 실패');}
 }
 function renderCompaniesPage(){
   const q=(document.getElementById('corp-search')?.value||'').toLowerCase();
@@ -3638,25 +3549,22 @@ function renderCompaniesPage(){
     const amt=mycons.reduce((s,x)=>s+(+x.amount||0),0);
     const isInactive=c.active==='N';
     const grpIcon=GROUP_BADGE[c.group]||'🏢';
-    const id=c._id.replace(/'/g,"\\'"); // 사업자번호 따옴표 이스케이프
-    return '<tr style="'+(isInactive?'opacity:.5':'')+'\">'
-      +'<td>'
-        +'<div style="font-size:14px;font-weight:500;cursor:pointer;color:var(--blue-l)" onclick="openCompanyModal(\''+id+'\')" title="클릭하여 수정">'+c.name+'</div>'
-        +(isInactive?'<span style="font-size:11px;color:var(--danger)">비활성</span>':'')
-      +'</td>'
+    const cid=c._id.replace(/'/g,"\'");
+    return '<tr style="'+(isInactive?'opacity:.5':'')+'">'
+      +'<td><div style="font-size:13px;font-weight:500;cursor:pointer;color:var(--blue)" onclick="openCompanyModal(''+cid+'')" title="클릭하여 수정">'+c.name+'</div>'+(isInactive?'<span style="font-size:11px;color:var(--danger)">비활성</span>':'')+'</td>'
       +'<td><span style="font-size:12px">'+grpIcon+' '+(c.group||'일반고객')+'</span></td>'
       +'<td>'+(c.ceo||'—')+'</td>'
       +'<td style="color:var(--text3)">'+(c.biztype||'—')+'</td>'
-      +'<td style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--text4)">'+c._id+'</td>'
+      +'<td style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--text4)">'+c._id+'</td>'
       +'<td style="color:var(--text3)">'+(c.tel||'—')+'</td>'
-      +'<td style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--gold-l)">'+(amt?fmtAmt(amt):'—')+'</td>'
-      +'<td style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--text4)">'+(c.joinDate||'—')+'</td>'
+      +'<td style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--gold)">'+(amt?fmtAmt(amt):'—')+'</td>'
+      +'<td style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--text4)">'+(c.joinDate||'—')+'</td>'
       +'<td>'
-        +'<button onclick="openCompanyModal(\''+id+'\')" style="background:none;border:none;color:var(--text4);font-size:15px;cursor:pointer;padding:2px" title="수정">✏️</button>'
-        +(isInactive?'<button onclick="restoreCompany(\''+id+'\')" style="background:none;border:none;color:var(--ok);font-size:13px;cursor:pointer;padding:2px" title="복구">↩️복구</button>':'')
+        +'<button onclick="openCompanyModal(''+cid+'')" style="background:none;border:none;color:var(--text4);font-size:14px;cursor:pointer;padding:2px" title="수정">✏️</button>'
+        +(isInactive?'<button onclick="restoreCompany(''+cid+'')" style="background:none;border:none;color:var(--ok);font-size:12px;cursor:pointer;padding:2px" title="복구">↩️복구</button>':'')
       +'</td>'
       +'</tr>';
-  }).join('')+'':'<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text4)">등록된 기업이 없습니다</td></tr>';
+  }).join(''):'<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text4)">등록된 기업이 없습니다</td></tr>';
 }
 
 // ── CORP AUTOCOMPLETE ──
@@ -3665,14 +3573,12 @@ function showCorpDrop(inputId){
   if(!inp||!dd)return;const q=inp.value.toLowerCase();
   const matches=companies.filter(c=>c.name.toLowerCase().includes(q)||(c.ceo||'').toLowerCase().includes(q)).slice(0,8);
   if(!matches.length||!q){dd.classList.remove('open');return;}
-  dd.innerHTML=matches.map(c=>`<div class="corp-dropdown-item" onclick="selectCorpDrop('${inputId}','${c.name.replace(/'/g,"\\'")}')">🏢 ${c.name}${c.ceo?` <span style="color:var(--text4);font-size:12px">· ${c.ceo}</span>`:''}<span style="color:var(--text4);font-size:11px;margin-left:4px">${c._id}</span></div>`).join('');
+  dd.innerHTML=matches.map(c=>'<div class="corp-dropdown-item" onclick="selectCorpDrop(''+inputId+'',''+c.name.replace(/'/g,"\'")+'')">🏢 '+c.name+(c.ceo?' <span style="color:var(--text4);font-size:11px">· '+c.ceo+'</span>':'')+'<span style="color:var(--text4);font-size:10px;margin-left:4px">'+c._id+'</span></div>').join('');
   dd.classList.add('open');
 }
 function hideCorpDrop(id){document.getElementById('dd-'+id)?.classList.remove('open');}
 function selectCorpDrop(inputId,name){const inp=document.getElementById(inputId);if(inp)inp.value=name;hideCorpDrop(inputId);}
 document.addEventListener('click',(e)=>{document.querySelectorAll('.corp-dropdown.open').forEach(dd=>{if(!dd.parentElement.contains(e.target))dd.classList.remove('open');});},{passive:true});
-
-
 
 // ── INIT ──
 loadAll();
@@ -3693,8 +3599,9 @@ Object.assign(window,{
   openTodoModal,saveTodo,cycleTodo,deleteTodoItem,
   renderWork,openWorkModal,saveWork,confirmDeleteWork,cycleWork,
   renderClientsPage,setCliPageOv,setCliPageSub,setCliGroupFilter,
-  renderStatsPage,setStatsYear,setStatsCat,setStatsCompPage,exportStatsExcel,renderHistoryPage,setHistStatus,setHistPage,
-  openCompanyModal,saveCompany,deleteCompany,restoreCompany,checkBizno,renderCompaniesPage,autoTabDate,toggleBizDateFields,
+  renderStatsPage,setStatsYear,setStatsCat,setStatsCompPage,exportStatsExcel,
+  renderHistoryPage,setHistStatus,setHistPage,
+  openCompanyModal,saveCompany,deleteCompany,restoreCompany,checkBizno,renderCompaniesPage,toggleBizDateFields,autoTabDate,
   showCorpDrop,hideCorpDrop,selectCorpDrop,
 });
 </script>
