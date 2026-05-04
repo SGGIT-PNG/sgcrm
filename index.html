@@ -305,7 +305,9 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
               <button class="toggle-opt active" onclick="setWorkFilter('active')">진행중만</button>
               <button class="toggle-opt" onclick="setWorkFilter('all')">전체보기</button>
             </div>
-            <button class="btn btn-primary btn-sm" onclick="openCatAddModal()">+ 업무 추가</button>
+            <select class="fs" id="work-add-cat-ov" style="width:140px"></select>
+            <button class="btn btn-primary btn-sm" onclick="openWorkModal(document.getElementById('work-add-cat-ov').value,null)">+ 항목 추가</button>
+            <button class="btn btn-ghost btn-sm" onclick="openCatAddModal()">+ 업무 추가</button>
           </div>
         </div>
         <div class="grid3" id="work-grid"></div>
