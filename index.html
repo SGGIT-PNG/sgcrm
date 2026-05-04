@@ -431,7 +431,11 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
 
       <!-- 탭1: 갱신 알림 -->
       <div id="cert-pane-alert">
-        <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px">
+          <div class="search-wrap" style="flex:1;max-width:300px">
+            <span class="search-ico">🔍</span>
+            <input class="search-inp" id="cert-alert-search" placeholder="업체명 또는 인증 종류 검색" oninput="renderCertAlert()">
+          </div>
           <button class="btn btn-primary" onclick="openCertModal()">+ 인증 등록</button>
         </div>
         <div id="cert-alert-list"></div>
@@ -443,6 +447,10 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
           <select class="fs" id="cert-type-filter" onchange="renderCertByCert()" style="width:180px">
             <option value="">전체 인증 종류</option>
           </select>
+          <div class="search-wrap" style="flex:1;max-width:280px">
+            <span class="search-ico">🔍</span>
+            <input class="search-inp" id="cert-by-cert-search" placeholder="업체명 검색" oninput="renderCertByCert()">
+          </div>
           <button class="btn btn-primary" onclick="openCertModal()">+ 인증 등록</button>
         </div>
         <div class="card"><div class="tbl-wrap"><table class="tbl">
@@ -457,6 +465,10 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
           <select class="fs" id="cert-comp-filter" onchange="renderCertByComp()" style="width:200px">
             <option value="">전체 업체</option>
           </select>
+          <div class="search-wrap" style="flex:1;max-width:280px">
+            <span class="search-ico">🔍</span>
+            <input class="search-inp" id="cert-by-comp-search" placeholder="업체명 또는 인증 종류 검색" oninput="renderCertByComp()">
+          </div>
           <button class="btn btn-primary" onclick="openCertModal()">+ 인증 등록</button>
         </div>
         <div class="card"><div class="tbl-wrap"><table class="tbl">
@@ -467,8 +479,11 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
 
       <!-- 탭4: 인증 종류 관리 -->
       <div id="cert-pane-master" style="display:none">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-          <div style="font-size:14px;color:var(--text3)">⚙️ 인증 종류를 추가·수정·삭제할 수 있어요. 기본 제공 인증도 수정 가능해요.</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:10px">
+          <div class="search-wrap" style="flex:1;max-width:280px">
+            <span class="search-ico">🔍</span>
+            <input class="search-inp" id="cert-master-search" placeholder="인증 종류명 검색" oninput="renderCertMaster()">
+          </div>
           <button class="btn btn-primary" onclick="openCertMasterModal()">+ 인증 종류 추가</button>
         </div>
         <div class="card"><div class="tbl-wrap"><table class="tbl">
@@ -2586,6 +2601,10 @@ function setCertTab(tab){
     const pane=document.getElementById('cert-pane-'+t);
     if(pane)pane.style.display=t===tab?'':'none';
   });
+  // 탭 전환 시 검색창 초기화
+  ['cert-alert-search','cert-by-cert-search','cert-by-comp-search','cert-master-search'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.value='';
+  });
   if(tab==='alert')renderCertAlert();
   else if(tab==='by-cert')renderCertByCert();
   else if(tab==='by-comp')renderCertByComp();
@@ -2597,7 +2616,9 @@ let cmPhases=[]; // 모달 임시 단계 목록
 
 function renderCertMaster(){
   const el=document.getElementById('cert-master-body');if(!el)return;
-  el.innerHTML=certMaster.length?certMaster.map(m=>`<tr>
+  const q=(document.getElementById('cert-master-search')?.value||'').toLowerCase();
+  const filtered=q?certMaster.filter(m=>(m.certName||'').toLowerCase().includes(q)):certMaster;
+  el.innerHTML=filtered.length?filtered.map(m=>`<tr>
     <td style="font-size:20px;text-align:center">${m.icon||'📋'}</td>
     <td><div style="font-size:14px;font-weight:500">${m.certName}</div></td>
     <td><span style="font-size:12px;padding:2px 7px;border-radius:8px;background:${m.cycleType==='complex'?'rgba(245,158,11,.2)':'rgba(59,130,246,.2)'};color:${m.cycleType==='complex'?'#FCD34D':'#93C5FD'}">${m.cycleType==='complex'?'복합주기':'고정주기'}</span></td>
@@ -2607,7 +2628,7 @@ function renderCertMaster(){
     <td>
       <button onclick="openCertMasterModal('${m.id}')" style="background:none;border:none;color:var(--text4);font-size:14px;cursor:pointer;padding:2px">✏️</button>
     </td>
-  </tr>`).join(''):`<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text4)">등록된 인증 종류가 없습니다</td></tr>`;
+  </tr>`).join(''):`<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text4)">${q?'검색 결과가 없습니다':'등록된 인증 종류가 없습니다'}</td></tr>`;
 }
 
 function toggleCmCycleFields(){
@@ -2809,8 +2830,18 @@ function renderCertAlert(){
   const aPending=annualList.filter(c=>{const r=annualReports.filter(x=>x.certId===c.id).sort((a,b)=>b.year-a.year)[0];return r&&r.status!=='done'&&new Date(r.dueDate)>=new Date();}).length;
   const aDone=annualList.filter(c=>{const r=annualReports.filter(x=>x.certId===c.id).sort((a,b)=>b.year-a.year)[0];return r&&r.status==='done';}).length;
 
-  const sortedRenewal=[...renewalList].sort((a,b)=>(getCertDday(a.expDate)??9999)-(getCertDday(b.expDate)??9999));
-  const sortedAnnual=[...annualList].sort((a,b)=>(a.companyName||'').localeCompare(b.companyName||'','ko'));
+  // 검색 필터
+  const alertQ=(document.getElementById('cert-alert-search')?.value||'').toLowerCase();
+  const filteredRenewal=alertQ?renewalList.filter(c=>{
+    const m=getCertMasterInfo(c.certMasterId);
+    return (c.companyName||'').toLowerCase().includes(alertQ)||(m.certName||'').toLowerCase().includes(alertQ);
+  }):renewalList;
+  const filteredAnnual=alertQ?annualList.filter(c=>{
+    const m=getCertMasterInfo(c.certMasterId);
+    return (c.companyName||'').toLowerCase().includes(alertQ)||(m.certName||'').toLowerCase().includes(alertQ);
+  }):annualList;
+  const sortedRenewal=[...filteredRenewal].sort((a,b)=>(getCertDday(a.expDate)??9999)-(getCertDday(b.expDate)??9999));
+  const sortedAnnual=[...filteredAnnual].sort((a,b)=>(a.companyName||'').localeCompare(b.companyName||'','ko'));
 
   // 갱신형 테이블
   const renewalTableHtml=renewalList.length
@@ -2843,20 +2874,26 @@ function renderCertAlert(){
 // 탭2: 인증별 업체 조회
 function renderCertByCert(){
   const typeF=document.getElementById('cert-type-filter')?.value||'';
-  // certMasterId 기반으로 필터
-  const filtered=typeF?certifications.filter(c=>c.certMasterId===typeF):certifications;
+  const q=(document.getElementById('cert-by-cert-search')?.value||'').toLowerCase();
+  let filtered=typeF?certifications.filter(c=>c.certMasterId===typeF):certifications;
+  if(q)filtered=filtered.filter(c=>(c.companyName||'').toLowerCase().includes(q));
   const sorted=[...filtered].sort((a,b)=>(getCertDday(a.expDate)??9999)-(getCertDday(b.expDate)??9999));
   const el=document.getElementById('cert-by-cert-body');if(!el)return;
-  el.innerHTML=sorted.length?sorted.map(certRow).join(''):`<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text4)">해당 인증이 없습니다</td></tr>`;
+  el.innerHTML=sorted.length?sorted.map(certRow).join(''):`<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text4)">${q?'검색 결과가 없습니다':'해당 인증이 없습니다'}</td></tr>`;
 }
 
 // 탭3: 업체별 인증 조회
 function renderCertByComp(){
   const compF=document.getElementById('cert-comp-filter')?.value||'';
+  const q=(document.getElementById('cert-by-comp-search')?.value||'').toLowerCase();
   const el=document.getElementById('cert-by-comp-body');if(!el)return;
 
   // certifications 필터
-  const filteredCert=compF?certifications.filter(c=>c.bizno===compF):certifications;
+  let filteredCert=compF?certifications.filter(c=>c.bizno===compF):certifications;
+  if(q)filteredCert=filteredCert.filter(c=>{
+    const m=getCertMasterInfo(c.certMasterId);
+    return (c.companyName||'').toLowerCase().includes(q)||(m.certName||'').toLowerCase().includes(q);
+  });
 
   // 연구소 관련 work_items도 함께 표시 (인증 미등록 업무)
   const labCatIds=['lab','rnd_dept'];
