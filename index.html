@@ -246,7 +246,12 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
       <div class="tb-title" id="topbar-title">전체 현황</div>
       <div class="tb-sub">SG솔루션 Business Control Tower</div>
     </div>
-    <div id="live-time"></div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button onclick="openCalendarExportModal()" style="display:flex;align-items:center;gap:6px;padding:7px 14px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;font-family:Pretendard,sans-serif;transition:all .15s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text2)'">
+        📅 캘린더 내보내기
+      </button>
+      <div id="live-time"></div>
+    </div>
   </div>
   <div id="content">
 
@@ -643,6 +648,71 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
       </div>
       <button class="btn btn-ghost" onclick="closeModal('company-modal')">취소</button>
       <button class="btn btn-primary" onclick="saveCompany()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 캘린더 내보내기 -->
+<div class="ov" id="calendar-export-modal">
+  <div class="modal" style="width:520px">
+    <div class="modal-title">
+      <span>📅 캘린더 내보내기</span>
+      <button class="modal-close" onclick="closeModal('calendar-export-modal')">×</button>
+    </div>
+    <div style="font-size:13px;color:var(--text3);padding:4px 0 8px">
+      .ics 파일을 다운로드해서 구글 캘린더, 애플 캘린더, 아웃룩 등에 가져오기 하세요.
+    </div>
+
+    <!-- 내보낼 항목 선택 -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px">
+      <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:12px">내보낼 항목 선택</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+          <input type="checkbox" id="cal-include-cert" checked style="width:16px;height:16px;accent-color:var(--accent)">
+          <div>
+            <div style="font-size:13px;font-weight:500">🏅 인증 만료일</div>
+            <div style="font-size:11px;color:var(--text4)">갱신형 인증의 만료·갱신일 (D-90, D-30, D-7 알림 포함)</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+          <input type="checkbox" id="cal-include-annual" checked style="width:16px;height:16px;accent-color:var(--accent)">
+          <div>
+            <div style="font-size:13px;font-weight:500">📋 연간 신고 기한</div>
+            <div style="font-size:11px;color:var(--text4)">연구소·전담부서 연간 신고 마감일</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+          <input type="checkbox" id="cal-include-gantt" style="width:16px;height:16px;accent-color:var(--accent)">
+          <div>
+            <div style="font-size:13px;font-weight:500">📅 지원사업·정책자금 일정</div>
+            <div style="font-size:11px;color:var(--text4)">간트차트의 시작일·종료일</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <!-- 기간 필터 -->
+    <div style="display:flex;gap:12px;align-items:center">
+      <div class="fg" style="flex:1">
+        <label class="fl">기간 (시작)</label>
+        <input class="fi" type="date" id="cal-date-from">
+      </div>
+      <div class="fg" style="flex:1">
+        <label class="fl">기간 (종료)</label>
+        <input class="fi" type="date" id="cal-date-to">
+      </div>
+    </div>
+
+    <!-- 미리보기 -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px">
+      <div style="font-size:12px;font-weight:600;color:var(--text3);margin-bottom:8px">미리보기</div>
+      <div id="cal-preview" style="font-size:12px;color:var(--text3);max-height:120px;overflow-y:auto"></div>
+    </div>
+
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModal('calendar-export-modal')">취소</button>
+      <button class="btn btn-ghost" onclick="updateCalPreview()" style="border-color:var(--accent);color:var(--accent)">🔍 미리보기</button>
+      <button class="btn btn-primary" onclick="exportCalendar()">📥 .ics 다운로드</button>
     </div>
   </div>
 </div>
@@ -3150,9 +3220,44 @@ async function markCertPhaseDone(certId){
 
 async function deleteCert(){
   const id=document.getElementById('cert-edit-id').value;
-  if(!id||!confirm('삭제하시겠습니까?'))return;
-  try{await deleteDoc(doc(db,'certifications',id));closeModal('cert-modal');}
-  catch(e){alert('삭제 실패');}
+  if(!id)return;
+
+  // 연결된 work_items 확인
+  const linkedWorks=workItems.filter(w=>w.certId===id);
+  const linkedAnnuals=annualReports.filter(r=>r.certId===id);
+
+  let msg='이 인증을 삭제하시겠습니까?';
+  if(linkedWorks.length||linkedAnnuals.length){
+    msg='이 인증을 삭제하시겠습니까?\n\n';
+    msg+='함께 삭제되는 데이터:\n';
+    if(linkedWorks.length)msg+='• 연결된 업무 항목: '+linkedWorks.length+'건\n';
+    if(linkedAnnuals.length)msg+='• 연간 신고 이력: '+linkedAnnuals.length+'건\n';
+    msg+='\n이 작업은 되돌릴 수 없습니다.';
+  }
+
+  if(!confirm(msg))return;
+
+  setBadge('삭제 중...');
+  try{
+    // 연결된 work_items 삭제
+    for(const w of linkedWorks){
+      await deleteDoc(doc(db,'work_items',w.id));
+    }
+    // 연결된 annual_reports 삭제
+    for(const r of linkedAnnuals){
+      await deleteDoc(doc(db,'annual_reports',r.id));
+    }
+    // 인증 삭제
+    await deleteDoc(doc(db,'certifications',id));
+    setBadge('삭제 완료',2000);
+    closeModal('cert-modal');
+    if(linkedWorks.length||linkedAnnuals.length){
+      alert('삭제 완료\n인증 1건, 업무 '+linkedWorks.length+'건, 연간신고 '+linkedAnnuals.length+'건 삭제됨');
+    }
+  }catch(e){
+    setBadge('삭제 실패');
+    alert('삭제 실패: '+e.message);
+  }
 }
 
 // 전체현황 인증 요약 카드 (갱신형 / 연간신고 2줄 분리)
@@ -3549,6 +3654,183 @@ function renderCompaniesPage(){
   }).join(''):'<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text4)">등록된 기업이 없습니다</td></tr>';
 }
 
+// ── CALENDAR EXPORT ──
+function openCalendarExportModal(){
+  // 기간 기본값: 오늘부터 1년
+  const today=new Date();
+  const nextYear=new Date(today);
+  nextYear.setFullYear(nextYear.getFullYear()+1);
+  const fmt=d=>d.toISOString().slice(0,10);
+  const fromEl=document.getElementById('cal-date-from');
+  const toEl=document.getElementById('cal-date-to');
+  if(fromEl)fromEl.value=fmt(today);
+  if(toEl)toEl.value=fmt(nextYear);
+  updateCalPreview();
+  openModal('calendar-export-modal');
+}
+
+function getCalEvents(){
+  const fromVal=document.getElementById('cal-date-from')?.value;
+  const toVal=document.getElementById('cal-date-to')?.value;
+  const dateFrom=fromVal?new Date(fromVal):null;
+  const dateTo=toVal?new Date(toVal):null;
+  const inclCert=document.getElementById('cal-include-cert')?.checked;
+  const inclAnnual=document.getElementById('cal-include-annual')?.checked;
+  const inclGantt=document.getElementById('cal-include-gantt')?.checked;
+  const events=[];
+
+  const inRange=dateStr=>{
+    if(!dateStr)return false;
+    const d=new Date(dateStr);
+    if(dateFrom&&d<dateFrom)return false;
+    if(dateTo&&d>dateTo)return false;
+    return true;
+  };
+
+  // 1. 인증 만료일
+  if(inclCert){
+    certifications.filter(c=>{
+      const m=getCertMasterInfo(c.certMasterId);
+      return m.reportType!=='annual'&&c.expDate;
+    }).forEach(c=>{
+      if(!inRange(c.expDate))return;
+      const m=getCertMasterInfo(c.certMasterId);
+      const comp=companies.find(x=>x._id===c.bizno);
+      const compName=comp?comp.name:(c.companyName||'미상');
+      const dday=getCertDday(c.expDate);
+      events.push({
+        date:c.expDate,
+        title:'[인증만료] '+compName+' '+m.certName,
+        desc:'만료일: '+c.expDate+(dday>=0?'  D-'+dday:' (만료)'),
+        type:'cert',
+        alerts:[90,30,7]
+      });
+    });
+  }
+
+  // 2. 연간신고 기한
+  if(inclAnnual){
+    annualReports.filter(r=>r.status!=='done'&&r.dueDate&&inRange(r.dueDate)).forEach(r=>{
+      const cert=certifications.find(c=>c.id===r.certId);
+      const m=cert?getCertMasterInfo(cert.certMasterId):{certName:'연간신고'};
+      const comp=companies.find(x=>x._id===r.bizno);
+      const compName=comp?comp.name:(r.companyName||'미상');
+      events.push({
+        date:r.dueDate,
+        title:'[연간신고] '+compName+' '+m.certName+' '+r.year+'년',
+        desc:'신고기한: '+r.dueDate,
+        type:'annual',
+        alerts:[30,7]
+      });
+    });
+  }
+
+  // 3. 지원사업 일정
+  if(inclGantt){
+    consulting.forEach(c=>{
+      if(c.startDate&&inRange(c.startDate)){
+        const relComps=consCompanies.filter(cc=>cc.consId===c.id);
+        const compNames=relComps.map(cc=>{const comp=companies.find(x=>x._id===cc.bizno);return comp?comp.name:cc.bizno;}).join(', ')||'—';
+        events.push({
+          date:c.startDate,
+          title:'[시작] '+c.title,
+          desc:'지원사업 시작  업체: '+compNames,
+          type:'gantt',
+          alerts:[]
+        });
+      }
+      if(c.endDate&&inRange(c.endDate)){
+        const relComps=consCompanies.filter(cc=>cc.consId===c.id);
+        const compNames=relComps.map(cc=>{const comp=companies.find(x=>x._id===cc.bizno);return comp?comp.name:cc.bizno;}).join(', ')||'—';
+        events.push({
+          date:c.endDate,
+          title:'[마감] '+c.title,
+          desc:'지원사업 마감  업체: '+compNames,
+          type:'gantt',
+          alerts:[7]
+        });
+      }
+    });
+  }
+
+  return events.sort((a,b)=>a.date.localeCompare(b.date));
+}
+
+function updateCalPreview(){
+  const el=document.getElementById('cal-preview');if(!el)return;
+  const events=getCalEvents();
+  if(!events.length){el.innerHTML='<div style="color:var(--text4);text-align:center;padding:8px">선택된 항목이 없습니다</div>';return;}
+  el.innerHTML=events.slice(0,10).map(e=>{
+    const icon=e.type==='cert'?'🏅':e.type==='annual'?'📋':'📅';
+    return '<div style="display:flex;gap:8px;padding:4px 0;border-bottom:1px solid var(--border)">'
+      +'<span style="font-family:JetBrains Mono,monospace;color:var(--text4);flex-shrink:0">'+e.date+'</span>'
+      +'<span>'+icon+' '+e.title+'</span></div>';
+  }).join('')+(events.length>10?'<div style="color:var(--text4);text-align:center;padding:4px">...외 '+(events.length-10)+'건</div>':'');
+}
+
+function toICSDate(dateStr){
+  return dateStr.replace(/-/g,'');
+}
+
+function escICS(str){
+  if(!str)return '';
+  return str
+    .split('\\').join('\\\\')
+    .split(';').join('\\;')
+    .split(',').join('\\,')
+    .split('\n').join('\\n');
+}
+
+function exportCalendar(){
+  const events=getCalEvents();
+  if(!events.length){alert('내보낼 일정이 없습니다. 항목을 선택하거나 기간을 확인해주세요.');return;}
+  const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
+  const now=new Date().toISOString().replace(/[-:]/g,'').slice(0,15)+'Z';
+  const NL='\r\n';
+  const L=(...parts)=>parts.join('')+NL;
+  let ics='';
+  ics+=L('BEGIN:VCALENDAR');
+  ics+=L('VERSION:2.0');
+  ics+=L('PRODID:-//SG CRM//KR');
+  ics+=L('CALSCALE:GREGORIAN');
+  ics+=L('METHOD:PUBLISH');
+  ics+=L('X-WR-CALNAME:SG솔루션 CRM');
+  ics+=L('X-WR-TIMEZONE:Asia/Seoul');
+  events.forEach(function(ev){
+    var dtstart=toICSDate(ev.date);
+    var nextDay=new Date(ev.date);
+    nextDay.setDate(nextDay.getDate()+1);
+    var dtend=nextDay.toISOString().slice(0,10).replace(/-/g,'');
+    ics+=L('BEGIN:VEVENT');
+    ics+=L('UID:',uid(),'@sgcrm');
+    ics+=L('DTSTAMP:',now);
+    ics+=L('DTSTART;VALUE=DATE:',dtstart);
+    ics+=L('DTEND;VALUE=DATE:',dtend);
+    ics+=L('SUMMARY:',escICS(ev.title));
+    ics+=L('DESCRIPTION:',escICS(ev.desc));
+    ics+=L('CATEGORIES:SG솔루션CRM');
+    ev.alerts.forEach(function(days){
+      ics+=L('BEGIN:VALARM');
+      ics+=L('TRIGGER:-P',days,'D');
+      ics+=L('ACTION:DISPLAY');
+      ics+=L('DESCRIPTION:',escICS(ev.title),' - ',days,'일 전 알림');
+      ics+=L('END:VALARM');
+    });
+    ics+=L('END:VEVENT');
+  });
+  ics+=L('END:VCALENDAR');
+  var blob=new Blob([ics],{type:'text/calendar;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;
+  var today=new Date().toISOString().slice(0,10);
+  a.download='SG솔루션CRM_일정_'+today+'.ics';
+  a.click();
+  URL.revokeObjectURL(url);
+  setBadge('다운로드 완료 - '+events.length+'건',3000);
+  closeModal('calendar-export-modal');
+}
+
 // ── CORP AUTOCOMPLETE ──
 function showCorpDrop(inputId){
   const inp=document.getElementById(inputId);const dd=document.getElementById('dd-'+inputId);
@@ -3585,6 +3867,7 @@ Object.assign(window,{
   renderHistoryPage,setHistStatus,setHistPage,
   openCompanyModal,saveCompany,deleteCompany,restoreCompany,permanentDeleteCompany,checkBizno,renderCompaniesPage,toggleBizDateFields,autoTabDate,
   showCorpDrop,hideCorpDrop,selectCorpDrop,
+  openCalendarExportModal,updateCalPreview,exportCalendar,
   migrateBizno,
 });
 </script>
