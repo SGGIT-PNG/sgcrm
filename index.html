@@ -246,12 +246,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
       <div class="tb-title" id="topbar-title">전체 현황</div>
       <div class="tb-sub">SG솔루션 Business Control Tower</div>
     </div>
-    <div style="display:flex;align-items:center;gap:10px">
-      <button onclick="openCalendarExportModal()" style="display:flex;align-items:center;gap:6px;padding:7px 14px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;font-family:Pretendard,sans-serif;transition:all .15s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text2)'">
-        📅 캘린더 내보내기
-      </button>
-      <div id="live-time"></div>
-    </div>
+    <div id="live-time"></div>
   </div>
   <div id="content">
 
@@ -546,7 +541,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
         <button class="btn btn-primary" onclick="openCompanyModal()">+ 기업 등록</button>
       </div>
       <div class="card"><div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>기업명</th><th>그룹</th><th>대표자</th><th>업종</th><th>사업자번호</th><th>연락처</th><th>신청금액</th><th>등록일</th><th style="width:60px">관리</th></tr></thead>
+        <thead><tr><th>기업명</th><th>그룹</th><th>대표자</th><th>지역</th><th>규모</th><th>업종</th><th>사업자번호</th><th>연락처</th><th>등록일</th><th style="width:60px">관리</th></tr></thead>
         <tbody id="corp-tbody"></tbody>
       </table></div></div>
     </div>
@@ -579,7 +574,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
     <div class="frow">
       <div class="fg"><label class="fl">사업자번호 <span id="comp-bizno-auto" style="color:var(--gold);font-size:11px"></span></label>
         <input class="fi" id="comp-bizno" placeholder="000-00-00000 (예비창업자는 비워두세요)" oninput="checkBizno()"></div>
-      <div class="fg"><label class="fl">업종</label><input class="fi" id="comp-biztype" placeholder="제조업"></div>
+      <div class="fg"><label class="fl">업종</label><input class="fi" id="comp-biztype" placeholder="제조업, IT, 바이오 등"></div>
     </div>
     <div class="frow">
       <div class="fg"><label class="fl">연락처</label><input class="fi" id="comp-tel" placeholder="010-0000-0000"></div>
@@ -593,7 +588,76 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
           <option value="예비">🌱 예비창업자</option>
         </select>
       </div>
-      <div class="fg"><label class="fl">업종</label><input class="fi" id="comp-biztype" placeholder="제조업"></div>
+      <div class="fg"><label class="fl">기업 규모</label>
+        <select class="fs" id="comp-scale">
+          <option value="">선택</option>
+          <option value="소기업">소기업</option>
+          <option value="중기업">중기업</option>
+          <option value="중견기업">중견기업</option>
+          <option value="대기업">대기업</option>
+        </select>
+      </div>
+    </div>
+    <!-- 매칭 필드 섹션 -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:4px">
+      <div style="font-size:12px;font-weight:600;color:var(--text3);margin-bottom:10px">📊 지원사업 매칭 정보</div>
+      <div class="frow">
+        <div class="fg"><label class="fl">지역</label>
+          <select class="fs" id="comp-region">
+            <option value="">선택</option>
+            <option value="서울">서울</option>
+            <option value="경기">경기</option>
+            <option value="인천">인천</option>
+            <option value="부산">부산</option>
+            <option value="대구">대구</option>
+            <option value="대전">대전</option>
+            <option value="광주">광주</option>
+            <option value="울산">울산</option>
+            <option value="세종">세종</option>
+            <option value="강원">강원</option>
+            <option value="충북">충북</option>
+            <option value="충남">충남</option>
+            <option value="전북">전북</option>
+            <option value="전남">전남</option>
+            <option value="경북">경북</option>
+            <option value="경남">경남</option>
+            <option value="제주">제주</option>
+          </select>
+        </div>
+        <div class="fg"><label class="fl">업력</label>
+          <select class="fs" id="comp-age">
+            <option value="">선택</option>
+            <option value="3년이내">창업 3년 이내</option>
+            <option value="7년이내">3~7년</option>
+            <option value="7년초과">7년 초과</option>
+          </select>
+        </div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label class="fl">매출 규모</label>
+          <select class="fs" id="comp-revenue">
+            <option value="">선택</option>
+            <option value="10억미만">10억 미만</option>
+            <option value="50억미만">10~50억</option>
+            <option value="100억미만">50~100억</option>
+            <option value="100억이상">100억 이상</option>
+          </select>
+        </div>
+        <div class="fg"><label class="fl">주요 업종 분류</label>
+          <select class="fs" id="comp-industry">
+            <option value="">선택</option>
+            <option value="제조">제조업</option>
+            <option value="IT">IT·소프트웨어</option>
+            <option value="바이오">바이오·의료</option>
+            <option value="서비스">서비스업</option>
+            <option value="건설">건설·부동산</option>
+            <option value="유통">유통·물류</option>
+            <option value="농업">농업·식품</option>
+            <option value="에너지">에너지·환경</option>
+            <option value="기타">기타</option>
+          </select>
+        </div>
+      </div>
     </div>
     <!-- 법인: 등기일 + 사업개시일 / 개인: 사업개시일만 -->
     <div id="comp-reg-date-wrap" class="fg">
@@ -3469,6 +3533,17 @@ function openCompanyModal(bizno){
     setDateFields('comp-reg-y','comp-reg-m','comp-reg-d',c.regDate||'');
     setDateFields('comp-est-y','comp-est-m','comp-est-d',c.estDate||'');
     document.getElementById('comp-memo').value=c.memo||'';
+    // 매칭 필드 로드
+    const scaleEl=document.getElementById('comp-scale');
+    const regionEl=document.getElementById('comp-region');
+    const ageEl=document.getElementById('comp-age');
+    const revenueEl=document.getElementById('comp-revenue');
+    const industryEl=document.getElementById('comp-industry');
+    if(scaleEl)scaleEl.value=c.scale||'';
+    if(regionEl)regionEl.value=c.region||'';
+    if(ageEl)ageEl.value=c.compAge||'';
+    if(revenueEl)revenueEl.value=c.revenue||'';
+    if(industryEl)industryEl.value=c.industry||'';
     toggleBizDateFields();
     const delBtn=document.getElementById('comp-del-btn');
     const permDelBtn=document.getElementById('comp-perm-del-btn');
@@ -3491,6 +3566,7 @@ function openCompanyModal(bizno){
     document.getElementById('company-modal-title').textContent='🏛️ 기업 등록';
     document.getElementById('comp-edit-bizno').value='';
     ['comp-name','comp-ceo','comp-corp-no','comp-bizno','comp-biztype','comp-tel','comp-email','comp-addr','comp-memo'].forEach(id=>document.getElementById(id).value='');
+    ['comp-scale','comp-region','comp-age','comp-revenue','comp-industry'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
     ['comp-birth-y','comp-birth-m','comp-birth-d','comp-reg-y','comp-reg-m','comp-reg-d','comp-est-y','comp-est-m','comp-est-d'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
     document.getElementById('comp-bizno-auto').textContent='';
     document.getElementById('comp-group').value='일반고객';
@@ -3529,6 +3605,11 @@ async function saveCompany(){
     regDate:getDateFields('comp-reg-y','comp-reg-m','comp-reg-d'),
     estDate:getDateFields('comp-est-y','comp-est-m','comp-est-d'),
     memo:document.getElementById('comp-memo').value,
+    scale:document.getElementById('comp-scale')?.value||'',
+    region:document.getElementById('comp-region')?.value||'',
+    compAge:document.getElementById('comp-age')?.value||'',
+    revenue:document.getElementById('comp-revenue')?.value||'',
+    industry:document.getElementById('comp-industry')?.value||'',
     joinDate:editBizno?(companies.find(c=>c._id===editBizno)?.joinDate||new Date().toISOString().slice(0,10)):new Date().toISOString().slice(0,10),
     updatedAt:Date.now()
   };
@@ -3666,17 +3747,18 @@ function renderCompaniesPage(){
       +'<td><div style="font-size:13px;font-weight:500;cursor:pointer;color:var(--blue)" onclick="openCompanyModal(this.dataset.id)" data-id="'+cid+'" title="클릭하여 수정">'+c.name+'</div>'+(isInactive?'<span style="font-size:11px;color:var(--danger)">비활성</span>':'')+'</td>'
       +'<td><span style="font-size:12px">'+grpIcon+' '+(c.group||'일반고객')+'</span></td>'
       +'<td>'+(c.ceo||'—')+'</td>'
-      +'<td style="color:var(--text3)">'+(c.biztype||'—')+'</td>'
+      +'<td style="color:var(--text3)">'+(c.region||'—')+'</td>'
+      +'<td style="color:var(--text3)">'+(c.scale||'—')+'</td>'
+      +'<td style="color:var(--text3)">'+(c.industry||c.biztype||'—')+'</td>'
       +'<td style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--text4)">'+c._id+'</td>'
       +'<td style="color:var(--text3)">'+(c.tel||'—')+'</td>'
-      +'<td style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--gold)">'+(amt?fmtAmt(amt):'—')+'</td>'
       +'<td style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--text4)">'+(c.joinDate||'—')+'</td>'
       +'<td>'
         +'<button onclick="openCompanyModal(this.dataset.id)" data-id="'+cid+'" style="background:none;border:none;color:var(--text4);font-size:14px;cursor:pointer;padding:2px" title="수정">&#9998;</button>'
         +(isInactive?'<button onclick="restoreCompany(this.dataset.id)" data-id="'+cid+'" style="background:none;border:none;color:var(--ok);font-size:12px;cursor:pointer;padding:2px" title="복구">&#x21A9;복구</button>':'')
       +'</td>'
       +'</tr>';
-  }).join(''):'<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text4)">등록된 기업이 없습니다</td></tr>';
+  }).join(''):'<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text4)">등록된 기업이 없습니다</td></tr>';
 }
 
 // ── CALENDAR EXPORT ──
