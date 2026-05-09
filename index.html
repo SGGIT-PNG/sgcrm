@@ -232,6 +232,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
   <div class="sb-menu" id="nav-stats" onclick="navTo('stats')"><span class="sb-ico">📈</span><span>누적 통계 데이터</span></div>
   <div class="sb-menu" id="nav-history" onclick="navTo('history')"><span class="sb-ico">📁</span><span>완료 업무 이력</span><span class="sb-cnt" id="sb-history-cnt">0</span></div>
   <div class="sb-section">관리</div>
+  <div class="sb-menu" id="nav-matching" onclick="navTo('matching')"><span class="sb-ico">🎯</span><span>지원사업 매칭</span></div>
   <div class="sb-menu" id="nav-companies" onclick="navTo('companies')"><span class="sb-ico">🏛️</span><span>기업 관리</span><span class="sb-cnt" id="sb-corp-cnt">0</span></div>
   <div class="sb-bottom">
     <div class="sb-save" id="save-badge" onclick="manualSave()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:7px;padding:7px 12px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;color:var(--text2);transition:all .15s;margin-bottom:6px;">💾 저장</div>
@@ -557,6 +558,77 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
       </div>
       <!-- 페이지네이션 -->
       <div id="hist-pagination" style="margin-top:8px"></div>
+    </div>
+
+    <!-- PAGE: MATCHING -->
+    <div class="page-section" id="page-matching">
+      <!-- 모드 탭 -->
+      <div style="display:flex;gap:8px;margin-bottom:20px;border-bottom:2px solid var(--border);padding-bottom:0">
+        <button id="match-tab-comp" onclick="setMatchTab('comp')" style="padding:10px 20px;border:none;background:none;font-size:14px;font-weight:600;color:var(--accent);border-bottom:2px solid var(--accent);margin-bottom:-2px;cursor:pointer;font-family:Pretendard,sans-serif">🏢 업체 → 맞는 지원사업</button>
+        <button id="match-tab-cons" onclick="setMatchTab('cons')" style="padding:10px 20px;border:none;background:none;font-size:14px;font-weight:600;color:var(--text3);border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer;font-family:Pretendard,sans-serif">📋 지원사업 → 맞는 업체</button>
+      </div>
+
+      <!-- 탭1: 업체 → 지원사업 -->
+      <div id="match-pane-comp">
+        <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap">
+          <div class="search-wrap" style="flex:1;max-width:300px"><span class="search-ico">🔍</span>
+            <input class="search-inp" id="match-comp-search" placeholder="업체명 검색..." oninput="renderMatchingPage()">
+          </div>
+          <select class="fs" id="match-comp-region" onchange="renderMatchingPage()" style="width:110px">
+            <option value="">전체 지역</option>
+            <option value="서울">서울</option><option value="경기">경기</option>
+            <option value="인천">인천</option><option value="부산">부산</option>
+            <option value="대구">대구</option><option value="대전">대전</option>
+            <option value="광주">광주</option><option value="울산">울산</option>
+            <option value="세종">세종</option><option value="강원">강원</option>
+            <option value="충북">충북</option><option value="충남">충남</option>
+            <option value="전북">전북</option><option value="전남">전남</option>
+            <option value="경북">경북</option><option value="경남">경남</option>
+            <option value="제주">제주</option>
+          </select>
+          <select class="fs" id="match-comp-scale" onchange="renderMatchingPage()" style="width:120px">
+            <option value="">전체 규모</option>
+            <option value="소기업">소기업</option>
+            <option value="중기업">중기업</option>
+            <option value="중견기업">중견기업</option>
+          </select>
+          <select class="fs" id="match-comp-industry" onchange="renderMatchingPage()" style="width:130px">
+            <option value="">전체 업종</option>
+            <option value="제조">제조업</option><option value="IT">IT·소프트웨어</option>
+            <option value="바이오">바이오·의료</option><option value="서비스">서비스업</option>
+            <option value="건설">건설·부동산</option><option value="유통">유통·물류</option>
+            <option value="농업">농업·식품</option><option value="에너지">에너지·환경</option>
+          </select>
+        </div>
+        <div id="match-comp-list"></div>
+      </div>
+
+      <!-- 탭2: 지원사업 → 업체 -->
+      <div id="match-pane-cons" style="display:none">
+        <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap">
+          <div class="search-wrap" style="flex:1;max-width:300px"><span class="search-ico">🔍</span>
+            <input class="search-inp" id="match-cons-search" placeholder="지원사업명 검색..." oninput="renderMatchingPage()">
+          </div>
+          <select class="fs" id="match-cons-region" onchange="renderMatchingPage()" style="width:110px">
+            <option value="">전체 지역</option>
+            <option value="서울">서울</option><option value="경기">경기</option>
+            <option value="인천">인천</option><option value="부산">부산</option>
+            <option value="대구">대구</option><option value="대전">대전</option>
+            <option value="광주">광주</option><option value="울산">울산</option>
+            <option value="세종">세종</option><option value="강원">강원</option>
+            <option value="충북">충북</option><option value="충남">충남</option>
+            <option value="전북">전북</option><option value="전남">전남</option>
+            <option value="경북">경북</option><option value="경남">경남</option>
+            <option value="제주">제주</option>
+          </select>
+          <select class="fs" id="match-cons-status" onchange="renderMatchingPage()" style="width:100px">
+            <option value="">전체 상태</option>
+            <option value="wait">대기</option>
+            <option value="ing">진행중</option>
+          </select>
+        </div>
+        <div id="match-cons-list"></div>
+      </div>
     </div>
 
     <!-- PAGE: COMPANIES -->
@@ -1241,7 +1313,7 @@ const PAGE_TITLES={
   overview:'전체 현황',gantt:'지원사업·정책자금 일정 관리',
   todo:'수시처리 To Do List',work:'업무 영역별 진행 현황',
   clients:'업체별 진행 분야 현황',cert:'📋 인증·갱신 관리',
-  stats:'누적 통계 데이터',history:'📁 완료 업무 이력',companies:'기업 관리'
+  stats:'누적 통계 데이터',history:'📁 완료 업무 이력',companies:'기업 관리',matching:'🎯 지원사업 매칭'
 };
 const DONE_HIDE_MS = 7*24*60*60*1000;
 const GROUP_BADGE = {'주요고객':'⭐','일반고객':'🏢','잠재고객':'🔍','휴면':'💤','계약종료':'🔚'};
@@ -1648,6 +1720,7 @@ function renderPage(p){
   else if(p==='stats'){renderStatsPage();}
   else if(p==='history'){renderHistoryPage();}
   else if(p==='companies'){renderCompaniesPage();}
+  else if(p==='matching'){renderMatchingPage();}
 }
 function renderAll(){renderPage(currentPage);}
 function updateCounts(){
@@ -4097,6 +4170,203 @@ function exportCalendar(){
   closeModal('calendar-export-modal');
 }
 
+// ── MATCHING ──
+let matchTab='comp';
+
+function setMatchTab(tab){
+  matchTab=tab;
+  ['comp','cons'].forEach(function(t){
+    const btn=document.getElementById('match-tab-'+t);
+    const pane=document.getElementById('match-pane-'+t);
+    if(btn){
+      btn.style.color=t===tab?'var(--accent)':'var(--text3)';
+      btn.style.borderBottomColor=t===tab?'var(--accent)':'transparent';
+    }
+    if(pane)pane.style.display=t===tab?'':'none';
+  });
+  renderMatchingPage();
+}
+
+// 업체가 지원사업 조건에 맞는지 확인
+function isCompMatch(comp,cons){
+  var ageBand=getCompAgeBand(comp.estDate);
+  // 지역 조건
+  if(cons.targetRegion&&cons.targetRegion!==''&&comp.region!==cons.targetRegion)return false;
+  // 규모 조건
+  if(cons.targetScale&&cons.targetScale!==''){
+    var scaleOrder=['소기업','중기업','중견기업','대기업'];
+    var compIdx=scaleOrder.indexOf(comp.scale);
+    var consIdx=scaleOrder.indexOf(cons.targetScale);
+    if(compIdx===-1||compIdx>consIdx)return false;
+  }
+  // 업종 조건
+  if(cons.targetIndustry&&cons.targetIndustry!==''&&comp.industry!==cons.targetIndustry)return false;
+  // 업력 조건
+  if(cons.targetAge&&cons.targetAge!==''&&ageBand!==''&&ageBand!==cons.targetAge){
+    var ageOrder=['3년이내','7년이내','7년초과'];
+    var compAgeIdx=ageOrder.indexOf(ageBand);
+    var consAgeIdx=ageOrder.indexOf(cons.targetAge);
+    if(compAgeIdx===-1||compAgeIdx>consAgeIdx)return false;
+  }
+  return true;
+}
+
+function renderMatchingPage(){
+  if(matchTab==='comp')renderMatchComp();
+  else renderMatchCons();
+}
+
+function renderMatchComp(){
+  const el=document.getElementById('match-comp-list');if(!el)return;
+  const q=(document.getElementById('match-comp-search')?.value||'').toLowerCase();
+  const regionF=document.getElementById('match-comp-region')?.value||'';
+  const scaleF=document.getElementById('match-comp-scale')?.value||'';
+  const industryF=document.getElementById('match-comp-industry')?.value||'';
+
+  // 업체 필터
+  var filteredComps=companies.filter(function(c){
+    if(c.active==='N')return false;
+    if(q&&!c.name.toLowerCase().includes(q))return false;
+    if(regionF&&c.region!==regionF)return false;
+    if(scaleF&&c.scale!==scaleF)return false;
+    if(industryF&&c.industry!==industryF)return false;
+    return true;
+  });
+
+  if(!filteredComps.length){
+    el.innerHTML='<div class="empty"><div class="empty-ico">🔍</div><div class="empty-txt">조건에 맞는 업체가 없습니다</div></div>';
+    return;
+  }
+
+  var html='';
+  filteredComps.forEach(function(comp){
+    // 이 업체에 맞는 지원사업 찾기
+    var matched=consulting.filter(function(c){
+      if(c.status==='done')return false;
+      return isCompMatch(comp,c);
+    });
+    var ageBand=getCompAgeBand(comp.estDate);
+    var ageLabel=getCompAgeLabel(comp.estDate);
+
+    html+='<div style="background:#FFFFFF;border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;box-shadow:var(--shadow)">';
+    // 업체 헤더
+    html+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">';
+    html+='<div style="width:36px;height:36px;background:var(--accent-pale);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px">🏢</div>';
+    html+='<div style="flex:1">';
+    html+='<div style="font-size:15px;font-weight:600;color:var(--text)">'+comp.name+'</div>';
+    html+='<div style="display:flex;gap:6px;margin-top:3px;flex-wrap:wrap">';
+    if(comp.region)html+='<span style="font-size:11px;background:#EEF2FF;color:var(--accent);padding:2px 8px;border-radius:10px">📍 '+comp.region+'</span>';
+    if(comp.scale)html+='<span style="font-size:11px;background:#F0FDF4;color:var(--ok);padding:2px 8px;border-radius:10px">🏭 '+comp.scale+'</span>';
+    if(comp.industry)html+='<span style="font-size:11px;background:#FFFBEB;color:var(--warn);padding:2px 8px;border-radius:10px">⚙️ '+comp.industry+'</span>';
+    if(ageLabel)html+='<span style="font-size:11px;background:#F5F5F7;color:var(--text3);padding:2px 8px;border-radius:10px">📅 '+ageLabel+'</span>';
+    html+='</div></div>';
+    html+='<div style="font-size:13px;font-weight:700;color:'+(matched.length?'var(--accent)':'var(--text4)')+'">'+matched.length+'건 매칭</div>';
+    html+='</div>';
+
+    // 매칭된 지원사업 목록
+    if(matched.length){
+      matched.forEach(function(c){
+        var cm=CAT_META[c.category]||CAT_META.etc;
+        var conditions=[];
+        if(c.targetRegion)conditions.push('📍'+c.targetRegion);
+        if(c.targetScale)conditions.push('🏭'+c.targetScale+' 이하');
+        if(c.targetIndustry)conditions.push('⚙️'+c.targetIndustry);
+        if(c.targetAge)conditions.push('📅'+c.targetAge);
+        html+='<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface2);border-radius:8px;margin-bottom:6px">';
+        html+='<span style="font-size:14px">'+cm.icon+'</span>';
+        html+='<div style="flex:1">';
+        html+='<div style="font-size:13px;font-weight:500;color:var(--text)">'+c.title+'</div>';
+        if(conditions.length)html+='<div style="font-size:11px;color:var(--text4);margin-top:2px">'+conditions.join(' · ')+'</div>';
+        html+='</div>';
+        html+='<span style="font-size:11px;background:#EFF4FF;color:var(--accent);padding:3px 10px;border-radius:10px;font-weight:600">'+( c.endDate?'마감 '+c.endDate:'진행중')+'</span>';
+        html+='</div>';
+      });
+    } else {
+      html+='<div style="font-size:13px;color:var(--text4);text-align:center;padding:10px 0">현재 매칭되는 진행중 지원사업이 없습니다</div>';
+    }
+    html+='</div>';
+  });
+  el.innerHTML=html;
+}
+
+function renderMatchCons(){
+  const el=document.getElementById('match-cons-list');if(!el)return;
+  const q=(document.getElementById('match-cons-search')?.value||'').toLowerCase();
+  const regionF=document.getElementById('match-cons-region')?.value||'';
+  const statusF=document.getElementById('match-cons-status')?.value||'';
+
+  var filteredCons=consulting.filter(function(c){
+    if(q&&!c.title.toLowerCase().includes(q))return false;
+    if(regionF&&c.targetRegion&&c.targetRegion!==regionF)return false;
+    if(statusF&&c.status!==statusF)return false;
+    if(!statusF&&c.status==='done')return false; // 기본: 완료 제외
+    return true;
+  });
+
+  if(!filteredCons.length){
+    el.innerHTML='<div class="empty"><div class="empty-ico">📋</div><div class="empty-txt">조건에 맞는 지원사업이 없습니다</div></div>';
+    return;
+  }
+
+  var html='';
+  filteredCons.forEach(function(c){
+    var cm=CAT_META[c.category]||CAT_META.etc;
+    // 이 지원사업에 맞는 업체 찾기
+    var matched=companies.filter(function(comp){
+      if(comp.active==='N')return false;
+      return isCompMatch(comp,c);
+    });
+    var conditions=[];
+    if(c.targetRegion)conditions.push('📍 '+c.targetRegion);
+    else conditions.push('📍 전국');
+    if(c.targetScale)conditions.push('🏭 '+c.targetScale+' 이하');
+    else conditions.push('🏭 규모 제한없음');
+    if(c.targetIndustry)conditions.push('⚙️ '+c.targetIndustry);
+    else conditions.push('⚙️ 전체 업종');
+    if(c.targetAge)conditions.push('📅 '+c.targetAge);
+    else conditions.push('📅 업력 제한없음');
+
+    html+='<div style="background:#FFFFFF;border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;box-shadow:var(--shadow)">';
+    // 지원사업 헤더
+    html+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">';
+    html+='<div style="width:36px;height:36px;background:#F0F0F0;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px">'+cm.icon+'</div>';
+    html+='<div style="flex:1">';
+    html+='<div style="font-size:15px;font-weight:600;color:var(--text)">'+c.title+'</div>';
+    html+='<div style="font-size:11px;color:var(--text4);margin-top:3px">'+conditions.join(' · ')+'</div>';
+    html+='</div>';
+    html+='<div style="text-align:right">';
+    html+='<div style="font-size:18px;font-weight:700;color:'+(matched.length>0?'var(--accent)':'var(--text4)')+'">'+matched.length+'개사</div>';
+    html+='<div style="font-size:11px;color:var(--text4)">매칭 업체</div>';
+    html+='</div></div>';
+
+    // 조건 태그
+    html+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;padding:8px;background:var(--surface2);border-radius:8px">';
+    conditions.forEach(function(cond){
+      html+='<span style="font-size:11px;color:var(--text2);background:#FFFFFF;border:1px solid var(--border);padding:2px 8px;border-radius:10px">'+cond+'</span>';
+    });
+    html+='</div>';
+
+    // 매칭 업체 목록
+    if(matched.length){
+      html+='<div style="font-size:12px;font-weight:600;color:var(--text3);margin-bottom:6px">✅ 조건 맞는 업체 ('+matched.length+'개사)</div>';
+      html+='<div style="display:flex;flex-wrap:wrap;gap:6px">';
+      matched.forEach(function(comp){
+        var alreadyIn=consCompanies.some(function(cc){return cc.consId===c.id&&cc.bizno===comp._id;});
+        html+='<div style="display:flex;align-items:center;gap:6px;background:'+(alreadyIn?'#EFF4FF':'#F9FAFB')+';border:1px solid '+(alreadyIn?'var(--accent-border)':'var(--border)')+';border-radius:8px;padding:5px 10px">';
+        html+='<span style="font-size:12px;font-weight:500;color:var(--text)">'+comp.name+'</span>';
+        if(comp.region)html+='<span style="font-size:10px;color:var(--text4)">'+comp.region+'</span>';
+        if(alreadyIn)html+='<span style="font-size:10px;color:var(--accent);font-weight:600">참여중</span>';
+        html+='</div>';
+      });
+      html+='</div>';
+    } else {
+      html+='<div style="font-size:13px;color:var(--text4);padding:8px 0">조건에 맞는 업체가 없습니다. 업체 정보에 지역·규모·업종을 입력해주세요.</div>';
+    }
+    html+='</div>';
+  });
+  el.innerHTML=html;
+}
+
 // ── CORP AUTOCOMPLETE ──
 function showCorpDrop(inputId){
   const inp=document.getElementById(inputId);const dd=document.getElementById('dd-'+inputId);
@@ -4134,6 +4404,7 @@ Object.assign(window,{
   openCompanyModal,saveCompany,deleteCompany,restoreCompany,permanentDeleteCompany,checkBizno,renderCompaniesPage,toggleBizDateFields,autoTabDate,
   showCorpDrop,hideCorpDrop,selectCorpDrop,
   calcCompAge,
+  setMatchTab,renderMatchingPage,
   openCalendarExportModal,updateCalPreview,exportCalendar,
   migrateBizno,
 });
