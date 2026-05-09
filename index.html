@@ -1013,10 +1013,17 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
 
     <!-- 업체 연동 -->
     <div class="fg">
-      <label class="fl">CRM 등록 업체 연동 <span style="color:var(--text4);font-weight:400">(선택)</span></label>
-      <select class="fs" id="finance-comp-link">
-        <option value="">업체 선택 (연동하면 CRM에 저장됨)</option>
-      </select>
+      <label class="fl">CRM 등록 업체 연동 <span style="color:var(--text4);font-weight:400">(선택 - AI 분석 후 CRM에 재무데이터 저장)</span></label>
+      <div class="corp-dd-wrap">
+        <input class="fi" id="finance-comp-search-inp" placeholder="업체명 검색 또는 직접 입력..." autocomplete="off"
+          oninput="searchFinanceComp()" onfocus="searchFinanceComp()">
+        <div class="corp-dropdown" id="finance-comp-dd"></div>
+      </div>
+      <input type="hidden" id="finance-comp-link" value="">
+      <div id="finance-comp-selected" style="display:none;margin-top:6px;display:flex;align-items:center;gap:8px;background:var(--accent-pale);border:1px solid var(--accent-border);border-radius:8px;padding:7px 12px">
+        <span style="font-size:13px;font-weight:500;color:var(--accent)" id="finance-comp-selected-name"></span>
+        <button onclick="clearFinanceComp()" style="margin-left:auto;background:none;border:none;color:var(--text4);cursor:pointer;font-size:16px">×</button>
+      </div>
     </div>
 
     <!-- 파일 업로드 영역 -->
@@ -5191,16 +5198,54 @@ var financeData1 = null; // 당기
 var financeData2 = null; // 전기
 var financeAnalyzed = null; // AI 분석 결과
 
+function searchFinanceComp(){
+  var inp=document.getElementById('finance-comp-search-inp');
+  var dd=document.getElementById('finance-comp-dd');
+  if(!inp||!dd)return;
+  var q=inp.value.toLowerCase();
+  // 법인 우선, 전체 표시
+  var matches=companies.filter(function(c){
+    if(c.active==='N')return false;
+    if(!q)return true;
+    return c.name.toLowerCase().includes(q)||(c.ceo||'').toLowerCase().includes(q)||(c._id||'').includes(q);
+  }).slice(0,10);
+  if(!matches.length){dd.classList.remove('open');return;}
+  dd.innerHTML=matches.map(function(c){
+    var isLegal=c.bizclass==='법인';
+    return '<div class="corp-dropdown-item" onclick="selectFinanceComp(this.dataset.bizno,this.dataset.name)" data-bizno="'+c._id+'" data-name="'+c.name.replace(/"/g,'&quot;')+'">'
+      +(isLegal?'🏛️':'👤')+' <b>'+c.name+'</b>'
+      +(c.region?' <span style="color:var(--text4);font-size:11px">'+c.region+'</span>':'')
+      +(isLegal?'':' <span style="font-size:10px;color:var(--warn);margin-left:4px">법인 아님</span>')
+      +'<span style="color:var(--text4);font-size:10px;margin-left:6px">'+c._id+'</span>'
+      +'</div>';
+  }).join('');
+  dd.classList.add('open');
+}
+
+function selectFinanceComp(bizno,name){
+  document.getElementById('finance-comp-link').value=bizno;
+  var inp=document.getElementById('finance-comp-search-inp');
+  if(inp){inp.value='';inp.style.display='none';}
+  var dd=document.getElementById('finance-comp-dd');
+  if(dd)dd.classList.remove('open');
+  var sel=document.getElementById('finance-comp-selected');
+  var selName=document.getElementById('finance-comp-selected-name');
+  if(sel)sel.style.display='flex';
+  if(selName)selName.textContent=name;
+}
+
+function clearFinanceComp(){
+  var el=document.getElementById('finance-comp-link');if(el)el.value='';
+  var inp=document.getElementById('finance-comp-search-inp');
+  if(inp){inp.style.display='';inp.value='';}
+  var sel=document.getElementById('finance-comp-selected');
+  if(sel)sel.style.display='none';
+  var dd=document.getElementById('finance-comp-dd');
+  if(dd)dd.classList.remove('open');
+}
+
 function openFinanceModal(){
   financeData1=null; financeData2=null; financeAnalyzed=null;
-  // 업체 목록 채우기
-  var sel=document.getElementById('finance-comp-link');
-  if(sel){
-    sel.innerHTML='<option value="">업체 선택 (선택사항)</option>'
-      +companies.filter(function(c){return c.active!=='N'&&c.bizclass==='법인';}).map(function(c){
-        return '<option value="'+c._id+'">'+c.name+'</option>';
-      }).join('');
-  }
   // 초기화
   ['finance-file-name-1','finance-file-name-2'].forEach(function(id){
     var el=document.getElementById(id);if(el)el.textContent='';
@@ -5208,6 +5253,8 @@ function openFinanceModal(){
   ['finance-file-1','finance-file-2'].forEach(function(id){
     var el=document.getElementById(id);if(el)el.value='';
   });
+  clearFinanceComp();
+  var inp=document.getElementById('finance-comp-search-inp');if(inp)inp.value='';
   var resEl=document.getElementById('finance-result');if(resEl)resEl.style.display='none';
   var errEl=document.getElementById('finance-error');if(errEl)errEl.style.display='none';
   var printBtn=document.getElementById('finance-print-btn');if(printBtn)printBtn.style.display='none';
@@ -5311,7 +5358,10 @@ async function analyzeFinance(){
 
     var response=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{
+        'Content-Type':'application/json',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
       body:JSON.stringify({
         model:'claude-sonnet-4-20250514',
         max_tokens:2000,
@@ -5328,7 +5378,8 @@ async function analyzeFinance(){
     // 미리보기 표시
     if(resContent){
       var compEl=document.getElementById('finance-comp-link');
-      var linkedComp=companies.find(function(c){return c._id===(compEl?compEl.value:'');});
+      var compBizno=document.getElementById('finance-comp-link')?.value||'';
+      var linkedComp=companies.find(function(c){return c._id===compBizno;});
       var preview='<b>'+financeAnalyzed.companyName+'</b> | '+financeAnalyzed.bizNo+'<br>';
       preview+='사업연도: '+financeAnalyzed.period+'<br><br>';
       var bs=financeAnalyzed.balanceSheet;
@@ -5343,9 +5394,9 @@ async function analyzeFinance(){
     btn.textContent='🔄 다시 분석';
 
     // CRM 연동 - 선택된 업체에 재무데이터 저장
-    if(compEl&&compEl.value&&financeAnalyzed){
+    if(compBizno&&financeAnalyzed){
       try{
-        await updateDoc(doc(db,'companies',compEl.value),{
+        await updateDoc(doc(db,'companies',compBizno),{
           financeData:financeAnalyzed,
           financeUpdatedAt:Date.now()
         });
@@ -5561,6 +5612,7 @@ Object.assign(window,{
   navTo,manualSave,closeModal,
   openReportModal,printReport,
   openFinanceModal,analyzeFinance,printFinanceReport,handleFinanceFile,handleFinanceDrop,
+  searchFinanceComp,selectFinanceComp,clearFinanceComp,
   prevMonth,nextMonth,goToday,toggleCat,
   setGanttFilter,setWorkFilter,
   openCatAddModal,saveCatAdd,deleteCatAdd,setCatRequiresCert,
