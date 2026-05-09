@@ -182,10 +182,22 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
 
 .work-item{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--surface);transition:background .1s;}
 .work-item:hover{background:var(--surface2);}
+/* 업무 상태 필터 - data-filter 속성 기반 */
+.work-item{display:flex;}
+/* 진행(기본): 진행중만 표시 */
+[data-filter="ing"] .work-item-wait,
+[data-filter="ing"] .work-item-done{display:none!important;}
+/* 대기: 대기만 표시 */
+[data-filter="wait"] .work-item-ing,
+[data-filter="wait"] .work-item-done{display:none!important;}
+/* 완료: 완료만 표시 */
+[data-filter="done"] .work-item-wait,
+[data-filter="done"] .work-item-ing{display:none!important;}
+[data-filter="done"] .work-item-done{display:flex!important;opacity:.7;}
+/* 전체: 모두 표시, 완료는 흐리게 */
+[data-filter="all"] .work-item-done{display:flex!important;opacity:.5;}
+/* done-hint */
 .work-item-done{display:none;}
-.filter-active .work-item-done{display:none!important;}
-#work-grid:not(.filter-active) .work-item-done,
-#work-grid-sub:not(.filter-active) .work-item-done{display:flex!important;opacity:.5;}
 
 .corp-dd-wrap{position:relative;}
 .corp-dropdown{display:none;position:absolute;top:100%;left:0;right:0;z-index:200;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-sm);box-shadow:var(--shadow-md);overflow:hidden;margin-top:2px;}
@@ -269,8 +281,10 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
           </div>
           <div style="display:flex;gap:8px;align-items:center">
             <div class="toggle-btn" id="gantt-filter-toggle">
-              <button class="toggle-opt active" onclick="setGanttFilter('active')">진행중만</button>
-              <button class="toggle-opt" onclick="setGanttFilter('all')">전체보기</button>
+              <button class="toggle-opt" onclick="setGanttFilter('wait')">대기</button>
+              <button class="toggle-opt active" onclick="setGanttFilter('ing')">진행</button>
+              <button class="toggle-opt" onclick="setGanttFilter('done')">완료</button>
+              <button class="toggle-opt" onclick="setGanttFilter('all')">전체</button>
             </div>
             <button class="btn btn-primary btn-sm" onclick="openConsultingModal()">+ 대분류 추가</button>
           </div>
@@ -303,8 +317,10 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
           </div>
           <div style="display:flex;gap:8px;align-items:center">
             <div class="toggle-btn" id="work-filter-toggle">
-              <button class="toggle-opt active" onclick="setWorkFilter('active')">진행중만</button>
-              <button class="toggle-opt" onclick="setWorkFilter('all')">전체보기</button>
+              <button class="toggle-opt" onclick="setWorkFilter('wait')">대기</button>
+              <button class="toggle-opt active" onclick="setWorkFilter('ing')">진행</button>
+              <button class="toggle-opt" onclick="setWorkFilter('done')">완료</button>
+              <button class="toggle-opt" onclick="setWorkFilter('all')">전체</button>
             </div>
             <select class="fs" id="work-add-cat-ov" style="width:140px"></select>
             <button class="btn btn-primary btn-sm" onclick="openWorkModal(document.getElementById('work-add-cat-ov').value,null)">+ 항목 추가</button>
@@ -358,8 +374,10 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <div class="toggle-btn" id="gantt-filter-toggle-sub">
-            <button class="toggle-opt active" onclick="setGanttFilter('active')">진행중만</button>
-            <button class="toggle-opt" onclick="setGanttFilter('all')">전체보기</button>
+              <button class="toggle-opt" onclick="setGanttFilter('wait')">대기</button>
+              <button class="toggle-opt active" onclick="setGanttFilter('ing')">진행</button>
+              <button class="toggle-opt" onclick="setGanttFilter('done')">완료</button>
+              <button class="toggle-opt" onclick="setGanttFilter('all')">전체</button>
           </div>
           <select class="fs" id="gantt-region-filter" onchange="renderGantt('sub')" style="width:100px">
             <option value="">전체 지역</option>
@@ -407,8 +425,10 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
     <div class="page-section" id="page-work">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
         <div class="toggle-btn" id="work-filter-toggle-sub">
-          <button class="toggle-opt active" onclick="setWorkFilter('active')">진행중만</button>
-          <button class="toggle-opt" onclick="setWorkFilter('all')">전체보기</button>
+          <button class="toggle-opt" onclick="setWorkFilter('wait')">대기</button>
+          <button class="toggle-opt active" onclick="setWorkFilter('ing')">진행</button>
+          <button class="toggle-opt" onclick="setWorkFilter('done')">완료</button>
+          <button class="toggle-opt" onclick="setWorkFilter('all')">전체</button>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
           <select class="fs" id="work-add-cat" style="width:140px"></select>
@@ -570,11 +590,18 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
 
       <!-- 탭1: 업체 → 지원사업 -->
       <div id="match-pane-comp">
-        <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap">
-          <div class="search-wrap" style="flex:1;max-width:300px"><span class="search-ico">🔍</span>
+        <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap">
+          <!-- 진행중/완료 토글 -->
+          <div class="toggle-btn" id="match-comp-status-toggle">
+            <button class="toggle-opt" onclick="setMatchCompStatus('wait')">대기</button>
+            <button class="toggle-opt active" onclick="setMatchCompStatus('ing')">진행</button>
+            <button class="toggle-opt" onclick="setMatchCompStatus('done')">완료</button>
+            <button class="toggle-opt" onclick="setMatchCompStatus('all')">전체</button>
+          </div>
+          <div class="search-wrap" style="flex:1;max-width:260px"><span class="search-ico">🔍</span>
             <input class="search-inp" id="match-comp-search" placeholder="업체명 검색..." oninput="renderMatchingPage()">
           </div>
-          <select class="fs" id="match-comp-region" onchange="renderMatchingPage()" style="width:110px">
+          <select class="fs" id="match-comp-region" onchange="renderMatchingPage()" style="width:100px">
             <option value="">전체 지역</option>
             <option value="서울">서울</option><option value="경기">경기</option>
             <option value="인천">인천</option><option value="부산">부산</option>
@@ -586,19 +613,26 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
             <option value="경북">경북</option><option value="경남">경남</option>
             <option value="제주">제주</option>
           </select>
-          <select class="fs" id="match-comp-scale" onchange="renderMatchingPage()" style="width:120px">
+          <select class="fs" id="match-comp-scale" onchange="renderMatchingPage()" style="width:110px">
             <option value="">전체 규모</option>
             <option value="소기업">소기업</option>
             <option value="중기업">중기업</option>
             <option value="중견기업">중견기업</option>
           </select>
-          <select class="fs" id="match-comp-industry" onchange="renderMatchingPage()" style="width:130px">
+          <select class="fs" id="match-comp-industry" onchange="renderMatchingPage()" style="width:120px">
             <option value="">전체 업종</option>
             <option value="제조">제조업</option><option value="IT">IT·소프트웨어</option>
             <option value="바이오">바이오·의료</option><option value="서비스">서비스업</option>
             <option value="건설">건설·부동산</option><option value="유통">유통·물류</option>
             <option value="농업">농업·식품</option><option value="에너지">에너지·환경</option>
           </select>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:8px 12px;background:var(--surface2);border-radius:8px">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text2)">
+            <input type="checkbox" id="match-show-all-comp" onchange="renderMatchingPage()" style="accent-color:var(--accent)">
+            매칭 없는 업체도 표시
+          </label>
+          <span id="match-comp-summary" style="font-size:12px;color:var(--text4);margin-left:auto"></span>
         </div>
         <div id="match-comp-list"></div>
       </div>
@@ -1342,8 +1376,8 @@ let expandedCats = new Set();
 let tempBiznoCounter = 1;
 let currentWorkCat = null;
 let tempConsCompanies = [];
-let ganttFilter = 'active';
-let workFilter = 'active';
+let ganttFilter = 'ing';
+let workFilter = 'ing';
 let cliPageOv=1, cliPageSub=1;
 const CLI_PER_PAGE_OV=10, CLI_PER_PAGE_SUB=20;
 let cliGroupFilterOv='all', cliGroupFilterSub='all';
@@ -1856,6 +1890,10 @@ function renderGantt(sfx){
   consulting.forEach((c,ci)=>{
     const isDone=c.status==='done';
     const isExpired=isDone&&isDoneExpired({status:c.status,doneAt:c.doneAt});
+    // 상태 필터 적용
+    if(ganttFilter==='wait'&&c.status!=='wait')return;
+    if(ganttFilter==='ing'&&c.status!=='ing')return;
+    if(ganttFilter==='done'&&c.status!=='done')return;
     const exp=expandedCats.has(c.id);
     const color=CAT_COLORS[ci%CAT_COLORS.length];
     const cm=CAT_META[c.category]||CAT_META.etc;
@@ -1913,27 +1951,28 @@ function goToday(){const t=new Date();calY=t.getFullYear();calM=t.getMonth();sav
 function setGanttFilter(val){
   ganttFilter=val;
   ['gantt-filter-toggle','gantt-filter-toggle-sub'].forEach(id=>{
-    document.querySelectorAll(`#${id} .toggle-opt`).forEach((btn,i)=>btn.classList.toggle('active',(i===0&&val==='active')||(i===1&&val==='all')));
+    document.querySelectorAll('#'+id+' .toggle-opt').forEach(function(btn){
+      btn.classList.toggle('active',btn.textContent.trim()===({'wait':'대기','ing':'진행','done':'완료','all':'전체'}[val]||''));
+    });
   });
-  applyGanttFilterCSS();
+  renderGantt('');renderGantt('sub');
 }
 function applyGanttFilterCSS(){
-  ['gantt-table','gantt-table-sub'].forEach(id=>{
-    const tbl=document.getElementById(id);if(!tbl)return;
-    ganttFilter==='active'?tbl.classList.add('filter-active'):tbl.classList.remove('filter-active');
-  });
+  // 간트는 renderGantt에서 직접 필터링하므로 재렌더
 }
 function setWorkFilter(val){
   workFilter=val;
   ['work-filter-toggle','work-filter-toggle-sub'].forEach(id=>{
-    document.querySelectorAll(`#${id} .toggle-opt`).forEach((btn,i)=>btn.classList.toggle('active',(i===0&&val==='active')||(i===1&&val==='all')));
+    document.querySelectorAll('#'+id+' .toggle-opt').forEach(function(btn){
+      btn.classList.toggle('active',btn.textContent.trim()===({'wait':'대기','ing':'진행','done':'완료','all':'전체'}[val]||''));
+    });
   });
   ['work-grid','work-grid-sub'].forEach(id=>applyWorkFilterCSS(document.getElementById(id)));
 }
 function applyWorkFilterCSS(el){
   if(!el)return;
-  workFilter==='active'?el.classList.add('filter-active'):el.classList.remove('filter-active');
-  el.querySelectorAll('.done-hint').forEach(h=>h.style.display=workFilter==='active'?'':'none');
+  el.setAttribute('data-filter',workFilter||'ing');
+  el.querySelectorAll('.done-hint').forEach(function(h){h.style.display=workFilter==='ing'?'':'none';});
 }
 
 // ── CONSULTING MODAL ──
@@ -2163,8 +2202,8 @@ function renderWork(gridId){
       <div style="padding:10px 12px;max-height:220px;overflow-y:auto">
         ${!allFull.length?`<div class="empty" style="padding:12px"><div class="empty-txt">항목을 추가해 보세요</div></div>`:''}
         ${allItems.map(it=>{
-          const cls=it.status==='done'?(isDoneExpired(it)?'work-item-done work-item-expired':'work-item-done'):'';
-          return `<div class="ci work-item${cls?' '+cls:''}" onclick="openWorkModal('${cat}','${it.id}')">
+          const cls=it.status==='done'?(isDoneExpired(it)?'work-item-done work-item-expired':'work-item-done'):it.status==='wait'?'work-item-wait':'work-item-ing';
+          return `<div class="ci work-item ${cls}" onclick="openWorkModal('${cat}','${it.id}')">
             ${dot(it.status)}
             <div style="flex:1"><div style="font-size:13px">${it.name}${it.sub?` <span style="font-size:11px;color:var(--text4)">[${it.sub}]</span>`:''}</div>
             ${it.client?`<div style="font-size:11px;color:var(--text3)">${it.client}</div>`:''}</div>
@@ -2175,8 +2214,8 @@ function renderWork(gridId){
         ${allCatItems.length?`<div style="border-top:1px solid var(--border);margin:6px 0 4px;padding-top:4px">
           <div style="font-size:11px;color:var(--text4);padding:0 4px 4px">📅 간트 연동</div>
           ${allCatItems.map(it=>{
-            const cls=it.status==='done'?(isDoneExpired(it)?'work-item-done work-item-expired':'work-item-done'):'';
-            return `<div class="ci work-item${cls?' '+cls:''}" onclick="openConsultingModal('${it.consId}')">
+            const cls=it.status==='done'?(isDoneExpired(it)?'work-item-done work-item-expired':'work-item-done'):it.status==='wait'?'work-item-wait':'work-item-ing';
+            return `<div class="ci work-item ${cls}" onclick="openConsultingModal('${it.consId}')">
               ${dot(it.status)}
               <div style="flex:1"><div style="font-size:13px;color:var(--text3)">${it.client||it.consTitle}</div>
               <div style="font-size:11px;color:var(--text4)">${it.consTitle}</div></div>
@@ -4238,6 +4277,7 @@ function exportCalendar(){
 
 // ── MATCHING ──
 let matchTab='comp';
+let matchCompStatus='ing';
 
 // 매칭 페이지에서 지원사업에 업체 바로 추가
 async function quickAddToConsulting(consId,bizno){
@@ -4307,12 +4347,22 @@ function renderMatchingPage(){
   else renderMatchCons();
 }
 
+function setMatchCompStatus(val){
+  matchCompStatus=val;
+  document.querySelectorAll('#match-comp-status-toggle .toggle-opt').forEach(function(btn){
+    btn.classList.toggle('active',btn.textContent.trim()===({'wait':'대기','ing':'진행','done':'완료','all':'전체'}[val]||''));
+  });
+  renderMatchComp();
+}
+
 function renderMatchComp(){
-  const el=document.getElementById('match-comp-list');if(!el)return;
-  const q=(document.getElementById('match-comp-search')?.value||'').toLowerCase();
-  const regionF=document.getElementById('match-comp-region')?.value||'';
-  const scaleF=document.getElementById('match-comp-scale')?.value||'';
-  const industryF=document.getElementById('match-comp-industry')?.value||'';
+  var el=document.getElementById('match-comp-list');if(!el)return;
+  var q=(document.getElementById('match-comp-search')?.value||'').toLowerCase();
+  var regionF=document.getElementById('match-comp-region')?.value||'';
+  var scaleF=document.getElementById('match-comp-scale')?.value||'';
+  var industryF=document.getElementById('match-comp-industry')?.value||'';
+  var showAll=document.getElementById('match-show-all-comp')?.checked||false;
+  var statusF=matchCompStatus||'active';
 
   // 업체 필터
   var filteredComps=companies.filter(function(c){
@@ -4329,56 +4379,85 @@ function renderMatchComp(){
     return;
   }
 
-  var html='';
-  filteredComps.forEach(function(comp){
-    // 이 업체에 맞는 지원사업 찾기
+  // 각 업체별 매칭 지원사업 계산
+  var compData=filteredComps.map(function(comp){
     var matched=consulting.filter(function(c){
-      if(c.status==='done')return false;
+      if(statusF==='active'&&c.status==='done')return false;
       return isCompMatch(comp,c);
     });
-    var ageBand=getCompAgeBand(comp.estDate);
+    return {comp:comp,matched:matched};
+  });
+
+  // 매칭 없는 업체 숨김 (showAll 아닐 때)
+  var displayData=showAll?compData:compData.filter(function(d){return d.matched.length>0;});
+  var hiddenCount=compData.length-displayData.length;
+
+  // 요약 표시
+  var sumEl=document.getElementById('match-comp-summary');
+  if(sumEl)sumEl.textContent='전체 '+compData.length+'개사 중 매칭 '+displayData.length+'개사'+(hiddenCount?' ('+hiddenCount+'개사 매칭없음 숨김)':'');
+
+  if(!displayData.length){
+    el.innerHTML='<div class="empty"><div class="empty-ico">🎯</div><div class="empty-txt">매칭되는 지원사업이 있는 업체가 없습니다<br><span style="font-size:12px">"매칭 없는 업체도 표시" 체크박스를 켜거나 조건을 변경해보세요</span></div></div>';
+    return;
+  }
+
+  // 아코디언 렌더링
+  var html='';
+  displayData.forEach(function(d,idx){
+    var comp=d.comp;
+    var matched=d.matched;
     var ageLabel=getCompAgeLabel(comp.estDate);
+    var isOpen=matched.length>0&&idx<3; // 처음 3개만 기본 펼침
+    var cardId='match-card-'+idx;
+    var bodyId='match-body-'+idx;
 
-    html+='<div style="background:#FFFFFF;border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;box-shadow:var(--shadow)">';
-    // 업체 헤더
-    html+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">';
-    html+='<div style="width:36px;height:36px;background:var(--accent-pale);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px">🏢</div>';
+    html+='<div id="'+cardId+'" style="background:#FFFFFF;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;box-shadow:var(--shadow);overflow:hidden">';
+    // 헤더 (클릭하면 접기/펼치기)
+    html+='<div onclick="toggleMatchCard(\''+bodyId+'\')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;transition:background .1s" onmouseover="this.style.background=\'var(--surface2)\'" onmouseout="this.style.background=\'\'">';
+    html+='<div style="width:32px;height:32px;background:var(--accent-pale);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px">🏢</div>';
     html+='<div style="flex:1">';
-    html+='<div style="font-size:15px;font-weight:600;color:var(--text)">'+comp.name+'</div>';
-    html+='<div style="display:flex;gap:6px;margin-top:3px;flex-wrap:wrap">';
-    if(comp.region)html+='<span style="font-size:11px;background:#EEF2FF;color:var(--accent);padding:2px 8px;border-radius:10px">📍 '+comp.region+'</span>';
-    if(comp.scale)html+='<span style="font-size:11px;background:#F0FDF4;color:var(--ok);padding:2px 8px;border-radius:10px">🏭 '+comp.scale+'</span>';
-    if(comp.industry)html+='<span style="font-size:11px;background:#FFFBEB;color:var(--warn);padding:2px 8px;border-radius:10px">⚙️ '+comp.industry+'</span>';
-    if(ageLabel)html+='<span style="font-size:11px;background:#F5F5F7;color:var(--text3);padding:2px 8px;border-radius:10px">📅 '+ageLabel+'</span>';
+    html+='<div style="font-size:14px;font-weight:600;color:var(--text)">'+comp.name+'</div>';
+    html+='<div style="display:flex;gap:5px;margin-top:2px;flex-wrap:wrap">';
+    if(comp.region)html+='<span style="font-size:10px;background:#EEF2FF;color:var(--accent);padding:1px 7px;border-radius:8px">📍'+comp.region+'</span>';
+    if(comp.scale)html+='<span style="font-size:10px;background:#F0FDF4;color:var(--ok);padding:1px 7px;border-radius:8px">🏭'+comp.scale+'</span>';
+    if(comp.industry)html+='<span style="font-size:10px;background:#FFFBEB;color:var(--warn);padding:1px 7px;border-radius:8px">⚙️'+comp.industry+'</span>';
+    if(ageLabel)html+='<span style="font-size:10px;background:#F5F5F7;color:var(--text3);padding:1px 7px;border-radius:8px">'+ageLabel+'</span>';
     html+='</div></div>';
-    html+='<div style="font-size:13px;font-weight:700;color:'+(matched.length?'var(--accent)':'var(--text4)')+'">'+matched.length+'건 매칭</div>';
-    html+='</div>';
-
-    // 매칭된 지원사업 목록
+    html+='<div style="display:flex;align-items:center;gap:8px">';
+    html+='<span style="font-size:13px;font-weight:700;color:'+(matched.length?'var(--accent)':'var(--text4)')+'">'+matched.length+'건</span>';
+    html+='<span id="arrow-'+bodyId+'" style="font-size:12px;color:var(--text4);transition:transform .2s;display:inline-block;transform:'+(isOpen?'rotate(90deg)':'rotate(0deg)')+'">▶</span>';
+    html+='</div></div>';
+    // 본문 (접기/펼치기)
+    html+='<div id="'+bodyId+'" style="display:'+(isOpen?'block':'none')+';border-top:1px solid var(--border);padding:10px 16px">';
     if(matched.length){
       matched.forEach(function(c){
         var cm=CAT_META[c.category]||CAT_META.etc;
-        var conditions=[];
-        if(c.targetRegion)conditions.push('📍'+c.targetRegion);
-        if(c.targetScale)conditions.push('🏭'+c.targetScale+' 이하');
-        if(c.targetIndustry)conditions.push('⚙️'+c.targetIndustry);
-        if(c.targetAge)conditions.push('📅'+c.targetAge);
-        html+='<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface2);border-radius:8px;margin-bottom:6px">';
-        html+='<span style="font-size:14px">'+cm.icon+'</span>';
-        html+='<div style="flex:1">';
-        html+='<div style="font-size:13px;font-weight:500;color:var(--text)">'+c.title+'</div>';
-        if(conditions.length)html+='<div style="font-size:11px;color:var(--text4);margin-top:2px">'+conditions.join(' · ')+'</div>';
-        html+='</div>';
-        html+='<span style="font-size:11px;background:#EFF4FF;color:var(--accent);padding:3px 10px;border-radius:10px;font-weight:600">'+( c.endDate?'마감 '+c.endDate:'진행중')+'</span>';
+        var stBg=c.status==='done'?'#F5F5F7':'#EFF4FF';
+        var stColor=c.status==='done'?'var(--text4)':'var(--accent)';
+        var stLabel=c.status==='done'?'완료':(c.endDate?'마감 '+c.endDate:'진행중');
+        html+='<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface2);border-radius:8px;margin-bottom:5px">';
+        html+='<span style="font-size:13px">'+cm.icon+'</span>';
+        html+='<div style="flex:1"><div style="font-size:12px;font-weight:500;color:var(--text)">'+c.title+'</div></div>';
+        html+='<span style="font-size:11px;background:'+stBg+';color:'+stColor+';padding:2px 9px;border-radius:8px;font-weight:600">'+stLabel+'</span>';
         html+='</div>';
       });
     } else {
-      html+='<div style="font-size:13px;color:var(--text4);text-align:center;padding:10px 0">현재 매칭되는 진행중 지원사업이 없습니다</div>';
+      html+='<div style="font-size:12px;color:var(--text4);padding:6px 0;text-align:center">매칭되는 지원사업이 없습니다</div>';
     }
-    html+='</div>';
+    html+='</div></div>';
   });
   el.innerHTML=html;
 }
+
+function toggleMatchCard(bodyId){
+  var body=document.getElementById(bodyId);
+  var arrow=document.getElementById('arrow-'+bodyId);
+  if(!body)return;
+  var isOpen=body.style.display!=='none';
+  body.style.display=isOpen?'none':'block';
+  if(arrow)arrow.style.transform=isOpen?'rotate(0deg)':'rotate(90deg)';
+}
+
 
 function renderMatchCons(){
   const el=document.getElementById('match-cons-list');if(!el)return;
@@ -4501,6 +4580,7 @@ Object.assign(window,{
   calcCompAge,
   setMatchTab,renderMatchingPage,quickAddToConsulting,
   previewConsMatch,addConsCompanyDirect,
+  setMatchCompStatus,toggleMatchCard,
   openCalendarExportModal,updateCalPreview,exportCalendar,
   migrateBizno,
 });
