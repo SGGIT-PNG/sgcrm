@@ -667,9 +667,70 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
 
     <!-- PAGE: COMPANIES -->
     <div class="page-section" id="page-companies">
-      <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center">
-        <div class="search-wrap" style="flex:1;margin-bottom:0"><span class="search-ico">🔍</span><input class="search-inp" id="corp-search" placeholder="기업명, 대표자 검색..." oninput="renderCompaniesPage()"></div>
-        <button class="btn btn-primary" onclick="openCompanyModal()">+ 기업 등록</button>
+      <!-- 검색 영역 -->
+      <div style="background:#FFFFFF;border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:16px;box-shadow:var(--shadow)">
+        <!-- 1행: 텍스트 검색 + 등록 버튼 -->
+        <div style="display:flex;gap:10px;margin-bottom:10px;align-items:center">
+          <div class="search-wrap" style="flex:1;margin-bottom:0">
+            <span class="search-ico">🔍</span>
+            <input class="search-inp" id="corp-search" placeholder="기업명, 대표자, 사업자번호, 연락처 검색..." oninput="renderCompaniesPage()">
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="resetCorpSearch()">초기화</button>
+          <button class="btn btn-primary" onclick="openCompanyModal()">+ 기업 등록</button>
+        </div>
+        <!-- 2행: 필터 드롭다운 -->
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select class="fs" id="corp-filter-group" onchange="renderCompaniesPage()" style="width:120px">
+            <option value="">전체 그룹</option>
+            <option value="주요고객">⭐ 주요고객</option>
+            <option value="일반고객">🏢 일반고객</option>
+            <option value="잠재고객">🔍 잠재고객</option>
+            <option value="휴면">💤 휴면</option>
+            <option value="계약종료">🔚 계약종료</option>
+          </select>
+          <select class="fs" id="corp-filter-region" onchange="renderCompaniesPage()" style="width:100px">
+            <option value="">전체 지역</option>
+            <option value="서울">서울</option><option value="경기">경기</option>
+            <option value="인천">인천</option><option value="부산">부산</option>
+            <option value="대구">대구</option><option value="대전">대전</option>
+            <option value="광주">광주</option><option value="울산">울산</option>
+            <option value="세종">세종</option><option value="강원">강원</option>
+            <option value="충북">충북</option><option value="충남">충남</option>
+            <option value="전북">전북</option><option value="전남">전남</option>
+            <option value="경북">경북</option><option value="경남">경남</option>
+            <option value="제주">제주</option>
+          </select>
+          <select class="fs" id="corp-filter-scale" onchange="renderCompaniesPage()" style="width:110px">
+            <option value="">전체 규모</option>
+            <option value="소기업">소기업</option>
+            <option value="중기업">중기업</option>
+            <option value="중견기업">중견기업</option>
+            <option value="대기업">대기업</option>
+          </select>
+          <select class="fs" id="corp-filter-industry" onchange="renderCompaniesPage()" style="width:130px">
+            <option value="">전체 업종</option>
+            <option value="제조">제조업</option>
+            <option value="IT">IT·소프트웨어</option>
+            <option value="바이오">바이오·의료</option>
+            <option value="서비스">서비스업</option>
+            <option value="건설">건설·부동산</option>
+            <option value="유통">유통·물류</option>
+            <option value="농업">농업·식품</option>
+            <option value="에너지">에너지·환경</option>
+          </select>
+          <select class="fs" id="corp-filter-age" onchange="renderCompaniesPage()" style="width:130px">
+            <option value="">전체 업력</option>
+            <option value="3년이내">창업 3년 이내</option>
+            <option value="7년이내">3~7년</option>
+            <option value="7년초과">7년 초과</option>
+          </select>
+          <select class="fs" id="corp-filter-active" onchange="renderCompaniesPage()" style="width:100px">
+            <option value="Y">활성만</option>
+            <option value="">전체(비활성포함)</option>
+            <option value="N">비활성만</option>
+          </select>
+          <span id="corp-search-result" style="font-size:12px;color:var(--text4);margin-left:auto"></span>
+        </div>
       </div>
       <div class="card"><div class="tbl-wrap"><table class="tbl">
         <thead><tr><th>기업명</th><th>그룹</th><th>대표자</th><th>지역</th><th>규모</th><th>업력</th><th>업종</th><th>사업자번호</th><th>연락처</th><th>등록일</th><th style="width:60px">관리</th></tr></thead>
@@ -4070,9 +4131,52 @@ async function migrateBizno(){
     alert('전환 실패: '+e.message+'\n\n새 기업 문서가 생성됐을 수 있습니다. 데이터를 확인해주세요.');
   }
 }
+function resetCorpSearch(){
+  ['corp-search','corp-filter-group','corp-filter-region','corp-filter-scale',
+   'corp-filter-industry','corp-filter-age'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.value='';
+  });
+  const activeEl=document.getElementById('corp-filter-active');
+  if(activeEl)activeEl.value='Y';
+  renderCompaniesPage();
+}
+
 function renderCompaniesPage(){
   const q=(document.getElementById('corp-search')?.value||'').toLowerCase();
-  const filtered=companies.filter(c=>!q||c.name.toLowerCase().includes(q)||(c.ceo||'').toLowerCase().includes(q));
+  const groupF=document.getElementById('corp-filter-group')?.value||'';
+  const regionF=document.getElementById('corp-filter-region')?.value||'';
+  const scaleF=document.getElementById('corp-filter-scale')?.value||'';
+  const industryF=document.getElementById('corp-filter-industry')?.value||'';
+  const ageF=document.getElementById('corp-filter-age')?.value||'';
+  const activeF=document.getElementById('corp-filter-active')?.value;
+
+  const filtered=companies.filter(c=>{
+    // 활성 상태
+    if(activeF==='Y'&&c.active==='N')return false;
+    if(activeF==='N'&&c.active!=='N')return false;
+    // 텍스트 검색 (기업명, 대표자, 사업자번호, 연락처)
+    if(q){
+      const match=c.name.toLowerCase().includes(q)
+        ||(c.ceo||'').toLowerCase().includes(q)
+        ||(c._id||'').includes(q)
+        ||(c.tel||'').includes(q)
+        ||(c.addr||'').toLowerCase().includes(q);
+      if(!match)return false;
+    }
+    // 필터
+    if(groupF&&c.group!==groupF)return false;
+    if(regionF&&c.region!==regionF)return false;
+    if(scaleF&&c.scale!==scaleF)return false;
+    if(industryF&&c.industry!==industryF)return false;
+    // 업력 필터 (estDate 기준 자동계산)
+    if(ageF){const band=getCompAgeBand(c.estDate);if(band&&band!==ageF)return false;}
+    return true;
+  });
+
+  // 검색 결과 수 표시
+  const resultEl=document.getElementById('corp-search-result');
+  if(resultEl)resultEl.textContent=filtered.length+'개 업체'+( filtered.length<companies.length?' (전체 '+companies.length+'개 중)':'');
+
   document.getElementById('corp-tbody').innerHTML=filtered.length?filtered.map(c=>{
     const mycons=consulting.filter(x=>consCompanies.some(cc=>cc.consId===x.id&&cc.bizno===c._id));
     const amt=mycons.reduce((s,x)=>s+(+x.amount||0),0);
@@ -4575,7 +4679,7 @@ Object.assign(window,{
   renderClientsPage,setCliPageOv,setCliPageSub,setCliGroupFilter,
   renderStatsPage,setStatsYear,setStatsCat,setStatsCompPage,exportStatsExcel,
   renderHistoryPage,setHistStatus,setHistPage,
-  openCompanyModal,saveCompany,deleteCompany,restoreCompany,permanentDeleteCompany,checkBizno,renderCompaniesPage,toggleBizDateFields,autoTabDate,
+  openCompanyModal,saveCompany,deleteCompany,restoreCompany,permanentDeleteCompany,checkBizno,renderCompaniesPage,resetCorpSearch,toggleBizDateFields,autoTabDate,
   showCorpDrop,hideCorpDrop,selectCorpDrop,
   calcCompAge,
   setMatchTab,renderMatchingPage,quickAddToConsulting,
