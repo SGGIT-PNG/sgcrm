@@ -5300,119 +5300,193 @@ async function analyzeFinance(){
   var resContent=document.getElementById('finance-result-content');
   var printBtn=document.getElementById('finance-print-btn');
 
-  btn.textContent='🔄 AI 분석 중...';
+  btn.textContent='🔄 분석 중...';
   btn.disabled=true;
   if(errEl)errEl.style.display='none';
   if(resEl)resEl.style.display='none';
 
   try{
-    // 메시지 구성
-    var messages=[{role:'user',content:[]}];
-    // 당기 파일
-    messages[0].content.push({
-      type:'document',
-      source:{type:'base64',media_type:financeData1.mediaType,data:financeData1.base64}
-    });
-    // 전기 파일 (있으면)
-    if(financeData2){
-      messages[0].content.push({
-        type:'document',
-        source:{type:'base64',media_type:financeData2.mediaType,data:financeData2.base64}
-      });
+    // PDF에서 텍스트 추출
+    var text1=await extractTextFromFile(financeData1);
+    var text2=financeData2?await extractTextFromFile(financeData2):null;
+
+    // 국세청 표준 재무제표 패턴으로 파싱
+    var parsed=parseFinancialStatement(text1);
+    if(text2){
+      var parsed2=parseFinancialStatement(text2);
+      parsed.prevBalanceSheet=parsed2.balanceSheet;
+      parsed.prevIncomeStatement=parsed2.incomeStatement;
+      parsed.prevPeriod=parsed2.period;
     }
 
-    var prompt='이 재무제표를 분석해서 아래 JSON 형식으로만 응답해주세요. 다른 텍스트 없이 JSON만 출력하세요.\n\n'
-      +'{\n'
-      +'"companyName": "법인명",\n'
-      +'"bizNo": "사업자번호",\n'
-      +'"period": "사업연도 (예: 2025.01.01~2025.12.31)",\n'
-      +'"reportDate": "신고일",\n'
-      +'"balanceSheet": {\n'
-      +'"currentAssets": 유동자산,\n'
-      +'"nonCurrentAssets": 비유동자산,\n'
-      +'"totalAssets": 자산총계,\n'
-      +'"currentLiabilities": 유동부채,\n'
-      +'"nonCurrentLiabilities": 비유동부채,\n'
-      +'"totalLiabilities": 부채총계,\n'
-      +'"capital": 자본금,\n'
-      +'"retainedEarnings": 이익잉여금,\n'
-      +'"totalEquity": 자본총계\n'
-      +'},\n'
-      +'"incomeStatement": {\n'
-      +'"revenue": 매출액,\n'
-      +'"costOfSales": 매출원가,\n'
-      +'"grossProfit": 매출총손익,\n'
-      +'"operatingExpenses": 판매비와관리비,\n'
-      +'"operatingIncome": 영업손익,\n'
-      +'"nonOperatingIncome": 영업외수익,\n'
-      +'"nonOperatingExpenses": 영업외비용,\n'
-      +'"netIncome": 당기순손익\n'
-      +'},\n'
-      +'"prevBalanceSheet": null,\n'
-      +'"prevIncomeStatement": null,\n'
-      +'"prevPeriod": null\n'
-      +'}\n\n'
-      +(financeData2?'두 번째 문서는 전기 재무제표입니다. prevBalanceSheet와 prevIncomeStatement에 전기 데이터를, prevPeriod에 전기 사업연도를 입력해주세요.':'');
-
-    messages[0].content.push({type:'text',text:prompt});
-
-    var response=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'anthropic-dangerous-direct-browser-access':'true'
-      },
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:2000,
-        messages:messages
-      })
-    });
-
-    var data=await response.json();
-    var text=data.content.filter(function(c){return c.type==='text';}).map(function(c){return c.text;}).join('');
-    // JSON 파싱
-    var clean=text.replace(/```json|```/g,'').trim();
-    financeAnalyzed=JSON.parse(clean);
-
-    // 미리보기 표시
-    if(resContent){
-      var compEl=document.getElementById('finance-comp-link');
-      var compBizno=document.getElementById('finance-comp-link')?.value||'';
-      var linkedComp=companies.find(function(c){return c._id===compBizno;});
-      var preview='<b>'+financeAnalyzed.companyName+'</b> | '+financeAnalyzed.bizNo+'<br>';
-      preview+='사업연도: '+financeAnalyzed.period+'<br><br>';
-      var bs=financeAnalyzed.balanceSheet;
-      var is_=financeAnalyzed.incomeStatement;
-      preview+='<b>[재무상태]</b> 자산 '+fmtAmt(bs.totalAssets)+'원 | 부채 '+fmtAmt(bs.totalLiabilities)+'원 | 자본 '+fmtAmt(bs.totalEquity)+'원<br>';
-      preview+='<b>[손익]</b> 매출 '+fmtAmt(is_.revenue)+'원 | 영업손익 '+fmtAmt(is_.operatingIncome)+'원 | 당기순손익 '+fmtAmt(is_.netIncome)+'원<br>';
-      if(financeAnalyzed.prevPeriod)preview+='<br>📊 전기('+financeAnalyzed.prevPeriod+') 비교식 보고서 생성 가능';
+    if(!parsed.companyName&&!parsed.balanceSheet.totalAssets){
+      throw new Error('재무제표 데이터를 인식하지 못했습니다. 국세청 표준재무제표증명 PDF인지 확인해주세요.');
     }
-    resContent.innerHTML=preview;
+
+    financeAnalyzed=parsed;
+
+    // 미리보기
+    var bs=parsed.balanceSheet;
+    var is_=parsed.incomeStatement;
+    var preview='<b>'+parsed.companyName+'</b>';
+    if(parsed.bizNo)preview+=' | '+parsed.bizNo;
+    preview+='<br>사업연도: '+parsed.period+'<br><br>';
+    preview+='<b>[재무상태]</b> 자산 '+(bs.totalAssets||0).toLocaleString()+'원 | 부채 '+(bs.totalLiabilities||0).toLocaleString()+'원 | 자본 '+(bs.totalEquity||0).toLocaleString()+'원<br>';
+    preview+='<b>[손익]</b> 매출 '+(is_.revenue||0).toLocaleString()+'원 | 영업손익 '+(is_.operatingIncome||0).toLocaleString()+'원 | 당기순손익 '+(is_.netIncome||0).toLocaleString()+'원';
+    if(parsed.prevPeriod)preview+='<br><br>📊 전기('+parsed.prevPeriod+') 비교식 보고서 생성 가능';
+    if(resContent)resContent.innerHTML=preview;
     if(resEl)resEl.style.display='block';
     if(printBtn)printBtn.style.display='';
     btn.textContent='🔄 다시 분석';
 
-    // CRM 연동 - 선택된 업체에 재무데이터 저장
+    // CRM 저장
+    var compBizno=document.getElementById('finance-comp-link')?.value||'';
     if(compBizno&&financeAnalyzed){
       try{
-        await updateDoc(doc(db,'companies',compBizno),{
-          financeData:financeAnalyzed,
-          financeUpdatedAt:Date.now()
-        });
-        setBadge('재무데이터 저장됨',2000);
+        await updateDoc(doc(db,'companies',compBizno),{financeData:financeAnalyzed,financeUpdatedAt:Date.now()});
+        setBadge('재무데이터 CRM 저장 완료',2000);
       }catch(e){}
     }
 
   }catch(e){
     if(errEl){
       errEl.style.display='block';
-      errEl.textContent='분석 오류: '+e.message+'\n\nPDF가 너무 크거나 읽기 어려운 파일일 수 있습니다. 다시 시도해주세요.';
+      errEl.textContent='분석 오류: '+e.message;
     }
   }finally{
     btn.disabled=false;
-    if(btn.textContent==='🔄 AI 분석 중...')btn.textContent='🤖 AI 분석 시작';
+    if(btn.textContent==='🔄 분석 중...')btn.textContent='🤖 AI 분석 시작';
   }
+}
+
+async function extractTextFromFile(fileData){
+  // PDF.js로 텍스트 추출
+  if(fileData.mediaType==='application/pdf'){
+    return await extractPDFText(fileData.base64);
+  }
+  // 이미지는 텍스트 추출 불가 → 에러 안내
+  throw new Error('이미지 파일은 현재 지원되지 않습니다. PDF 파일을 사용해주세요.');
+}
+
+async function extractPDFText(base64){
+  // PDF.js 동적 로드
+  if(!window.pdfjsLib){
+    await new Promise(function(resolve,reject){
+      var s=document.createElement('script');
+      s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      s.onload=resolve; s.onerror=reject;
+      document.head.appendChild(s);
+    });
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc=
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+  var bin=atob(base64);
+  var arr=new Uint8Array(bin.length);
+  for(var i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+  var pdf=await window.pdfjsLib.getDocument({data:arr}).promise;
+  var fullText='';
+  for(var p=1;p<=pdf.numPages;p++){
+    var page=await pdf.getPage(p);
+    var content=await page.getTextContent();
+    fullText+=content.items.map(function(i){return i.str;}).join(' ')+'\n';
+  }
+  return fullText;
+}
+
+function parseNum(text,label){
+  // "레이블 숫자" 패턴에서 숫자 추출
+  var patterns=[
+    new RegExp(label+'\\s*[\\d,]+\\s*(\\-?[\\d,]+)',''),
+    new RegExp(label+'[^\\d\\-]*(\\-?[\\d,]+)',''),
+  ];
+  for(var i=0;i<patterns.length;i++){
+    var m=text.match(patterns[i]);
+    if(m){
+      var n=parseInt(m[m.length-1].replace(/,/g,''));
+      if(!isNaN(n))return n;
+    }
+  }
+  return null;
+}
+
+function parseFinancialStatement(text){
+  // 회사명 추출
+  var companyName='';
+  var bizNo='';
+  var period='';
+
+  var nameMatch=text.match(/상호[（\(]?법인명[）\)]?\s*([^\s]+(?:\s+[^\s]+)?)/)||
+                text.match(/법인명\s+([^\s]+(?:\s+[^\s]+)*?)\s+사업자/);
+  if(nameMatch)companyName=nameMatch[1].trim();
+
+  var bizMatch=text.match(/사업자\s*(?:등록\s*)?번호\s*([\d\-]+)/)||
+               text.match(/([\d]{3}-[\d]{2}-[\d]{5})/);
+  if(bizMatch)bizNo=bizMatch[1].trim();
+
+  // 사업연도 추출
+  var periodMatch=text.match(/(\d{4}\.\d{2}\.\d{2})\s*[~～\-]\s*(\d{4}\.\d{2}\.\d{2})/)||
+                  text.match(/(\d{4})\s*년\s*(\d{1,2})\s*월.*?(\d{4})\s*년\s*(\d{1,2})\s*월/);
+  if(periodMatch)period=periodMatch[1]+'~'+periodMatch[2];
+
+  // 재무상태표 항목 추출 (코드번호 기반)
+  function extractByCode(text,code){
+    var m=text.match(new RegExp(code+'\\s+(\\-?[\\d,]+)'));
+    return m?parseInt(m[1].replace(/,/g,'')):null;
+  }
+
+  // 국세청 표준 코드 기반 파싱
+  var bs={
+    currentAssets:    extractByCode(text,'001')||parseNum(text,'유동자산'),
+    nonCurrentAssets: extractByCode(text,'080')||parseNum(text,'비유동자산'),
+    totalAssets:      extractByCode(text,'228')||parseNum(text,'자산총계'),
+    currentLiabilities:    extractByCode(text,'229')||parseNum(text,'유동부채'),
+    nonCurrentLiabilities: extractByCode(text,'284')||parseNum(text,'비유동부채'),
+    totalLiabilities: extractByCode(text,'333')||parseNum(text,'부채총계'),
+    capital:          extractByCode(text,'334')||parseNum(text,'자본금'),
+    retainedEarnings: extractByCode(text,'372')||parseNum(text,'이익잉여금'),
+    totalEquity:      null,
+  };
+  // 자본총계 = 자산총계 - 부채총계
+  if(bs.totalAssets!==null&&bs.totalLiabilities!==null){
+    bs.totalEquity=bs.totalAssets-bs.totalLiabilities;
+  }
+
+  var is_={
+    revenue:           extractByCode(text,'001 .*?손익')||parseNum(text,'매출액'),
+    costOfSales:       extractByCode(text,'035')||parseNum(text,'매출원가'),
+    grossProfit:       extractByCode(text,'066')||parseNum(text,'매출총손익'),
+    operatingExpenses: extractByCode(text,'067')||parseNum(text,'판매비와관리비'),
+    operatingIncome:   extractByCode(text,'129')||parseNum(text,'영업손익'),
+    nonOperatingIncome:  extractByCode(text,'130')||parseNum(text,'영업외수익'),
+    nonOperatingExpenses:extractByCode(text,'179')||parseNum(text,'영업외비용'),
+    netIncome:         extractByCode(text,'219')||parseNum(text,'당기순손익'),
+  };
+
+  // 손익계산서 재무제표에서 매출액 재추출 (코드가 재무상태표와 겹침)
+  var revMatch=text.match(/매출액\s*001\s+([\d,]+)/)||
+               text.match(/I\s*[.\uff0e]\s*매출액\s+([\d,]+)/)||
+               text.match(/수입금\s*025\s+([\d,]+)/);
+  if(revMatch)is_.revenue=parseInt(revMatch[1].replace(/,/g,''));
+
+  var opMatch=text.match(/영업손익\s*129\s+(\-?[\d,]+)/)||
+              text.match(/V\s*[.\uff0e]\s*영업손익\s+(\-?[\d,]+)/);
+  if(opMatch)is_.operatingIncome=parseInt(opMatch[1].replace(/,/g,''));
+
+  var netMatch=text.match(/당기순손익\s*219\s+(\-?[\d,]+)/)||
+               text.match(/X\s*[.\uff0e]\s*당기순손익\s+(\-?[\d,]+)/);
+  if(netMatch)is_.netIncome=parseInt(netMatch[1].replace(/,/g,''));
+
+  return{
+    companyName:companyName||'',
+    bizNo:bizNo||'',
+    period:period||'',
+    reportDate:'',
+    balanceSheet:bs,
+    incomeStatement:is_,
+    prevBalanceSheet:null,
+    prevIncomeStatement:null,
+    prevPeriod:null,
+  };
 }
 
 function printFinanceReport(){
