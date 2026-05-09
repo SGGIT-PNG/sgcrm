@@ -3284,29 +3284,54 @@ function renderCertAlertBanner(){
   var aPending=aReports.filter(function(r){return r.report&&r.report.status!=='done'&&new Date(r.report.dueDate)>=new Date();});
   var aDone=aReports.filter(function(r){return r.report&&r.report.status==='done';});
 
-  // 긴급 배너
+  // 단계별 인앱 알림 배너 (D-30/D-7/D-1/만료)
   if(bannerEl){
-    var urgent=rExpired.concat(rD30).concat(aMissed);
-    if(!urgent.length){bannerEl.style.display='none';}
+    var rD1=renewalCerts.filter(function(c){var d=getCertDday(c.expDate);return d>=0&&d<=1;});
+    var rD7=renewalCerts.filter(function(c){var d=getCertDday(c.expDate);return d>1&&d<=7;});
+    var rD30b=renewalCerts.filter(function(c){var d=getCertDday(c.expDate);return d>7&&d<=30;});
+    var aD1=aPending.filter(function(r){var d=Math.ceil((new Date(r.report.dueDate)-Date.now())/86400000);return d<=1;});
+    var aD7=aPending.filter(function(r){var d=Math.ceil((new Date(r.report.dueDate)-Date.now())/86400000);return d>1&&d<=7;});
+    var aD30=aPending.filter(function(r){var d=Math.ceil((new Date(r.report.dueDate)-Date.now())/86400000);return d>7&&d<=30;});
+    var hasAny=rExpired.length||rD1.length||rD7.length||rD30b.length||aMissed.length||aD1.length||aD7.length||aD30.length;
+    if(!hasAny){bannerEl.style.display='none';}
     else{
       bannerEl.style.display='';
-      var bHtml='<div style="background:#FFF5F5;border:1px solid #FECACA;border-radius:10px;padding:12px 16px;margin-bottom:16px">';
-      bHtml+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">';
-      bHtml+='<span style="font-size:14px;font-weight:600;color:#DC2626">⚠️ 긴급 갱신 알림 '+urgent.length+'건</span>';
-      bHtml+='<button onclick="navTo(\'cert\')" style="margin-left:auto;background:#FEE2E2;border:1px solid #FECACA;border-radius:6px;color:#DC2626;font-size:12px;padding:4px 12px;cursor:pointer;font-family:Pretendard,sans-serif">전체보기 →</button>';
-      bHtml+='</div>';
-      urgent.slice(0,3).forEach(function(item){
-        var cert=item.cert||item;
-        var comp=companies.find(function(x){return x._id===cert.bizno;});
-        var m=getCertMasterInfo(cert.certMasterId);
-        var diff=getCertDday(cert.expDate);
-        var label=diff<0?'만료 D+'+Math.abs(diff):diff===0?'D-Day':'D-'+diff;
-        bHtml+='<div style="display:flex;gap:8px;font-size:12px;padding:3px 0">';
-        bHtml+='<span style="font-family:JetBrains Mono,monospace;color:#DC2626;font-weight:600;width:70px;flex-shrink:0">'+label+'</span>';
-        bHtml+='<span style="font-weight:500;color:#1C1C1E">'+(comp?comp.name:cert.companyName||'—')+'</span>';
-        bHtml+='<span style="color:#6C6C70">'+m.icon+' '+m.certName+'</span>';
-        bHtml+='</div>';
-      });
+      var bHtml='<div style="margin-bottom:16px">';
+      function makeSec(items,bg,border,color,icon,title,isAnnual){
+        if(!items.length)return '';
+        var s='<div style="background:'+bg+';border:1px solid '+border+';border-radius:8px;padding:10px 14px;margin-bottom:8px">';
+        s+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">';
+        s+='<span>'+icon+'</span>';
+        s+='<span style="font-size:13px;font-weight:600;color:'+color+'">'+title+' '+items.length+'건</span>';
+        s+='<button onclick="navTo(\'cert\'" style="margin-left:auto;border:1px solid '+border+';border-radius:6px;background:none;color:'+color+';font-size:11px;padding:3px 10px;cursor:pointer;font-family:Pretendard,sans-serif">자세히 보기 →</button>';
+        s+='</div>';
+        items.slice(0,3).forEach(function(item){
+          var cert=isAnnual?(item.cert||item):item;
+          var report=isAnnual?item.report:null;
+          var comp=companies.find(function(x){return x._id===cert.bizno;});
+          var m=getCertMasterInfo(cert.certMasterId);
+          var compName=comp?comp.name:(cert.companyName||'—');
+          var label='';
+          if(isAnnual){var dd=Math.ceil((new Date(report.dueDate)-Date.now())/86400000);label=dd<=0?'기한초과':dd===1?'D-1':'D-'+dd;}
+          else{var diff=getCertDday(cert.expDate);label=diff<0?'만료':diff===0?'D-Day':'D-'+diff;}
+          s+='<div style="display:flex;gap:8px;font-size:12px;padding:2px 0;align-items:center">';
+          s+='<span style="font-family:JetBrains Mono,monospace;color:'+color+';font-weight:700;width:65px;flex-shrink:0">'+label+'</span>';
+          s+='<span style="font-weight:500;color:#1C1C1E;flex:1">'+compName+'</span>';
+          s+='<span style="color:#6C6C70;font-size:11px">'+m.icon+' '+m.certName+'</span>';
+          s+='</div>';
+        });
+        if(items.length>3)s+='<div style="font-size:11px;color:'+color+';margin-top:4px;text-align:right">...외 '+(items.length-3)+'건 더</div>';
+        s+='</div>';
+        return s;
+      }
+      bHtml+=makeSec(rExpired,'#FFF0F0','#FECACA','#B91C1C','🔴','인증 만료',false);
+      bHtml+=makeSec(aMissed,'#FFF0F0','#FECACA','#B91C1C','🔴','연간신고 기한 초과',true);
+      bHtml+=makeSec(rD1,'#FFF0F0','#FECACA','#DC2626','🔴','인증만료 D-1 임박',false);
+      bHtml+=makeSec(aD1,'#FFF0F0','#FECACA','#DC2626','🔴','연간신고 D-1 임박',true);
+      bHtml+=makeSec(rD7,'#FFF7ED','#FED7AA','#C2410C','🟠','인증만료 D-7 이내',false);
+      bHtml+=makeSec(aD7,'#FFF7ED','#FED7AA','#C2410C','🟠','연간신고 D-7 이내',true);
+      bHtml+=makeSec(rD30b,'#FFFBEB','#FDE68A','#D97706','🟡','인증만료 D-30 이내',false);
+      bHtml+=makeSec(aD30,'#FFFBEB','#FDE68A','#D97706','🟡','연간신고 D-30 이내',true);
       bHtml+='</div>';
       bannerEl.innerHTML=bHtml;
     }
