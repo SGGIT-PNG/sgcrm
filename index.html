@@ -247,6 +247,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
   <div class="sb-menu" id="nav-matching" onclick="navTo('matching')"><span class="sb-ico">🎯</span><span>지원사업 매칭</span></div>
   <div class="sb-menu" id="nav-companies" onclick="navTo('companies')"><span class="sb-ico">🏛️</span><span>기업 관리</span><span class="sb-cnt" id="sb-corp-cnt">0</span></div>
   <div class="sb-bottom">
+    <div onclick="openReportModal()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:7px;padding:7px 12px;text-align:center;cursor:pointer;font-size:12px;font-weight:500;color:rgba(255,255,255,.7);margin-bottom:6px;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.15)'" onmouseout="this.style.background='rgba(255,255,255,.08)'">📄 레포트 출력</div>
     <div class="sb-save" id="save-badge" onclick="manualSave()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:7px;padding:7px 12px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;color:var(--text2);transition:all .15s;margin-bottom:6px;">💾 저장</div>
     <div class="sb-time" id="live-time-sb"></div>
   </div>
@@ -899,6 +900,195 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
       </div>
       <button class="btn btn-ghost" onclick="closeModal('company-modal')">취소</button>
       <button class="btn btn-primary" onclick="saveCompany()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 레포트 출력 -->
+<div class="ov" id="report-modal">
+  <div class="modal" style="width:560px">
+    <div class="modal-title">
+      <span>📄 PDF 레포트 출력</span>
+      <button class="modal-close" onclick="closeModal('report-modal')">×</button>
+    </div>
+    <div style="font-size:13px;color:var(--text3)">출력할 레포트를 선택하세요. 브라우저 인쇄 화면에서 "PDF로 저장"을 선택하면 PDF 파일로 저장됩니다.</div>
+
+    <!-- 레포트 선택 -->
+    <div style="display:flex;flex-direction:column;gap:10px">
+
+      <!-- 1. 전체 종합 보고서 -->
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--text)">📊 전체 종합 보고서</div>
+            <div style="font-size:12px;color:var(--text4);margin-top:3px">업무·인증·지원사업 전체 현황 요약</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="printReport('summary')">출력</button>
+        </div>
+      </div>
+
+      <!-- 2. 업체별 진행 현황 -->
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--text)">🏢 업체별 진행 현황 보고서</div>
+            <div style="font-size:12px;color:var(--text4);margin-top:3px">업체별 업무·인증·지원사업 상세 현황</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="printReport('company')">출력</button>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select class="fs" id="report-comp-filter" style="flex:1">
+            <option value="">전체 업체</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 3. 인증·갱신 현황 -->
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--text)">🏅 인증·갱신 현황 보고서</div>
+            <div style="font-size:12px;color:var(--text4);margin-top:3px">인증 만료일·갱신 일정·연간신고 현황</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="printReport('cert')">출력</button>
+        </div>
+        <div style="display:flex;gap:8px">
+          <select class="fs" id="report-cert-status" style="flex:1">
+            <option value="">전체 상태</option>
+            <option value="urgent">긴급 (D-30 이내)</option>
+            <option value="safe">유효</option>
+            <option value="expired">만료</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 4. 지원사업 실적 -->
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--text)">📋 지원사업 실적 보고서</div>
+            <div style="font-size:12px;color:var(--text4);margin-top:3px">지원사업·정책자금 신청·완료 실적</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="printReport('consulting')">출력</button>
+        </div>
+        <div style="display:flex;gap:8px">
+          <select class="fs" id="report-cons-status" style="flex:1">
+            <option value="">전체 상태</option>
+            <option value="ing">진행중</option>
+            <option value="done">완료</option>
+            <option value="wait">대기</option>
+          </select>
+          <select class="fs" id="report-cons-year" style="flex:1">
+            <option value="">전체 연도</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+      <!-- 5. 재무제표 분석 -->
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--text)">📊 재무제표 분석 보고서</div>
+            <div style="font-size:12px;color:var(--text4);margin-top:3px">PDF 업로드 → AI 자동 분석 · 비교식 재무제표 생성</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="closeModal('report-modal');openFinanceModal()">분석 시작</button>
+        </div>
+      </div>
+
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModal('report-modal')">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 재무제표 분석 -->
+<div class="ov" id="finance-modal">
+  <div class="modal" style="width:680px;max-height:92vh">
+    <div class="modal-title">
+      <span>📊 재무제표 분석 · 보고서 생성</span>
+      <button class="modal-close" onclick="closeModal('finance-modal')">×</button>
+    </div>
+    <div style="font-size:12px;color:var(--text3);padding:4px 0 8px">국세청 표준재무제표증명(PDF/이미지)을 업로드하면 AI가 자동으로 분석하고 보고서를 생성합니다.</div>
+
+    <!-- 업체 연동 -->
+    <div class="fg">
+      <label class="fl">CRM 등록 업체 연동 <span style="color:var(--text4);font-weight:400">(선택)</span></label>
+      <select class="fs" id="finance-comp-link">
+        <option value="">업체 선택 (연동하면 CRM에 저장됨)</option>
+      </select>
+    </div>
+
+    <!-- 파일 업로드 영역 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <!-- 당기 -->
+      <div>
+        <label class="fl" style="margin-bottom:6px;display:block">📄 당기 재무제표 <span style="color:var(--danger)">*</span></label>
+        <div id="finance-drop-1" onclick="document.getElementById('finance-file-1').click()"
+          style="border:2px dashed var(--border2);border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:all .15s;background:var(--surface2)"
+          ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
+          ondragleave="this.style.borderColor='var(--border2)'"
+          ondrop="handleFinanceDrop(event,1)">
+          <div style="font-size:24px;margin-bottom:6px">📋</div>
+          <div style="font-size:12px;font-weight:600;color:var(--text2)">클릭하거나 파일을 드래그</div>
+          <div style="font-size:11px;color:var(--text4);margin-top:3px">PDF, JPG, PNG 지원</div>
+        </div>
+        <input type="file" id="finance-file-1" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="handleFinanceFile(event,1)">
+        <div id="finance-file-name-1" style="font-size:11px;color:var(--accent);margin-top:5px;text-align:center"></div>
+      </div>
+      <!-- 전기 (비교용) -->
+      <div>
+        <label class="fl" style="margin-bottom:6px;display:block">📄 전기 재무제표 <span style="color:var(--text4);font-weight:400">(비교식 선택)</span></label>
+        <div id="finance-drop-2" onclick="document.getElementById('finance-file-2').click()"
+          style="border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:all .15s;background:var(--surface2)"
+          ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
+          ondragleave="this.style.borderColor='var(--border)'"
+          ondrop="handleFinanceDrop(event,2)">
+          <div style="font-size:24px;margin-bottom:6px">📋</div>
+          <div style="font-size:12px;font-weight:600;color:var(--text3)">전기 자료 (선택)</div>
+          <div style="font-size:11px;color:var(--text4);margin-top:3px">업로드 시 비교식 생성</div>
+        </div>
+        <input type="file" id="finance-file-2" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="handleFinanceFile(event,2)">
+        <div id="finance-file-name-2" style="font-size:11px;color:var(--accent);margin-top:5px;text-align:center"></div>
+      </div>
+    </div>
+
+    <!-- 보고서 옵션 -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">보고서 옵션</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px">
+          <input type="checkbox" id="finance-opt-bs" checked style="accent-color:var(--accent)"> 재무상태표
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px">
+          <input type="checkbox" id="finance-opt-is" checked style="accent-color:var(--accent)"> 손익계산서
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px">
+          <input type="checkbox" id="finance-opt-ratio" checked style="accent-color:var(--accent)"> 재무비율 분석
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px">
+          <input type="checkbox" id="finance-opt-comment" checked style="accent-color:var(--accent)"> AI 종합 의견
+        </label>
+      </div>
+    </div>
+
+    <!-- 분석 결과 미리보기 -->
+    <div id="finance-result" style="display:none">
+      <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px">📋 분석 결과 미리보기</div>
+      <div id="finance-result-content" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:12px;max-height:200px;overflow-y:auto;line-height:1.8"></div>
+    </div>
+
+    <!-- 오류 메시지 -->
+    <div id="finance-error" style="display:none;background:#FFF5F5;border:1px solid #FECACA;border-radius:8px;padding:10px;font-size:12px;color:#DC2626"></div>
+
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModal('finance-modal')">취소</button>
+      <button class="btn btn-primary" id="finance-analyze-btn" onclick="analyzeFinance()">
+        🤖 AI 분석 시작
+      </button>
+      <button class="btn btn-primary" id="finance-print-btn" style="display:none" onclick="printFinanceReport()">
+        📄 보고서 출력
+      </button>
     </div>
   </div>
 </div>
@@ -4645,6 +4835,711 @@ function renderMatchCons(){
   el.innerHTML=html;
 }
 
+// ── REPORT ──
+function openReportModal(){
+  // 업체 드롭다운 채우기
+  var compSel=document.getElementById('report-comp-filter');
+  if(compSel){
+    compSel.innerHTML='<option value="">전체 업체</option>'
+      +companies.filter(function(c){return c.active!=='N';}).map(function(c){
+        return '<option value="'+c._id+'">'+c.name+'</option>';
+      }).join('');
+  }
+  // 연도 드롭다운 채우기
+  var yearSel=document.getElementById('report-cons-year');
+  if(yearSel){
+    var years=new Set();
+    consulting.forEach(function(c){if(c.startDate)years.add(c.startDate.slice(0,4));});
+    var sortedYears=Array.from(years).sort().reverse();
+    yearSel.innerHTML='<option value="">전체 연도</option>'
+      +sortedYears.map(function(y){return '<option value="'+y+'">'+y+'년</option>';}).join('');
+  }
+  openModal('report-modal');
+}
+
+function getReportStyles(){
+  return '<style>'
+    +'*{box-sizing:border-box;margin:0;padding:0;}'
+    +'body{font-family:"Pretendard","Noto Sans KR","Apple SD Gothic Neo",sans-serif;font-size:13px;color:#1C1C1E;background:#fff;padding:20px;}'
+    +'.report-header{border-bottom:2px solid #1C1C1E;padding-bottom:12px;margin-bottom:20px;}'
+    +'.report-title{font-size:20px;font-weight:700;color:#1C1C1E;}'
+    +'.report-sub{font-size:12px;color:#6C6C70;margin-top:4px;}'
+    +'.report-meta{display:flex;gap:20px;margin-top:8px;font-size:12px;color:#6C6C70;}'
+    +'.section{margin-bottom:24px;}'
+    +'.section-title{font-size:14px;font-weight:700;color:#1C1C1E;border-left:3px solid #2563EB;padding-left:8px;margin-bottom:10px;}'
+    +'.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}'
+    +'.summary-card{background:#F7F8FA;border:1px solid #E4E7EC;border-radius:8px;padding:12px;text-align:center;}'
+    +'.summary-val{font-size:22px;font-weight:700;color:#2563EB;font-family:monospace;}'
+    +'.summary-label{font-size:11px;color:#6C6C70;margin-top:3px;}'
+    +'table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px;}'
+    +'th{background:#F7F8FA;padding:8px 10px;text-align:left;border:1px solid #E4E7EC;font-weight:600;color:#6C6C70;font-size:11px;white-space:nowrap;}'
+    +'td{padding:8px 10px;border:1px solid #E4E7EC;color:#1C1C1E;vertical-align:top;}'
+    +'tr:nth-child(even) td{background:#FAFAFA;}'
+    +'.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;}'
+    +'.badge-ok{background:#ECFDF3;color:#059669;}'
+    +'.badge-warn{background:#FFFAEB;color:#D97706;}'
+    +'.badge-danger{background:#FFF0F0;color:#DC2626;}'
+    +'.badge-gray{background:#F5F5F7;color:#6C6C70;}'
+    +'.badge-blue{background:#EFF4FF;color:#2563EB;}'
+    +'.comp-block{background:#F7F8FA;border:1px solid #E4E7EC;border-radius:8px;padding:12px;margin-bottom:12px;page-break-inside:avoid;}'
+    +'.comp-name{font-size:14px;font-weight:700;margin-bottom:8px;color:#1C1C1E;}'
+    +'.comp-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;}'
+    +'.comp-tag{font-size:11px;background:#FFFFFF;border:1px solid #E4E7EC;border-radius:6px;padding:2px 8px;color:#6C6C70;}'
+    +'@media print{'
+      +'body{padding:10px;}'
+      +'.no-print{display:none;}'
+      +'@page{margin:15mm;size:A4;}'
+      +'.comp-block{page-break-inside:avoid;}'
+    +'}'
+    +'</style>';
+}
+
+function openPrintWindow(html){
+  var w=window.open('','_blank','width=900,height=700');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(function(){w.print();},800);
+}
+
+function fmtDate(){
+  var d=new Date();
+  return d.getFullYear()+'년 '+(d.getMonth()+1)+'월 '+d.getDate()+'일';
+}
+
+function printReport(type){
+  closeModal('report-modal');
+  setTimeout(function(){
+    if(type==='summary')printSummaryReport();
+    else if(type==='company')printCompanyReport();
+    else if(type==='cert')printCertReport();
+    else if(type==='consulting')printConsultingReport();
+  },300);
+}
+
+// 1. 전체 종합 보고서
+function printSummaryReport(){
+  var totalComps=companies.filter(function(c){return c.active!=='N';}).length;
+  var totalWorks=workItems.length;
+  var doneWorks=workItems.filter(function(w){return w.status==='done';}).length;
+  var ingWorks=workItems.filter(function(w){return w.status==='ing';}).length;
+  var totalCerts=certifications.length;
+  var urgentCerts=certifications.filter(function(c){var d=getCertDday(c.expDate);return d>=0&&d<=30;}).length;
+  var expiredCerts=certifications.filter(function(c){return getCertDday(c.expDate)<0||c.status==='만료';}).length;
+  var totalCons=consulting.length;
+  var doneCons=consulting.filter(function(c){return c.status==='done';}).length;
+  var totalAmt=consulting.reduce(function(s,c){return s+(+c.amount||0);},0);
+  var approvedAmt=consulting.reduce(function(s,c){return s+(+c.approvedAmt||0);},0);
+
+  var html='<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>SG솔루션 종합 현황 보고서</title>'+getReportStyles()+'</head><body>';
+  html+='<div class="report-header">';
+  html+='<div class="report-title">📊 SG솔루션 Business Control Tower - 종합 현황 보고서</div>';
+  html+='<div class="report-meta"><span>출력일: '+fmtDate()+'</span><span>관리 업체: '+totalComps+'개사</span></div>';
+  html+='</div>';
+
+  // 핵심 지표
+  html+='<div class="section"><div class="section-title">핵심 지표</div>';
+  html+='<div class="summary-grid">';
+  html+='<div class="summary-card"><div class="summary-val">'+totalComps+'</div><div class="summary-label">관리 업체</div></div>';
+  html+='<div class="summary-card"><div class="summary-val">'+ingWorks+'</div><div class="summary-label">진행중 업무</div></div>';
+  html+='<div class="summary-card"><div class="summary-val">'+urgentCerts+'</div><div class="summary-label">D-30 인증 임박</div></div>';
+  html+='<div class="summary-card"><div class="summary-val">'+(totalAmt?Math.round(totalAmt/100000000*10)/10+'억':'—')+'</div><div class="summary-label">지원사업 총 신청액</div></div>';
+  html+='</div></div>';
+
+  // 업무 현황
+  html+='<div class="section"><div class="section-title">업무 현황</div>';
+  html+='<table><tr><th>분야</th><th>전체</th><th>진행중</th><th>완료</th><th>완료율</th></tr>';
+  CAT_IDS.forEach(function(cat){
+    var m=CAT_META[cat];
+    var items=workItems.filter(function(w){return w.category===cat;});
+    var done=items.filter(function(w){return w.status==='done';}).length;
+    var ing=items.filter(function(w){return w.status==='ing';}).length;
+    var pct=items.length?Math.round(done/items.length*100):0;
+    if(items.length)html+='<tr><td>'+m.icon+' '+m.name+'</td><td>'+items.length+'</td><td>'+ing+'</td><td>'+done+'</td><td>'+(pct?pct+'%':'—')+'</td></tr>';
+  });
+  html+='</table></div>';
+
+  // 인증 현황
+  html+='<div class="section"><div class="section-title">인증·갱신 현황</div>';
+  html+='<div class="summary-grid">';
+  html+='<div class="summary-card"><div class="summary-val" style="color:#DC2626">'+expiredCerts+'</div><div class="summary-label">만료</div></div>';
+  html+='<div class="summary-card"><div class="summary-val" style="color:#D97706">'+urgentCerts+'</div><div class="summary-label">D-30 이내</div></div>';
+  html+='<div class="summary-card"><div class="summary-val" style="color:#059669">'+(totalCerts-expiredCerts-urgentCerts)+'</div><div class="summary-label">유효</div></div>';
+  html+='<div class="summary-card"><div class="summary-val">'+totalCerts+'</div><div class="summary-label">전체</div></div>';
+  html+='</div></div>';
+
+  // 지원사업 현황
+  html+='<div class="section"><div class="section-title">지원사업·정책자금 현황</div>';
+  html+='<div class="summary-grid">';
+  html+='<div class="summary-card"><div class="summary-val">'+totalCons+'</div><div class="summary-label">전체</div></div>';
+  html+='<div class="summary-card"><div class="summary-val">'+doneCons+'</div><div class="summary-label">완료</div></div>';
+  html+='<div class="summary-card"><div class="summary-val">'+(totalAmt?Math.round(totalAmt/100000000*10)/10+'억':'—')+'</div><div class="summary-label">총 신청액</div></div>';
+  html+='<div class="summary-card"><div class="summary-val">'+(approvedAmt?Math.round(approvedAmt/100000000*10)/10+'억':'—')+'</div><div class="summary-label">승인액</div></div>';
+  html+='</div></div>';
+
+  html+='</body></html>';
+  openPrintWindow(html);
+}
+
+// 2. 업체별 진행 현황 보고서
+function printCompanyReport(){
+  var filterBizno=document.getElementById('report-comp-filter')?.value||'';
+  var targetComps=companies.filter(function(c){
+    if(c.active==='N')return false;
+    if(filterBizno&&c._id!==filterBizno)return false;
+    return true;
+  });
+
+  var html='<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>업체별 진행 현황 보고서</title>'+getReportStyles()+'</head><body>';
+  html+='<div class="report-header">';
+  html+='<div class="report-title">🏢 업체별 진행 현황 보고서</div>';
+  html+='<div class="report-meta"><span>출력일: '+fmtDate()+'</span><span>대상: '+targetComps.length+'개사</span></div>';
+  html+='</div>';
+
+  targetComps.forEach(function(comp){
+    var myWorks=workItems.filter(function(w){return w.clientBizno===comp._id||w.bizno===comp._id;});
+    var myCerts=certifications.filter(function(c){return c.bizno===comp._id;});
+    var myCons=consulting.filter(function(c){return consCompanies.some(function(cc){return cc.consId===c.id&&cc.bizno===comp._id;});});
+    var ageLabel=getCompAgeLabel(comp.estDate);
+
+    html+='<div class="comp-block">';
+    html+='<div class="comp-name">'+comp.name+'</div>';
+    html+='<div class="comp-meta">';
+    if(comp.region)html+='<span class="comp-tag">📍 '+comp.region+'</span>';
+    if(comp.scale)html+='<span class="comp-tag">🏭 '+comp.scale+'</span>';
+    if(comp.industry)html+='<span class="comp-tag">⚙️ '+comp.industry+'</span>';
+    if(ageLabel)html+='<span class="comp-tag">📅 '+ageLabel+'</span>';
+    if(comp.tel)html+='<span class="comp-tag">📞 '+comp.tel+'</span>';
+    html+='</div>';
+
+    // 업무
+    if(myWorks.length){
+      html+='<div style="font-size:12px;font-weight:600;color:#6C6C70;margin-bottom:4px">업무 ('+myWorks.length+'건)</div>';
+      html+='<table><tr><th>업무명</th><th>분야</th><th>지원사업</th><th>상태</th></tr>';
+      myWorks.forEach(function(w){
+        var m=CAT_META[w.category]||CAT_META.etc;
+        var stCls=w.status==='done'?'badge-gray':w.status==='ing'?'badge-blue':'badge-gray';
+        var stLbl=w.status==='done'?'완료':w.status==='ing'?'진행':'대기';
+        html+='<tr><td>'+w.title+'</td><td>'+m.icon+' '+m.name+'</td><td>'+(w.consTitle||'—')+'</td><td><span class="badge '+stCls+'">'+stLbl+'</span></td></tr>';
+      });
+      html+='</table>';
+    }
+
+    // 인증
+    if(myCerts.length){
+      html+='<div style="font-size:12px;font-weight:600;color:#6C6C70;margin:8px 0 4px">인증 ('+myCerts.length+'건)</div>';
+      html+='<table><tr><th>인증 종류</th><th>취득일</th><th>만료일</th><th>D-Day</th><th>상태</th></tr>';
+      myCerts.forEach(function(c){
+        var m=getCertMasterInfo(c.certMasterId);
+        var dday=getCertDday(c.expDate);
+        var ddayStr=dday===null?'—':dday<0?'만료':dday===0?'D-Day':'D-'+dday;
+        var ddayCls=dday===null?'badge-gray':dday<0?'badge-danger':dday<=30?'badge-warn':'badge-ok';
+        html+='<tr><td>'+m.icon+' '+m.certName+'</td><td>'+(c.acquireDate||'—')+'</td><td>'+(c.expDate||'—')+'</td><td><span class="badge '+ddayCls+'">'+ddayStr+'</span></td><td>'+(c.status||'—')+'</td></tr>';
+      });
+      html+='</table>';
+    }
+
+    // 지원사업
+    if(myCons.length){
+      html+='<div style="font-size:12px;font-weight:600;color:#6C6C70;margin:8px 0 4px">지원사업 ('+myCons.length+'건)</div>';
+      html+='<table><tr><th>사업명</th><th>기간</th><th>신청액</th><th>상태</th></tr>';
+      myCons.forEach(function(c){
+        var stCls=c.status==='done'?'badge-ok':c.status==='ing'?'badge-blue':'badge-gray';
+        var stLbl=c.status==='done'?'완료':c.status==='ing'?'진행':'대기';
+        html+='<tr><td>'+c.title+'</td><td>'+(c.startDate||'—')+' ~ '+(c.endDate||'—')+'</td><td>'+(c.amount?fmtAmt(c.amount)+'원':'—')+'</td><td><span class="badge '+stCls+'">'+stLbl+'</span></td></tr>';
+      });
+      html+='</table>';
+    }
+    html+='</div>';
+  });
+
+  html+='</body></html>';
+  openPrintWindow(html);
+}
+
+// 3. 인증·갱신 현황 보고서
+function printCertReport(){
+  var statusF=document.getElementById('report-cert-status')?.value||'';
+  var filtered=certifications.filter(function(c){
+    var m=getCertMasterInfo(c.certMasterId);
+    if(m.reportType==='annual')return false;
+    var dday=getCertDday(c.expDate);
+    if(statusF==='urgent')return dday>=0&&dday<=30;
+    if(statusF==='expired')return dday<0||c.status==='만료';
+    if(statusF==='safe')return dday>30;
+    return true;
+  }).sort(function(a,b){return (getCertDday(a.expDate)||9999)-(getCertDday(b.expDate)||9999);});
+
+  var html='<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>인증·갱신 현황 보고서</title>'+getReportStyles()+'</head><body>';
+  html+='<div class="report-header">';
+  html+='<div class="report-title">🏅 인증·갱신 현황 보고서</div>';
+  html+='<div class="report-meta"><span>출력일: '+fmtDate()+'</span><span>대상: '+filtered.length+'건</span></div>';
+  html+='</div>';
+
+  // 요약
+  var expired=filtered.filter(function(c){return getCertDday(c.expDate)<0;}).length;
+  var d30=filtered.filter(function(c){var d=getCertDday(c.expDate);return d>=0&&d<=30;}).length;
+  var safe=filtered.filter(function(c){var d=getCertDday(c.expDate);return d>30;}).length;
+  html+='<div class="section"><div class="summary-grid">';
+  html+='<div class="summary-card"><div class="summary-val" style="color:#DC2626">'+expired+'</div><div class="summary-label">만료</div></div>';
+  html+='<div class="summary-card"><div class="summary-val" style="color:#D97706">'+d30+'</div><div class="summary-label">D-30 이내</div></div>';
+  html+='<div class="summary-card"><div class="summary-val" style="color:#059669">'+safe+'</div><div class="summary-label">유효</div></div>';
+  html+='<div class="summary-card"><div class="summary-val">'+filtered.length+'</div><div class="summary-label">전체</div></div>';
+  html+='</div></div>';
+
+  html+='<div class="section"><div class="section-title">인증 목록</div>';
+  html+='<table><tr><th>업체명</th><th>인증 종류</th><th>취득일</th><th>만료일</th><th>갱신주기</th><th>D-Day</th><th>상태</th></tr>';
+  filtered.forEach(function(c){
+    var m=getCertMasterInfo(c.certMasterId);
+    var comp=companies.find(function(x){return x._id===c.bizno;});
+    var dday=getCertDday(c.expDate);
+    var ddayStr=dday===null?'—':dday<0?'만료 D+'+(Math.abs(dday)):dday===0?'D-Day':'D-'+dday;
+    var ddayCls=dday===null?'badge-gray':dday<0?'badge-danger':dday<=30?'badge-warn':dday<=90?'badge-blue':'badge-ok';
+    html+='<tr>';
+    html+='<td style="font-weight:500">'+(comp?comp.name:c.companyName||'—')+'</td>';
+    html+='<td>'+m.icon+' '+m.certName+'</td>';
+    html+='<td>'+(c.acquireDate||'—')+'</td>';
+    html+='<td>'+(c.expDate||'—')+'</td>';
+    html+='<td>'+(m.cycleMonths||'—')+'개월</td>';
+    html+='<td><span class="badge '+ddayCls+'">'+ddayStr+'</span></td>';
+    html+='<td>'+(c.status||'유효')+'</td>';
+    html+='</tr>';
+  });
+  html+='</table></div>';
+
+  // 연간신고
+  var annual=certifications.filter(function(c){return getCertMasterInfo(c.certMasterId).reportType==='annual';});
+  if(annual.length){
+    html+='<div class="section"><div class="section-title">연간 신고 현황</div>';
+    html+='<table><tr><th>업체명</th><th>인증 종류</th><th>최근 신고연도</th><th>신고기한</th><th>상태</th></tr>';
+    annual.forEach(function(c){
+      var m=getCertMasterInfo(c.certMasterId);
+      var comp=companies.find(function(x){return x._id===c.bizno;});
+      var reports=annualReports.filter(function(r){return r.certId===c.id;}).sort(function(a,b){return b.year-a.year;});
+      var latest=reports[0];
+      var stCls=!latest?'badge-gray':latest.status==='done'?'badge-ok':new Date(latest.dueDate)<new Date()?'badge-danger':'badge-warn';
+      var stLbl=!latest?'이력없음':latest.status==='done'?'신고완료':new Date(latest.dueDate)<new Date()?'기한초과':'신고예정';
+      html+='<tr>';
+      html+='<td style="font-weight:500">'+(comp?comp.name:c.companyName||'—')+'</td>';
+      html+='<td>'+m.icon+' '+m.certName+'</td>';
+      html+='<td>'+(latest?latest.year+'년':'—')+'</td>';
+      html+='<td>'+(latest?latest.dueDate:'—')+'</td>';
+      html+='<td><span class="badge '+stCls+'">'+stLbl+'</span></td>';
+      html+='</tr>';
+    });
+    html+='</table></div>';
+  }
+  html+='</body></html>';
+  openPrintWindow(html);
+}
+
+// 4. 지원사업 실적 보고서
+function printConsultingReport(){
+  var statusF=document.getElementById('report-cons-status')?.value||'';
+  var yearF=document.getElementById('report-cons-year')?.value||'';
+  var filtered=consulting.filter(function(c){
+    if(statusF&&c.status!==statusF)return false;
+    if(yearF&&!(c.startDate||'').startsWith(yearF))return false;
+    return true;
+  });
+
+  var totalAmt=filtered.reduce(function(s,c){return s+(+c.amount||0);},0);
+  var approvedAmt=filtered.reduce(function(s,c){return s+(+c.approvedAmt||0);},0);
+
+  var html='<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>지원사업 실적 보고서</title>'+getReportStyles()+'</head><body>';
+  html+='<div class="report-header">';
+  html+='<div class="report-title">📋 지원사업·정책자금 실적 보고서</div>';
+  html+='<div class="report-meta"><span>출력일: '+fmtDate()+'</span><span>대상: '+filtered.length+'건</span>'+(yearF?'<span>연도: '+yearF+'년</span>':'')+'</div>';
+  html+='</div>';
+
+  // 요약
+  html+='<div class="section"><div class="summary-grid">';
+  html+='<div class="summary-card"><div class="summary-val">'+filtered.length+'</div><div class="summary-label">전체</div></div>';
+  html+='<div class="summary-card"><div class="summary-val">'+filtered.filter(function(c){return c.status==='done';}).length+'</div><div class="summary-label">완료</div></div>';
+  html+='<div class="summary-card"><div class="summary-val">'+(totalAmt?Math.round(totalAmt/10000)+'만':'—')+'</div><div class="summary-label">총 신청액</div></div>';
+  html+='<div class="summary-card"><div class="summary-val">'+(approvedAmt?Math.round(approvedAmt/10000)+'만':'—')+'</div><div class="summary-label">승인액</div></div>';
+  html+='</div></div>';
+
+  html+='<div class="section"><div class="section-title">지원사업 목록</div>';
+  html+='<table><tr><th>사업명</th><th>분야</th><th>기관</th><th>기간</th><th>참여업체</th><th>신청액</th><th>승인액</th><th>상태</th></tr>';
+  filtered.forEach(function(c){
+    var cm=CAT_META[c.category]||CAT_META.etc;
+    var ccs=consCompanies.filter(function(cc){return cc.consId===c.id;});
+    var compNames=ccs.map(function(cc){
+      var comp=companies.find(function(x){return x._id===cc.bizno;});
+      return comp?comp.name:cc.companyName||cc.bizno;
+    }).join(', ')||'—';
+    var stCls=c.status==='done'?'badge-ok':c.status==='ing'?'badge-blue':'badge-gray';
+    var stLbl=c.status==='done'?'완료':c.status==='ing'?'진행':'대기';
+    html+='<tr>';
+    html+='<td style="font-weight:500">'+c.title+'</td>';
+    html+='<td>'+cm.icon+' '+cm.name+'</td>';
+    html+='<td>'+(c.org||'—')+'</td>';
+    html+='<td style="white-space:nowrap">'+(c.startDate||'—')+' ~ '+(c.endDate||'—')+'</td>';
+    html+='<td style="font-size:11px">'+compNames+'</td>';
+    html+='<td style="text-align:right">'+(c.amount?fmtAmt(c.amount)+'원':'—')+'</td>';
+    html+='<td style="text-align:right">'+(c.approvedAmt?fmtAmt(c.approvedAmt)+'원':'—')+'</td>';
+    html+='<td><span class="badge '+stCls+'">'+stLbl+'</span></td>';
+    html+='</tr>';
+  });
+  html+='</table></div>';
+  html+='</body></html>';
+  openPrintWindow(html);
+}
+
+// ── FINANCE REPORT ──
+var financeData1 = null; // 당기
+var financeData2 = null; // 전기
+var financeAnalyzed = null; // AI 분석 결과
+
+function openFinanceModal(){
+  financeData1=null; financeData2=null; financeAnalyzed=null;
+  // 업체 목록 채우기
+  var sel=document.getElementById('finance-comp-link');
+  if(sel){
+    sel.innerHTML='<option value="">업체 선택 (선택사항)</option>'
+      +companies.filter(function(c){return c.active!=='N'&&c.bizclass==='법인';}).map(function(c){
+        return '<option value="'+c._id+'">'+c.name+'</option>';
+      }).join('');
+  }
+  // 초기화
+  ['finance-file-name-1','finance-file-name-2'].forEach(function(id){
+    var el=document.getElementById(id);if(el)el.textContent='';
+  });
+  ['finance-file-1','finance-file-2'].forEach(function(id){
+    var el=document.getElementById(id);if(el)el.value='';
+  });
+  var resEl=document.getElementById('finance-result');if(resEl)resEl.style.display='none';
+  var errEl=document.getElementById('finance-error');if(errEl)errEl.style.display='none';
+  var printBtn=document.getElementById('finance-print-btn');if(printBtn)printBtn.style.display='none';
+  openModal('finance-modal');
+}
+
+function handleFinanceDrop(event,num){
+  event.preventDefault();
+  var file=event.dataTransfer.files[0];
+  if(file)processFinanceFile(file,num);
+}
+
+function handleFinanceFile(event,num){
+  var file=event.target.files[0];
+  if(file)processFinanceFile(file,num);
+}
+
+function processFinanceFile(file,num){
+  var nameEl=document.getElementById('finance-file-name-'+num);
+  var dropEl=document.getElementById('finance-drop-'+num);
+  if(nameEl)nameEl.textContent='✅ '+file.name+' ('+Math.round(file.size/1024)+'KB)';
+  if(dropEl){
+    dropEl.style.borderColor='var(--accent)';
+    dropEl.style.background='var(--accent-pale)';
+  }
+  // 파일을 base64로 변환해서 저장
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var result=e.target.result;
+    var base64=result.split(',')[1];
+    var mediaType=file.type||'application/pdf';
+    if(num===1)financeData1={base64:base64,mediaType:mediaType,name:file.name};
+    else financeData2={base64:base64,mediaType:mediaType,name:file.name};
+  };
+  reader.readAsDataURL(file);
+}
+
+async function analyzeFinance(){
+  if(!financeData1){alert('당기 재무제표 파일을 업로드해주세요.');return;}
+  var btn=document.getElementById('finance-analyze-btn');
+  var errEl=document.getElementById('finance-error');
+  var resEl=document.getElementById('finance-result');
+  var resContent=document.getElementById('finance-result-content');
+  var printBtn=document.getElementById('finance-print-btn');
+
+  btn.textContent='🔄 AI 분석 중...';
+  btn.disabled=true;
+  if(errEl)errEl.style.display='none';
+  if(resEl)resEl.style.display='none';
+
+  try{
+    // 메시지 구성
+    var messages=[{role:'user',content:[]}];
+    // 당기 파일
+    messages[0].content.push({
+      type:'document',
+      source:{type:'base64',media_type:financeData1.mediaType,data:financeData1.base64}
+    });
+    // 전기 파일 (있으면)
+    if(financeData2){
+      messages[0].content.push({
+        type:'document',
+        source:{type:'base64',media_type:financeData2.mediaType,data:financeData2.base64}
+      });
+    }
+
+    var prompt='이 재무제표를 분석해서 아래 JSON 형식으로만 응답해주세요. 다른 텍스트 없이 JSON만 출력하세요.\n\n'
+      +'{\n'
+      +'"companyName": "법인명",\n'
+      +'"bizNo": "사업자번호",\n'
+      +'"period": "사업연도 (예: 2025.01.01~2025.12.31)",\n'
+      +'"reportDate": "신고일",\n'
+      +'"balanceSheet": {\n'
+      +'"currentAssets": 유동자산,\n'
+      +'"nonCurrentAssets": 비유동자산,\n'
+      +'"totalAssets": 자산총계,\n'
+      +'"currentLiabilities": 유동부채,\n'
+      +'"nonCurrentLiabilities": 비유동부채,\n'
+      +'"totalLiabilities": 부채총계,\n'
+      +'"capital": 자본금,\n'
+      +'"retainedEarnings": 이익잉여금,\n'
+      +'"totalEquity": 자본총계\n'
+      +'},\n'
+      +'"incomeStatement": {\n'
+      +'"revenue": 매출액,\n'
+      +'"costOfSales": 매출원가,\n'
+      +'"grossProfit": 매출총손익,\n'
+      +'"operatingExpenses": 판매비와관리비,\n'
+      +'"operatingIncome": 영업손익,\n'
+      +'"nonOperatingIncome": 영업외수익,\n'
+      +'"nonOperatingExpenses": 영업외비용,\n'
+      +'"netIncome": 당기순손익\n'
+      +'},\n'
+      +'"prevBalanceSheet": null,\n'
+      +'"prevIncomeStatement": null,\n'
+      +'"prevPeriod": null\n'
+      +'}\n\n'
+      +(financeData2?'두 번째 문서는 전기 재무제표입니다. prevBalanceSheet와 prevIncomeStatement에 전기 데이터를, prevPeriod에 전기 사업연도를 입력해주세요.':'');
+
+    messages[0].content.push({type:'text',text:prompt});
+
+    var response=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:2000,
+        messages:messages
+      })
+    });
+
+    var data=await response.json();
+    var text=data.content.filter(function(c){return c.type==='text';}).map(function(c){return c.text;}).join('');
+    // JSON 파싱
+    var clean=text.replace(/```json|```/g,'').trim();
+    financeAnalyzed=JSON.parse(clean);
+
+    // 미리보기 표시
+    if(resContent){
+      var compEl=document.getElementById('finance-comp-link');
+      var linkedComp=companies.find(function(c){return c._id===(compEl?compEl.value:'');});
+      var preview='<b>'+financeAnalyzed.companyName+'</b> | '+financeAnalyzed.bizNo+'<br>';
+      preview+='사업연도: '+financeAnalyzed.period+'<br><br>';
+      var bs=financeAnalyzed.balanceSheet;
+      var is_=financeAnalyzed.incomeStatement;
+      preview+='<b>[재무상태]</b> 자산 '+fmtAmt(bs.totalAssets)+'원 | 부채 '+fmtAmt(bs.totalLiabilities)+'원 | 자본 '+fmtAmt(bs.totalEquity)+'원<br>';
+      preview+='<b>[손익]</b> 매출 '+fmtAmt(is_.revenue)+'원 | 영업손익 '+fmtAmt(is_.operatingIncome)+'원 | 당기순손익 '+fmtAmt(is_.netIncome)+'원<br>';
+      if(financeAnalyzed.prevPeriod)preview+='<br>📊 전기('+financeAnalyzed.prevPeriod+') 비교식 보고서 생성 가능';
+    }
+    resContent.innerHTML=preview;
+    if(resEl)resEl.style.display='block';
+    if(printBtn)printBtn.style.display='';
+    btn.textContent='🔄 다시 분석';
+
+    // CRM 연동 - 선택된 업체에 재무데이터 저장
+    if(compEl&&compEl.value&&financeAnalyzed){
+      try{
+        await updateDoc(doc(db,'companies',compEl.value),{
+          financeData:financeAnalyzed,
+          financeUpdatedAt:Date.now()
+        });
+        setBadge('재무데이터 저장됨',2000);
+      }catch(e){}
+    }
+
+  }catch(e){
+    if(errEl){
+      errEl.style.display='block';
+      errEl.textContent='분석 오류: '+e.message+'\n\nPDF가 너무 크거나 읽기 어려운 파일일 수 있습니다. 다시 시도해주세요.';
+    }
+  }finally{
+    btn.disabled=false;
+    if(btn.textContent==='🔄 AI 분석 중...')btn.textContent='🤖 AI 분석 시작';
+  }
+}
+
+function printFinanceReport(){
+  if(!financeAnalyzed){alert('먼저 AI 분석을 실행해주세요.');return;}
+  var d=financeAnalyzed;
+  var bs=d.balanceSheet;
+  var is_=d.incomeStatement;
+  var pbs=d.prevBalanceSheet;
+  var pis=d.prevIncomeStatement;
+  var hasCompare=!!(pbs&&pis);
+  var optBS=document.getElementById('finance-opt-bs')?.checked;
+  var optIS=document.getElementById('finance-opt-is')?.checked;
+  var optRatio=document.getElementById('finance-opt-ratio')?.checked;
+  var optComment=document.getElementById('finance-opt-comment')?.checked;
+
+  var styles=getReportStyles();
+  var extraStyle='<style>'
+    +'.fin-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px;}'
+    +'.fin-table th{background:#F7F8FA;padding:9px 12px;text-align:left;border:1px solid #E4E7EC;font-size:11px;color:#6C6C70;font-weight:600;}'
+    +'.fin-table td{padding:9px 12px;border:1px solid #E4E7EC;}'
+    +'.fin-table .num{text-align:right;font-family:monospace;}'
+    +'.fin-table .total{font-weight:700;background:#F0F4FF;}'
+    +'.fin-table .section{font-weight:600;background:#FAFAFA;color:#374151;}'
+    +'.fin-table .sub{color:#6C6C70;padding-left:24px!important;}'
+    +'.pos{color:#059669;} .neg{color:#DC2626;}'
+    +'.ratio-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}'
+    +'.ratio-card{background:#F7F8FA;border:1px solid #E4E7EC;border-radius:8px;padding:12px;text-align:center;}'
+    +'.ratio-val{font-size:18px;font-weight:700;font-family:monospace;}'
+    +'.ratio-label{font-size:11px;color:#6C6C70;margin-top:3px;}'
+    +'.comment-box{background:#EFF4FF;border:1px solid #C7D7FF;border-radius:8px;padding:14px;font-size:12px;line-height:1.8;color:#1C1C1E;}'
+    +'</style>';
+
+  var n=function(v){return v?v.toLocaleString()+'원':'—';};
+  var pct=function(v,t){return t?Math.round(v/t*1000)/10+'%':'—';};
+  var chg=function(c,p){
+    if(!p)return '—';
+    var r=Math.round((c-p)/Math.abs(p)*1000)/10;
+    return '<span class="'+(r>=0?'pos':'neg')+'">'+(r>=0?'▲':'▼')+Math.abs(r)+'%</span>';
+  };
+
+  var html='<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>재무제표 분석 보고서</title>'+styles+extraStyle+'</head><body>';
+
+  // 헤더
+  html+='<div class="report-header">';
+  html+='<div class="report-title">📊 재무제표 분석 보고서</div>';
+  html+='<div style="margin-top:6px;font-size:13px;font-weight:500">'+d.companyName+' &nbsp;|&nbsp; 사업자번호: '+d.bizNo+'</div>';
+  html+='<div class="report-meta">';
+  html+='<span>사업연도: '+d.period+'</span>';
+  if(hasCompare)html+='<span>전기: '+d.prevPeriod+'</span>';
+  html+='<span>출력일: '+fmtDate()+'</span>';
+  html+='</div></div>';
+
+  // 재무상태표
+  if(optBS){
+    html+='<div class="section"><div class="section-title">재무상태표</div>';
+    html+='<table class="fin-table"><tr><th>계정과목</th><th class="num">당기</th>';
+    if(hasCompare)html+='<th class="num">전기</th><th class="num">증감율</th>';
+    html+='</tr>';
+    var bsRows=[
+      {label:'Ⅰ. 유동자산',val:bs.currentAssets,prev:pbs?.currentAssets,cls:'section'},
+      {label:'Ⅱ. 비유동자산',val:bs.nonCurrentAssets,prev:pbs?.nonCurrentAssets,cls:'section'},
+      {label:'자산총계',val:bs.totalAssets,prev:pbs?.totalAssets,cls:'total'},
+      {label:'Ⅰ. 유동부채',val:bs.currentLiabilities,prev:pbs?.currentLiabilities,cls:'section'},
+      {label:'Ⅱ. 비유동부채',val:bs.nonCurrentLiabilities,prev:pbs?.nonCurrentLiabilities,cls:'section'},
+      {label:'부채총계',val:bs.totalLiabilities,prev:pbs?.totalLiabilities,cls:'total'},
+      {label:'Ⅲ. 자본금',val:bs.capital,prev:pbs?.capital,cls:'section'},
+      {label:'이익잉여금',val:bs.retainedEarnings,prev:pbs?.retainedEarnings,cls:'sub'},
+      {label:'자본총계',val:bs.totalEquity,prev:pbs?.totalEquity,cls:'total'},
+    ];
+    bsRows.forEach(function(r){
+      html+='<tr><td class="'+r.cls+'">'+r.label+'</td>';
+      html+='<td class="num '+(r.val<0?'neg':'')+'">'+(r.val!==null?r.val.toLocaleString()+'원':'—')+'</td>';
+      if(hasCompare){
+        html+='<td class="num '+(r.prev<0?'neg':'')+'">'+(r.prev!==null?r.prev.toLocaleString()+'원':'—')+'</td>';
+        html+='<td class="num">'+chg(r.val,r.prev)+'</td>';
+      }
+      html+='</tr>';
+    });
+    html+='</table></div>';
+  }
+
+  // 손익계산서
+  if(optIS){
+    html+='<div class="section"><div class="section-title">손익계산서</div>';
+    html+='<table class="fin-table"><tr><th>계정과목</th><th class="num">당기</th>';
+    if(hasCompare)html+='<th class="num">전기</th><th class="num">증감율</th>';
+    html+='</tr>';
+    var isRows=[
+      {label:'Ⅰ. 매출액',val:is_.revenue,prev:pis?.revenue,cls:'section'},
+      {label:'Ⅱ. 매출원가',val:is_.costOfSales,prev:pis?.costOfSales,cls:'section'},
+      {label:'Ⅲ. 매출총손익',val:is_.grossProfit,prev:pis?.grossProfit,cls:'total'},
+      {label:'Ⅳ. 판매비와관리비',val:is_.operatingExpenses,prev:pis?.operatingExpenses,cls:'section'},
+      {label:'Ⅴ. 영업손익',val:is_.operatingIncome,prev:pis?.operatingIncome,cls:'total'},
+      {label:'Ⅵ. 영업외수익',val:is_.nonOperatingIncome,prev:pis?.nonOperatingIncome,cls:'section'},
+      {label:'Ⅶ. 영업외비용',val:is_.nonOperatingExpenses,prev:pis?.nonOperatingExpenses,cls:'section'},
+      {label:'Ⅹ. 당기순손익',val:is_.netIncome,prev:pis?.netIncome,cls:'total'},
+    ];
+    isRows.forEach(function(r){
+      if(r.val===null||r.val===undefined)return;
+      html+='<tr><td class="'+r.cls+'">'+r.label+'</td>';
+      html+='<td class="num '+(r.val<0?'neg':'')+'">'+(r.val!==null?r.val.toLocaleString()+'원':'—')+'</td>';
+      if(hasCompare){
+        html+='<td class="num '+(r.prev<0?'neg':'')+'">'+(r.prev!==null?r.prev.toLocaleString()+'원':'—')+'</td>';
+        html+='<td class="num">'+chg(r.val,r.prev)+'</td>';
+      }
+      html+='</tr>';
+    });
+    html+='</table></div>';
+  }
+
+  // 재무비율 분석
+  if(optRatio){
+    html+='<div class="section"><div class="section-title">재무비율 분석</div>';
+    var currRatio=bs.currentLiabilities?Math.round(bs.currentAssets/bs.currentLiabilities*100):null;
+    var debtRatio=bs.totalEquity?Math.round(bs.totalLiabilities/bs.totalEquity*100):null;
+    var equityRatio=bs.totalAssets?Math.round(bs.totalEquity/bs.totalAssets*100):null;
+    var opMargin=is_.revenue?Math.round(is_.operatingIncome/is_.revenue*1000)/10:null;
+    var netMargin=is_.revenue?Math.round(is_.netIncome/is_.revenue*1000)/10:null;
+    var roa=bs.totalAssets?Math.round(is_.netIncome/bs.totalAssets*1000)/10:null;
+
+    html+='<div class="ratio-grid">';
+    var ratios=[
+      {label:'유동비율',val:currRatio,unit:'%',desc:'단기 지급능력',good:currRatio>=200},
+      {label:'부채비율',val:debtRatio,unit:'%',desc:'재무 안정성',good:debtRatio<=100},
+      {label:'자기자본비율',val:equityRatio,unit:'%',desc:'자본 건전성',good:equityRatio>=50},
+      {label:'영업이익률',val:opMargin,unit:'%',desc:'영업 수익성',good:opMargin>0},
+      {label:'순이익률',val:netMargin,unit:'%',desc:'최종 수익성',good:netMargin>0},
+      {label:'총자산수익률(ROA)',val:roa,unit:'%',desc:'자산 활용도',good:roa>0},
+    ];
+    ratios.forEach(function(r){
+      var color=r.val===null?'#6C6C70':r.good?'#059669':'#DC2626';
+      html+='<div class="ratio-card">';
+      html+='<div class="ratio-val" style="color:'+color+'">'+(r.val!==null?r.val+r.unit:'—')+'</div>';
+      html+='<div class="ratio-label">'+r.label+'</div>';
+      html+='<div style="font-size:10px;color:#9CA3AF;margin-top:2px">'+r.desc+'</div>';
+      html+='</div>';
+    });
+    html+='</div>';
+
+    // 비율 해석
+    html+='<table class="fin-table"><tr><th>비율</th><th class="num">수치</th><th>평가</th><th>해석</th></tr>';
+    var comments=[
+      {name:'유동비율',val:currRatio,unit:'%',eval_:currRatio>=200?'양호':currRatio>=100?'주의':'위험',comment:currRatio>=200?'단기 채무 상환 능력 양호':currRatio>=100?'단기 채무 상환 능력 보통':'단기 유동성 위험'},
+      {name:'부채비율',val:debtRatio,unit:'%',eval_:debtRatio<=100?'양호':debtRatio<=200?'주의':'위험',comment:debtRatio<=100?'재무구조 안정적':debtRatio<=200?'부채 수준 점검 필요':'과도한 부채로 위험'},
+      {name:'영업이익률',val:opMargin,unit:'%',eval_:opMargin>5?'양호':opMargin>0?'보통':'위험',comment:opMargin>5?'수익성 양호':opMargin>0?'수익성 개선 필요':'영업 손실 발생 중'},
+    ];
+    comments.forEach(function(r){
+      var cls=r.eval_==='양호'?'badge-ok':r.eval_==='주의'||r.eval_==='보통'?'badge-warn':'badge-danger';
+      html+='<tr><td>'+r.name+'</td><td class="num">'+(r.val!==null?r.val+r.unit:'—')+'</td><td><span class="badge '+cls+'">'+r.eval_+'</span></td><td style="color:#6C6C70">'+r.comment+'</td></tr>';
+    });
+    html+='</table></div>';
+  }
+
+  // AI 종합 의견
+  if(optComment){
+    html+='<div class="section"><div class="section-title">종합 의견</div>';
+    html+='<div class="comment-box">';
+    var opinions=[];
+    if(is_.revenue>0)opinions.push('· 매출액 '+is_.revenue.toLocaleString()+'원으로 사업 활동 중.');
+    if(is_.operatingIncome<0)opinions.push('· 영업손실 발생 ('+Math.abs(is_.operatingIncome).toLocaleString()+'원). 판매비와관리비 절감 또는 매출 증대 방안 검토 필요.');
+    if(is_.netIncome<0)opinions.push('· 당기순손실 '+Math.abs(is_.netIncome).toLocaleString()+'원. 이익잉여금 감소로 자본 잠식 위험 주의.');
+    if(bs.totalLiabilities>bs.totalEquity)opinions.push('· 부채가 자본을 초과. 재무 건전성 개선 필요.');
+    if(bs.currentAssets<bs.currentLiabilities)opinions.push('· 유동자산이 유동부채 미만. 단기 유동성 관리 필요.');
+    if(hasCompare){
+      var revChg=pis.revenue?Math.round((is_.revenue-pis.revenue)/pis.revenue*100):null;
+      if(revChg!==null)opinions.push('· 매출액 전기 대비 '+(revChg>=0?'▲'+revChg:'▼'+Math.abs(revChg))+'% '+(revChg>=0?'증가':'감소')+'.');
+    }
+    if(!opinions.length)opinions.push('· 전반적으로 안정적인 재무구조를 유지하고 있습니다.');
+    opinions.push('<br><span style="font-size:11px;color:#9CA3AF">※ 본 분석은 AI 자동 분석 결과이며, 공인회계사의 검토를 대체하지 않습니다.</span>');
+    html+=opinions.join('<br>');
+    html+='</div></div>';
+  }
+
+  html+='</body></html>';
+  closeModal('finance-modal');
+  openPrintWindow(html);
+}
+
 // ── CORP AUTOCOMPLETE ──
 function showCorpDrop(inputId){
   const inp=document.getElementById(inputId);const dd=document.getElementById('dd-'+inputId);
@@ -4664,6 +5559,8 @@ loadAll();
 // ── GLOBAL EXPORTS ──
 Object.assign(window,{
   navTo,manualSave,closeModal,
+  openReportModal,printReport,
+  openFinanceModal,analyzeFinance,printFinanceReport,handleFinanceFile,handleFinanceDrop,
   prevMonth,nextMonth,goToday,toggleCat,
   setGanttFilter,setWorkFilter,
   openCatAddModal,saveCatAdd,deleteCatAdd,setCatRequiresCert,
