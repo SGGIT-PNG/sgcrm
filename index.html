@@ -228,10 +228,10 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
   <div class="sb-menu" id="nav-todo" onclick="navTo('todo')"><span class="sb-ico">✅</span><span>수시처리 To Do List</span><span class="sb-cnt" id="sb-todo-cnt">0</span></div>
   <div class="sb-menu" id="nav-work" onclick="navTo('work')"><span class="sb-ico">📊</span><span>업무 영역별 현황</span></div>
   <div class="sb-menu" id="nav-clients" onclick="navTo('clients')"><span class="sb-ico">🏢</span><span>업체별 진행현황</span><span class="sb-cnt" id="sb-cli-cnt">0</span></div>
+  <div class="sb-section">관리</div>
   <div class="sb-menu" id="nav-cert" onclick="navTo('cert')"><span class="sb-ico">📋</span><span>인증·갱신 관리</span><span class="sb-cnt" id="sb-cert-cnt">0</span></div>
   <div class="sb-menu" id="nav-stats" onclick="navTo('stats')"><span class="sb-ico">📈</span><span>누적 통계 데이터</span></div>
   <div class="sb-menu" id="nav-history" onclick="navTo('history')"><span class="sb-ico">📁</span><span>완료 업무 이력</span><span class="sb-cnt" id="sb-history-cnt">0</span></div>
-  <div class="sb-section">관리</div>
   <div class="sb-menu" id="nav-matching" onclick="navTo('matching')"><span class="sb-ico">🎯</span><span>지원사업 매칭</span></div>
   <div class="sb-menu" id="nav-companies" onclick="navTo('companies')"><span class="sb-ico">🏛️</span><span>기업 관리</span><span class="sb-cnt" id="sb-corp-cnt">0</span></div>
   <div class="sb-bottom">
@@ -902,10 +902,13 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
 
     <!-- 대상 조건 섹션 -->
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:4px">
-      <div style="font-size:12px;font-weight:600;color:var(--text3);margin-bottom:10px">🎯 대상 조건 (매칭용)</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:600;color:var(--text3)">🎯 대상 조건 (매칭용)</div>
+        <span id="cons-match-count" style="font-size:11px;color:var(--accent);font-weight:600"></span>
+      </div>
       <div class="frow">
         <div class="fg"><label class="fl">대상 지역</label>
-          <select class="fs" id="cons-region">
+          <select class="fs" id="cons-region" onchange="previewConsMatch()">
             <option value="">전국</option>
             <option value="서울">서울</option>
             <option value="경기">경기</option>
@@ -927,7 +930,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
           </select>
         </div>
         <div class="fg"><label class="fl">대상 기업 규모</label>
-          <select class="fs" id="cons-scale">
+          <select class="fs" id="cons-scale" onchange="previewConsMatch()">
             <option value="">제한없음</option>
             <option value="소기업">소기업</option>
             <option value="중기업">중기업 이하</option>
@@ -937,7 +940,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
       </div>
       <div class="frow">
         <div class="fg"><label class="fl">대상 업종</label>
-          <select class="fs" id="cons-industry">
+          <select class="fs" id="cons-industry" onchange="previewConsMatch()">
             <option value="">전체 업종</option>
             <option value="제조">제조업</option>
             <option value="IT">IT·소프트웨어</option>
@@ -950,13 +953,18 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
           </select>
         </div>
         <div class="fg"><label class="fl">대상 업력</label>
-          <select class="fs" id="cons-age">
+          <select class="fs" id="cons-age" onchange="previewConsMatch()">
             <option value="">제한없음</option>
             <option value="3년이내">창업 3년 이내</option>
             <option value="7년이내">7년 이내</option>
             <option value="7년초과">7년 초과</option>
           </select>
         </div>
+      </div>
+      <!-- 매칭 미리보기 -->
+      <div id="cons-match-preview" style="display:none;margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
+        <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">✅ 조건 맞는 업체 <span id="cons-match-preview-count"></span></div>
+        <div id="cons-match-preview-list" style="display:flex;flex-wrap:wrap;gap:6px"></div>
       </div>
     </div>
 
@@ -1965,8 +1973,66 @@ function openConsultingModal(id){
     document.getElementById('cons-status').value='wait';
     document.getElementById('cons-del-btn').style.display='none';
   }
-  renderConsCompaniesList();openModal('consulting-modal');
+  renderConsCompaniesList();previewConsMatch();openModal('consulting-modal');
 }
+// 지원사업 모달 - 조건 입력 시 매칭 업체 실시간 미리보기
+function previewConsMatch(){
+  var tmpCons={
+    targetRegion:document.getElementById('cons-region')?.value||'',
+    targetScale:document.getElementById('cons-scale')?.value||'',
+    targetIndustry:document.getElementById('cons-industry')?.value||'',
+    targetAge:document.getElementById('cons-age')?.value||''
+  };
+  var hasCondition=tmpCons.targetRegion||tmpCons.targetScale||tmpCons.targetIndustry||tmpCons.targetAge;
+  var previewWrap=document.getElementById('cons-match-preview');
+  var countBadge=document.getElementById('cons-match-count');
+  var listEl=document.getElementById('cons-match-preview-list');
+  var countEl=document.getElementById('cons-match-preview-count');
+
+  if(!hasCondition){
+    if(previewWrap)previewWrap.style.display='none';
+    if(countBadge)countBadge.textContent='';
+    return;
+  }
+
+  var matched=companies.filter(function(c){
+    if(c.active==='N')return false;
+    return isCompMatch(c,tmpCons);
+  });
+
+  if(countBadge)countBadge.textContent='매칭 '+matched.length+'개사';
+  if(!previewWrap)return;
+  previewWrap.style.display=matched.length?'block':'none';
+  if(countEl)countEl.textContent='('+matched.length+'개사)';
+  if(!listEl)return;
+
+  listEl.innerHTML=matched.map(function(comp){
+    var alreadyIn=tempConsCompanies.some(function(cc){return cc.bizno===comp._id;});
+    var tags='';
+    if(comp.region)tags+='<span style="font-size:10px;color:var(--text4)">'+comp.region+'</span>';
+    if(comp.scale)tags+='<span style="font-size:10px;color:var(--text4)"> · '+comp.scale+'</span>';
+    return '<div style="display:flex;align-items:center;gap:6px;background:'+(alreadyIn?'#EFF4FF':'#FFFFFF')+';border:1px solid '+(alreadyIn?'rgba(37,99,235,.3)':'var(--border)')+';border-radius:8px;padding:6px 10px">'
+      +'<div><div style="font-size:12px;font-weight:500;color:var(--text)">'+comp.name+'</div>'
+      +'<div>'+tags+'</div></div>'
+      +(alreadyIn
+        ?'<span style="font-size:10px;color:var(--accent);font-weight:600;margin-left:4px">참여중</span>'
+        :'<button onclick="addConsCompanyDirect(this.dataset.bizno)" data-bizno="'+comp._id+'" style="margin-left:6px;background:var(--accent);border:none;border-radius:6px;color:#FFF;font-size:11px;padding:3px 10px;cursor:pointer;font-family:Pretendard,sans-serif;white-space:nowrap">+ 추가</button>'
+      )
+      +'</div>';
+  }).join('');
+}
+
+// 매칭 미리보기에서 바로 업체 추가
+function addConsCompanyDirect(bizno){
+  var comp=companies.find(function(c){return c._id===bizno;});
+  if(!comp)return;
+  if(tempConsCompanies.find(function(cc){return cc.bizno===bizno;})){alert('이미 추가된 업체입니다.');return;}
+  var st=document.getElementById('cons-comp-status')?.value||'wait';
+  tempConsCompanies.push({consId:'',bizno:comp._id,companyName:comp.name,status:st,createdAt:Date.now()});
+  renderConsCompaniesList();
+  previewConsMatch(); // 미리보기 업데이트
+}
+
 function renderConsCompaniesList(){
   document.getElementById('cons-companies-list').innerHTML=tempConsCompanies.map((cc,i)=>`
     <div class="ci" style="cursor:default">
@@ -4173,6 +4239,31 @@ function exportCalendar(){
 // ── MATCHING ──
 let matchTab='comp';
 
+// 매칭 페이지에서 지원사업에 업체 바로 추가
+async function quickAddToConsulting(consId,bizno){
+  var comp=companies.find(function(c){return c._id===bizno;});
+  var cons=consulting.find(function(c){return c.id===consId;});
+  if(!comp||!cons){alert('정보를 찾을 수 없습니다.');return;}
+  if(consCompanies.find(function(cc){return cc.consId===consId&&cc.bizno===bizno;})){
+    alert('이미 참여 중인 업체입니다.');return;
+  }
+  if(!confirm('['+cons.title+']\n'+comp.name+' 을(를) 참여 업체로 추가하시겠습니까?'))return;
+  try{
+    setBadge('추가 중...');
+    await addDoc(COL.consulting_company(),{
+      consId:consId,bizno:bizno,
+      companyName:comp.name,
+      status:'wait',
+      createdAt:Date.now()
+    });
+    setBadge('✅ 추가 완료',2000);
+    renderMatchingPage();
+  }catch(e){
+    setBadge('추가 실패');
+    alert('추가 실패: '+e.message);
+  }
+}
+
 function setMatchTab(tab){
   matchTab=tab;
   ['comp','cons'].forEach(function(t){
@@ -4355,7 +4446,11 @@ function renderMatchCons(){
         html+='<div style="display:flex;align-items:center;gap:6px;background:'+(alreadyIn?'#EFF4FF':'#F9FAFB')+';border:1px solid '+(alreadyIn?'var(--accent-border)':'var(--border)')+';border-radius:8px;padding:5px 10px">';
         html+='<span style="font-size:12px;font-weight:500;color:var(--text)">'+comp.name+'</span>';
         if(comp.region)html+='<span style="font-size:10px;color:var(--text4)">'+comp.region+'</span>';
-        if(alreadyIn)html+='<span style="font-size:10px;color:var(--accent);font-weight:600">참여중</span>';
+        if(alreadyIn){
+          html+='<span style="font-size:10px;color:var(--accent);font-weight:600">참여중</span>';
+        } else {
+          html+='<button onclick="quickAddToConsulting(this.dataset.consid,this.dataset.bizno)" data-consid="'+c.id+'" data-bizno="'+comp._id+'" style="background:var(--accent);border:none;border-radius:6px;color:#FFF;font-size:11px;padding:3px 10px;cursor:pointer;font-family:Pretendard,sans-serif;white-space:nowrap;margin-left:4px">+ 참여 추가</button>';
+        }
         html+='</div>';
       });
       html+='</div>';
@@ -4404,7 +4499,8 @@ Object.assign(window,{
   openCompanyModal,saveCompany,deleteCompany,restoreCompany,permanentDeleteCompany,checkBizno,renderCompaniesPage,toggleBizDateFields,autoTabDate,
   showCorpDrop,hideCorpDrop,selectCorpDrop,
   calcCompAge,
-  setMatchTab,renderMatchingPage,
+  setMatchTab,renderMatchingPage,quickAddToConsulting,
+  previewConsMatch,addConsCompanyDirect,
   openCalendarExportModal,updateCalPreview,exportCalendar,
   migrateBizno,
 });
