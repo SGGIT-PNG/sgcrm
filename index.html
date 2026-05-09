@@ -354,10 +354,35 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
 
     <!-- PAGE: GANTT -->
     <div class="page-section" id="page-gantt">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-        <div class="toggle-btn" id="gantt-filter-toggle-sub">
-          <button class="toggle-opt active" onclick="setGanttFilter('active')">진행중만</button>
-          <button class="toggle-opt" onclick="setGanttFilter('all')">전체보기</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div class="toggle-btn" id="gantt-filter-toggle-sub">
+            <button class="toggle-opt active" onclick="setGanttFilter('active')">진행중만</button>
+            <button class="toggle-opt" onclick="setGanttFilter('all')">전체보기</button>
+          </div>
+          <select class="fs" id="gantt-region-filter" onchange="renderGantt('sub')" style="width:100px">
+            <option value="">전체 지역</option>
+            <option value="서울">서울</option><option value="경기">경기</option>
+            <option value="인천">인천</option><option value="부산">부산</option>
+            <option value="대구">대구</option><option value="대전">대전</option>
+            <option value="광주">광주</option><option value="울산">울산</option>
+            <option value="세종">세종</option><option value="강원">강원</option>
+            <option value="충북">충북</option><option value="충남">충남</option>
+            <option value="전북">전북</option><option value="전남">전남</option>
+            <option value="경북">경북</option><option value="경남">경남</option>
+            <option value="제주">제주</option>
+          </select>
+          <select class="fs" id="gantt-industry-filter" onchange="renderGantt('sub')" style="width:120px">
+            <option value="">전체 업종</option>
+            <option value="제조">제조업</option>
+            <option value="IT">IT·소프트웨어</option>
+            <option value="바이오">바이오·의료</option>
+            <option value="서비스">서비스업</option>
+            <option value="건설">건설·부동산</option>
+            <option value="유통">유통·물류</option>
+            <option value="농업">농업·식품</option>
+            <option value="에너지">에너지·환경</option>
+          </select>
         </div>
         <button class="btn btn-primary" onclick="openConsultingModal()">+ 대분류 추가</button>
       </div>
@@ -541,7 +566,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
         <button class="btn btn-primary" onclick="openCompanyModal()">+ 기업 등록</button>
       </div>
       <div class="card"><div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>기업명</th><th>그룹</th><th>대표자</th><th>지역</th><th>규모</th><th>업종</th><th>사업자번호</th><th>연락처</th><th>등록일</th><th style="width:60px">관리</th></tr></thead>
+        <thead><tr><th>기업명</th><th>그룹</th><th>대표자</th><th>지역</th><th>규모</th><th>업력</th><th>업종</th><th>사업자번호</th><th>연락처</th><th>등록일</th><th style="width:60px">관리</th></tr></thead>
         <tbody id="corp-tbody"></tbody>
       </table></div></div>
     </div>
@@ -624,13 +649,8 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
             <option value="제주">제주</option>
           </select>
         </div>
-        <div class="fg"><label class="fl">업력</label>
-          <select class="fs" id="comp-age">
-            <option value="">선택</option>
-            <option value="3년이내">창업 3년 이내</option>
-            <option value="7년이내">3~7년</option>
-            <option value="7년초과">7년 초과</option>
-          </select>
+        <div class="fg"><label class="fl">업력 <span style="font-size:11px;color:var(--text4)">(사업개시일 자동계산)</span></label>
+          <div class="fi" id="comp-age-display" style="background:var(--surface2);color:var(--text3);cursor:default">사업개시일 입력 시 자동 계산</div>
         </div>
       </div>
       <div class="frow">
@@ -673,11 +693,11 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
     <div class="fg" id="comp-est-date-wrap">
       <label class="fl" id="comp-est-label">사업개시일</label>
       <div style="display:flex;gap:4px;align-items:center">
-        <input class="fi" id="comp-est-y" placeholder="YYYY" maxlength="4" style="width:64px;text-align:center" oninput="autoTabDate(this,'comp-est-m',4)">
+        <input class="fi" id="comp-est-y" placeholder="YYYY" maxlength="4" style="width:64px;text-align:center" oninput="autoTabDate(this,'comp-est-m',4);calcCompAge()">
         <span style="color:var(--text4)">-</span>
-        <input class="fi" id="comp-est-m" placeholder="MM" maxlength="2" style="width:48px;text-align:center" oninput="autoTabDate(this,'comp-est-d',2)">
+        <input class="fi" id="comp-est-m" placeholder="MM" maxlength="2" style="width:48px;text-align:center" oninput="autoTabDate(this,'comp-est-d',2);calcCompAge()">
         <span style="color:var(--text4)">-</span>
-        <input class="fi" id="comp-est-d" placeholder="DD" maxlength="2" style="width:48px;text-align:center">
+        <input class="fi" id="comp-est-d" placeholder="DD" maxlength="2" style="width:48px;text-align:center" oninput="calcCompAge()">
       </div>
     </div>
     <div class="fg"><label class="fl">주소</label><input class="fi" id="comp-addr" placeholder="서울시 강남구..."></div>
@@ -807,6 +827,67 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
       <div class="fg"><label class="fl">승인·확정금액 (만원)</label><input class="fi" id="cons-approved-amt" type="number" placeholder="0"></div>
     </div>
     <div class="fg"><label class="fl">메모</label><textarea class="fta" id="cons-memo"></textarea></div>
+
+    <!-- 대상 조건 섹션 -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:4px">
+      <div style="font-size:12px;font-weight:600;color:var(--text3);margin-bottom:10px">🎯 대상 조건 (매칭용)</div>
+      <div class="frow">
+        <div class="fg"><label class="fl">대상 지역</label>
+          <select class="fs" id="cons-region">
+            <option value="">전국</option>
+            <option value="서울">서울</option>
+            <option value="경기">경기</option>
+            <option value="인천">인천</option>
+            <option value="부산">부산</option>
+            <option value="대구">대구</option>
+            <option value="대전">대전</option>
+            <option value="광주">광주</option>
+            <option value="울산">울산</option>
+            <option value="세종">세종</option>
+            <option value="강원">강원</option>
+            <option value="충북">충북</option>
+            <option value="충남">충남</option>
+            <option value="전북">전북</option>
+            <option value="전남">전남</option>
+            <option value="경북">경북</option>
+            <option value="경남">경남</option>
+            <option value="제주">제주</option>
+          </select>
+        </div>
+        <div class="fg"><label class="fl">대상 기업 규모</label>
+          <select class="fs" id="cons-scale">
+            <option value="">제한없음</option>
+            <option value="소기업">소기업</option>
+            <option value="중기업">중기업 이하</option>
+            <option value="중견기업">중견기업 이하</option>
+          </select>
+        </div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label class="fl">대상 업종</label>
+          <select class="fs" id="cons-industry">
+            <option value="">전체 업종</option>
+            <option value="제조">제조업</option>
+            <option value="IT">IT·소프트웨어</option>
+            <option value="바이오">바이오·의료</option>
+            <option value="서비스">서비스업</option>
+            <option value="건설">건설·부동산</option>
+            <option value="유통">유통·물류</option>
+            <option value="농업">농업·식품</option>
+            <option value="에너지">에너지·환경</option>
+          </select>
+        </div>
+        <div class="fg"><label class="fl">대상 업력</label>
+          <select class="fs" id="cons-age">
+            <option value="">제한없음</option>
+            <option value="3년이내">창업 3년 이내</option>
+            <option value="7년이내">7년 이내</option>
+            <option value="7년초과">7년 초과</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
     <div style="border-top:1px solid #E5E7EB;padding-top:12px;margin-top:4px">
       <div style="font-size:13px;font-weight:500;color:var(--text3);margin-bottom:8px">참여 업체</div>
       <div id="cons-companies-list"></div>
@@ -1471,6 +1552,51 @@ function toggleBizDateFields(){
 function autoTabDate(el,nextId,maxLen){
   if(el.value.length>=maxLen){const next=document.getElementById(nextId);if(next)next.focus();}
 }
+
+// 업력 자동 계산 (사업개시일 기준)
+function getCompAgeYears(estDate){
+  if(!estDate)return null;
+  const start=new Date(estDate);
+  if(isNaN(start))return null;
+  const now=new Date();
+  let years=now.getFullYear()-start.getFullYear();
+  const m=now.getMonth()-start.getMonth();
+  if(m<0||(m===0&&now.getDate()<start.getDate()))years--;
+  return Math.max(0,years);
+}
+
+function getCompAgeLabel(estDate){
+  const years=getCompAgeYears(estDate);
+  if(years===null)return '';
+  if(years<3)return '창업 3년 이내 ('+years+'년)';
+  if(years<=7)return '3~7년 ('+years+'년)';
+  return '7년 초과 ('+years+'년)';
+}
+
+function getCompAgeBand(estDate){
+  const years=getCompAgeYears(estDate);
+  if(years===null)return '';
+  if(years<3)return '3년이내';
+  if(years<=7)return '7년이내';
+  return '7년초과';
+}
+
+function calcCompAge(){
+  const y=document.getElementById('comp-est-y')?.value||'';
+  const m=document.getElementById('comp-est-m')?.value||'';
+  const d=document.getElementById('comp-est-d')?.value||'';
+  const el=document.getElementById('comp-age-display');
+  if(!el)return;
+  if(y.length===4&&m&&d){
+    const dateStr=y+'-'+m.padStart(2,'0')+'-'+d.padStart(2,'0');
+    const label=getCompAgeLabel(dateStr);
+    el.textContent=label||'날짜를 확인해주세요';
+    el.style.color=label?'var(--text)':'var(--danger)';
+  } else {
+    el.textContent='사업개시일 입력 시 자동 계산';
+    el.style.color='var(--text3)';
+  }
+}
 // 날짜 3분할 필드 → YYYY-MM-DD
 function getDateFields(yId,mId,dId){
   const y=document.getElementById(yId)?.value.trim()||'';
@@ -1642,6 +1768,10 @@ function renderGantt(sfx){
   }
   head+=`</tr>`;
   let body='';
+  // 지역/업종 필터 (간트 페이지에서만)
+  const ganttRegionF=sfx==='sub'?(document.getElementById('gantt-region-filter')?.value||''):'';
+  const ganttIndustryF=sfx==='sub'?(document.getElementById('gantt-industry-filter')?.value||''):'';
+
   consulting.forEach((c,ci)=>{
     const isDone=c.status==='done';
     const isExpired=isDone&&isDoneExpired({status:c.status,doneAt:c.doneAt});
@@ -1653,6 +1783,20 @@ function renderGantt(sfx){
     // 참여업체가 있는데 활성 업체가 0개면 대분류도 숨김
     const allCompaniesInactive=consCompanies.filter(cc=>cc.consId===c.id).length>0&&ccs.length===0;
     if(allCompaniesInactive)return;
+    // 지역 필터: 지원사업 대상지역 또는 참여업체 지역으로 필터
+    if(ganttRegionF){
+      const consRegion=c.targetRegion||'';
+      const compRegions=ccs.map(cc=>{const comp=companies.find(x=>x._id===cc.bizno);return comp?comp.region:'';});
+      const regionMatch=!consRegion||consRegion===ganttRegionF||compRegions.some(r=>r===ganttRegionF);
+      if(!regionMatch)return;
+    }
+    // 업종 필터: 지원사업 대상업종 또는 참여업체 업종으로 필터
+    if(ganttIndustryF){
+      const consIndustry=c.targetIndustry||'';
+      const compIndustries=ccs.map(cc=>{const comp=companies.find(x=>x._id===cc.bizno);return comp?comp.industry:'';});
+      const industryMatch=!consIndustry||consIndustry===ganttIndustryF||compIndustries.some(i=>i===ganttIndustryF);
+      if(!industryMatch)return;
+    }
     body+=`<tr class="cat-row${isDone?' gantt-row-done':''}${isExpired?' gantt-row-expired':''}" onclick="toggleCat('${c.id}')"><td class="cat-label-td">
       <div class="cat-name">${cm.icon} ${c.title} ${badge(c.status||'wait')}<span class="cat-arrow${exp?' open':''}">▶</span>
         <button onclick="event.stopPropagation();openConsultingModal('${c.id}')" style="margin-left:6px;padding:2px 8px;background:#F0F0F0;border:1px solid rgba(37,99,235,.4);border-radius:5px;color:var(--blue);font-size:11px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">관리</button>
@@ -1727,6 +1871,15 @@ function openConsultingModal(id){
     document.getElementById('cons-amount').value=c.amount||'';
     document.getElementById('cons-approved-amt').value=c.approvedAmt||'';
     document.getElementById('cons-memo').value=c.memo||'';
+    // 대상조건 필드 로드
+    const consRegionEl=document.getElementById('cons-region');
+    const consScaleEl=document.getElementById('cons-scale');
+    const consIndustryEl=document.getElementById('cons-industry');
+    const consAgeEl=document.getElementById('cons-age');
+    if(consRegionEl)consRegionEl.value=c.targetRegion||'';
+    if(consScaleEl)consScaleEl.value=c.targetScale||'';
+    if(consIndustryEl)consIndustryEl.value=c.targetIndustry||'';
+    if(consAgeEl)consAgeEl.value=c.targetAge||'';
     // consulting_company 테이블에서 참여업체 로드
     tempConsCompanies=getConsCompanies(id).map(cc=>({...cc}));
     document.getElementById('cons-del-btn').style.display='';
@@ -1734,6 +1887,7 @@ function openConsultingModal(id){
     document.getElementById('cons-modal-title').textContent='📋 지원사업·정책자금 추가';
     document.getElementById('cons-edit-id').value='';
     ['cons-title','cons-org','cons-start','cons-end','cons-amount','cons-approved-amt','cons-memo'].forEach(id=>document.getElementById(id).value='');
+    ['cons-region','cons-scale','cons-industry','cons-age'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
     document.getElementById('cons-category').value='policy';
     document.getElementById('cons-status').value='wait';
     document.getElementById('cons-del-btn').style.display='none';
@@ -1777,6 +1931,10 @@ async function saveConsulting(){
     amount:+document.getElementById('cons-amount').value||0,
     approvedAmt:+document.getElementById('cons-approved-amt').value||0,
     memo:document.getElementById('cons-memo').value,
+    targetRegion:document.getElementById('cons-region')?.value||'',
+    targetScale:document.getElementById('cons-scale')?.value||'',
+    targetIndustry:document.getElementById('cons-industry')?.value||'',
+    targetAge:document.getElementById('cons-age')?.value||'',
     updatedAt:Date.now()
   };
   try{
@@ -3536,15 +3694,15 @@ function openCompanyModal(bizno){
     // 매칭 필드 로드
     const scaleEl=document.getElementById('comp-scale');
     const regionEl=document.getElementById('comp-region');
-    const ageEl=document.getElementById('comp-age');
     const revenueEl=document.getElementById('comp-revenue');
     const industryEl=document.getElementById('comp-industry');
     if(scaleEl)scaleEl.value=c.scale||'';
     if(regionEl)regionEl.value=c.region||'';
-    if(ageEl)ageEl.value=c.compAge||'';
     if(revenueEl)revenueEl.value=c.revenue||'';
     if(industryEl)industryEl.value=c.industry||'';
     toggleBizDateFields();
+    // 업력 자동 계산 표시 (사업개시일 기준)
+    setTimeout(calcCompAge,50);
     const delBtn=document.getElementById('comp-del-btn');
     const permDelBtn=document.getElementById('comp-perm-del-btn');
     delBtn.style.display='';
@@ -3566,7 +3724,8 @@ function openCompanyModal(bizno){
     document.getElementById('company-modal-title').textContent='🏛️ 기업 등록';
     document.getElementById('comp-edit-bizno').value='';
     ['comp-name','comp-ceo','comp-corp-no','comp-bizno','comp-biztype','comp-tel','comp-email','comp-addr','comp-memo'].forEach(id=>document.getElementById(id).value='');
-    ['comp-scale','comp-region','comp-age','comp-revenue','comp-industry'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    ['comp-scale','comp-region','comp-revenue','comp-industry'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    const ageDisp=document.getElementById('comp-age-display');if(ageDisp){ageDisp.textContent='사업개시일 입력 시 자동 계산';ageDisp.style.color='var(--text3)';}
     ['comp-birth-y','comp-birth-m','comp-birth-d','comp-reg-y','comp-reg-m','comp-reg-d','comp-est-y','comp-est-m','comp-est-d'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
     document.getElementById('comp-bizno-auto').textContent='';
     document.getElementById('comp-group').value='일반고객';
@@ -3607,7 +3766,6 @@ async function saveCompany(){
     memo:document.getElementById('comp-memo').value,
     scale:document.getElementById('comp-scale')?.value||'',
     region:document.getElementById('comp-region')?.value||'',
-    compAge:document.getElementById('comp-age')?.value||'',
     revenue:document.getElementById('comp-revenue')?.value||'',
     industry:document.getElementById('comp-industry')?.value||'',
     joinDate:editBizno?(companies.find(c=>c._id===editBizno)?.joinDate||new Date().toISOString().slice(0,10)):new Date().toISOString().slice(0,10),
@@ -3749,6 +3907,7 @@ function renderCompaniesPage(){
       +'<td>'+(c.ceo||'—')+'</td>'
       +'<td style="color:var(--text3)">'+(c.region||'—')+'</td>'
       +'<td style="color:var(--text3)">'+(c.scale||'—')+'</td>'
+      +'<td style="color:var(--text3);font-size:12px">'+(c.estDate?getCompAgeLabel(c.estDate):'—')+'</td>'
       +'<td style="color:var(--text3)">'+(c.industry||c.biztype||'—')+'</td>'
       +'<td style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--text4)">'+c._id+'</td>'
       +'<td style="color:var(--text3)">'+(c.tel||'—')+'</td>'
@@ -3758,7 +3917,7 @@ function renderCompaniesPage(){
         +(isInactive?'<button onclick="restoreCompany(this.dataset.id)" data-id="'+cid+'" style="background:none;border:none;color:var(--ok);font-size:12px;cursor:pointer;padding:2px" title="복구">&#x21A9;복구</button>':'')
       +'</td>'
       +'</tr>';
-  }).join(''):'<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text4)">등록된 기업이 없습니다</td></tr>';
+  }).join(''):'<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--text4)">등록된 기업이 없습니다</td></tr>';
 }
 
 // ── CALENDAR EXPORT ──
@@ -3974,6 +4133,7 @@ Object.assign(window,{
   renderHistoryPage,setHistStatus,setHistPage,
   openCompanyModal,saveCompany,deleteCompany,restoreCompany,permanentDeleteCompany,checkBizno,renderCompaniesPage,toggleBizDateFields,autoTabDate,
   showCorpDrop,hideCorpDrop,selectCorpDrop,
+  calcCompAge,
   openCalendarExportModal,updateCalPreview,exportCalendar,
   migrateBizno,
 });
