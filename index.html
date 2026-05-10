@@ -1004,7 +1004,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
 
 <!-- MODAL: 재무제표 분석 -->
 <div class="ov" id="finance-modal">
-  <div class="modal" style="width:700px;max-height:94vh">
+  <div class="modal" style="width:580px">
     <div class="modal-title">
       <span>📊 재무제표 분석 · 보고서 생성</span>
       <button class="modal-close" onclick="closeModal('finance-modal')">×</button>
@@ -1021,80 +1021,40 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
       <input type="hidden" id="finance-comp-link" value="">
       <div id="finance-comp-selected" style="display:none;margin-top:6px;align-items:center;gap:8px;background:var(--accent-pale);border:1px solid var(--accent-border);border-radius:8px;padding:7px 12px">
         <span style="font-size:13px;font-weight:500;color:var(--accent)" id="finance-comp-selected-name"></span>
-        <button onclick="clearFinanceComp()" style="margin-left:auto;background:none;border:none;color:var(--text4);cursor:pointer;font-size:16px">×</button>
+        <button onclick="clearFinanceComp()" style="margin-left:auto;background:none;border:none;color:var(--text4);cursor:pointer;font-size:18px">×</button>
       </div>
     </div>
 
-    <!-- 기본 정보 -->
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px">
-      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">📋 기본 정보</div>
-      <div class="frow">
-        <div class="fg"><label class="fl">법인명</label><input class="fi" id="fin-company-name" placeholder="주식회사 ○○○"></div>
-        <div class="fg"><label class="fl">사업자번호</label><input class="fi" id="fin-biz-no" placeholder="000-00-00000"></div>
+    <!-- PDF 업로드 -->
+    <div>
+      <label class="fl" style="margin-bottom:6px;display:block">
+        📄 OCR 변환된 재무제표 PDF <span style="color:var(--danger)">*</span>
+      </label>
+      <div style="font-size:11px;color:var(--text4);margin-bottom:8px">
+        국세청 표준재무제표증명을 OCR 변환한 PDF를 첨부하세요. 당기/전기 모두 있으면 비교식으로 자동 생성됩니다.
       </div>
-      <div class="frow">
-        <div class="fg"><label class="fl">당기 사업연도</label><input class="fi" id="fin-period" placeholder="2025.01.01~2025.12.31"></div>
-        <div class="fg"><label class="fl">전기 사업연도 <span style="color:var(--text4);font-weight:400">(비교식)</span></label><input class="fi" id="fin-prev-period" placeholder="2024.01.01~2024.12.31"></div>
+      <!-- 드래그앤드롭 영역 -->
+      <div id="fin-drop-zone"
+        onclick="document.getElementById('fin-pdf-file').click()"
+        ondragover="event.preventDefault();this.style.borderColor='var(--accent)';this.style.background='var(--accent-pale)'"
+        ondragleave="this.style.borderColor='var(--border2)';this.style.background='var(--surface2)'"
+        ondrop="handleFinPdfDrop(event)"
+        style="border:2px dashed var(--border2);border-radius:10px;padding:28px;text-align:center;cursor:pointer;background:var(--surface2);transition:all .15s">
+        <div style="font-size:32px;margin-bottom:8px">📎</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text2)">클릭하거나 PDF를 드래그하세요</div>
+        <div style="font-size:11px;color:var(--text4);margin-top:4px">OCR 변환된 PDF만 지원 (텍스트 레이어 필요)</div>
       </div>
-    </div>
-
-    <!-- 재무상태표 -->
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px">
-      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">📊 재무상태표 (단위: 원)</div>
-      <div class="frow">
-        <div class="fg"><label class="fl">유동자산</label><input class="fi" id="fin-bs-ca" type="number" placeholder="0" oninput="autoCalcFinance()"></div>
-        <div class="fg"><label class="fl">비유동자산</label><input class="fi" id="fin-bs-nca" type="number" placeholder="0" oninput="autoCalcFinance()"></div>
-        <div class="fg"><label class="fl" style="color:var(--accent)">자산총계 (자동)</label><input class="fi" id="fin-bs-ta" type="number" placeholder="0" style="background:var(--surface);font-weight:600;color:var(--accent)"></div>
-      </div>
-      <div class="frow">
-        <div class="fg"><label class="fl">유동부채</label><input class="fi" id="fin-bs-cl" type="number" placeholder="0" oninput="autoCalcFinance()"></div>
-        <div class="fg"><label class="fl">비유동부채</label><input class="fi" id="fin-bs-ncl" type="number" placeholder="0" oninput="autoCalcFinance()"></div>
-        <div class="fg"><label class="fl" style="color:var(--danger)">부채총계 (자동)</label><input class="fi" id="fin-bs-tl" type="number" placeholder="0" style="background:var(--surface);font-weight:600;color:var(--danger)"></div>
-      </div>
-      <div class="frow">
-        <div class="fg"><label class="fl">자본금</label><input class="fi" id="fin-bs-cap" type="number" placeholder="0" oninput="autoCalcFinance()"></div>
-        <div class="fg"><label class="fl">이익잉여금</label><input class="fi" id="fin-bs-re" type="number" placeholder="0 (손실이면 음수)" oninput="autoCalcFinance()"></div>
-        <div class="fg"><label class="fl" style="color:var(--ok)">자본총계 (자동)</label><input class="fi" id="fin-bs-te" type="number" placeholder="0" style="background:var(--surface);font-weight:600;color:var(--ok)"></div>
-      </div>
-    </div>
-
-    <!-- 손익계산서 -->
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px">
-      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">📈 손익계산서 (단위: 원)</div>
-      <div class="frow">
-        <div class="fg"><label class="fl">매출액</label><input class="fi" id="fin-is-rev" type="number" placeholder="0" oninput="autoCalcFinance()"></div>
-        <div class="fg"><label class="fl">매출원가</label><input class="fi" id="fin-is-cos" type="number" placeholder="0" oninput="autoCalcFinance()"></div>
-        <div class="fg"><label class="fl" style="color:var(--accent)">매출총손익 (자동)</label><input class="fi" id="fin-is-gp" type="number" placeholder="0" style="background:var(--surface);font-weight:600;color:var(--accent)"></div>
-      </div>
-      <div class="frow">
-        <div class="fg"><label class="fl">판매비와관리비</label><input class="fi" id="fin-is-oe" type="number" placeholder="0" oninput="autoCalcFinance()"></div>
-        <div class="fg"><label class="fl" style="color:var(--accent)">영업손익 (자동)</label><input class="fi" id="fin-is-oi" type="number" placeholder="0" style="background:var(--surface);font-weight:600;color:var(--accent)"></div>
-        <div class="fg"><label class="fl" style="color:var(--ok)">당기순손익 (직접입력)</label><input class="fi" id="fin-is-ni" type="number" placeholder="0 (손실이면 음수)" oninput="autoCalcFinance()"></div>
-      </div>
-      <div class="frow">
-        <div class="fg"><label class="fl">영업외수익</label><input class="fi" id="fin-is-noi" type="number" placeholder="0" oninput="autoCalcFinance()"></div>
-        <div class="fg"><label class="fl">영업외비용</label><input class="fi" id="fin-is-noe" type="number" placeholder="0" oninput="autoCalcFinance()"></div>
-        <div class="fg"></div>
-      </div>
-    </div>
-
-    <!-- 전기 데이터 (비교식) -->
-    <div id="fin-prev-section" style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:12px">
-      <div style="font-size:12px;font-weight:600;color:var(--warn);margin-bottom:8px">📊 전기 데이터 (비교식 보고서용 - 선택)</div>
-      <div class="frow">
-        <div class="fg"><label class="fl">전기 자산총계</label><input class="fi" id="fin-p-ta" type="number" placeholder="0"></div>
-        <div class="fg"><label class="fl">전기 부채총계</label><input class="fi" id="fin-p-tl" type="number" placeholder="0"></div>
-        <div class="fg"><label class="fl">전기 자본총계</label><input class="fi" id="fin-p-te" type="number" placeholder="0"></div>
-      </div>
-      <div class="frow">
-        <div class="fg"><label class="fl">전기 매출액</label><input class="fi" id="fin-p-rev" type="number" placeholder="0"></div>
-        <div class="fg"><label class="fl">전기 영업손익</label><input class="fi" id="fin-p-oi" type="number" placeholder="0"></div>
-        <div class="fg"><label class="fl">전기 당기순손익</label><input class="fi" id="fin-p-ni" type="number" placeholder="0"></div>
+      <input type="file" id="fin-pdf-file" accept=".pdf" style="display:none" onchange="handleFinPdfSelect(event)">
+      <div id="fin-file-info" style="display:none;margin-top:8px;display:flex;align-items:center;gap:8px;background:var(--ok-pale);border:1px solid #A7F3D0;border-radius:8px;padding:8px 12px">
+        <span style="font-size:13px">📄</span>
+        <span id="fin-file-name" style="font-size:12px;font-weight:500;color:var(--ok);flex:1"></span>
+        <button onclick="clearFinPdf()" style="background:none;border:none;color:var(--text4);cursor:pointer;font-size:16px">×</button>
       </div>
     </div>
 
     <!-- 보고서 옵션 -->
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">보고서 구성</div>
       <div style="display:flex;gap:16px;flex-wrap:wrap">
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="checkbox" id="finance-opt-bs" checked style="accent-color:var(--accent)"> 재무상태표</label>
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="checkbox" id="finance-opt-is" checked style="accent-color:var(--accent)"> 손익계산서</label>
@@ -1103,10 +1063,20 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
       </div>
     </div>
 
+    <!-- 진행 상태 -->
+    <div id="fin-progress" style="display:none;text-align:center;padding:8px;font-size:13px;color:var(--text3)">
+      <div style="margin-bottom:6px" id="fin-progress-msg">📖 PDF에서 텍스트 추출 중...</div>
+      <div style="background:var(--border);border-radius:4px;height:4px;overflow:hidden">
+        <div id="fin-progress-bar" style="height:100%;background:var(--accent);width:0%;transition:width .3s"></div>
+      </div>
+    </div>
+
+    <!-- 오류 -->
+    <div id="finance-error" style="display:none;background:#FFF5F5;border:1px solid #FECACA;border-radius:8px;padding:10px;font-size:12px;color:#DC2626"></div>
+
     <div class="modal-btns">
-      <button class="btn btn-ghost" onclick="resetFinanceModal()">초기화</button>
       <button class="btn btn-ghost" onclick="closeModal('finance-modal')">취소</button>
-      <button class="btn btn-primary" onclick="generateFinanceReport()">📄 보고서 생성</button>
+      <button class="btn btn-primary" id="fin-analyze-btn" onclick="analyzeFinancePdf()">🔍 분석 후 보고서 출력</button>
     </div>
   </div>
 </div>
@@ -5205,9 +5175,132 @@ function printConsultingReport(){
 }
 
 // ── FINANCE REPORT ──
-var financeData1 = null; // 당기
-var financeData2 = null; // 전기
-var financeAnalyzed = null; // AI 분석 결과
+var financeAnalyzed=null;
+var finPdfFile=null;
+
+function handleFinPdfDrop(event){
+  event.preventDefault();
+  var f=event.dataTransfer.files[0];
+  if(f&&f.type==='application/pdf'){
+    setFinPdfFile(f);
+  } else {
+    alert('PDF 파일만 첨부할 수 있습니다.');
+  }
+  var dz=document.getElementById('fin-drop-zone');
+  if(dz){dz.style.borderColor='var(--border2)';dz.style.background='var(--surface2)';}
+}
+
+function handleFinPdfSelect(event){
+  var f=event.target.files[0];
+  if(f)setFinPdfFile(f);
+}
+
+function setFinPdfFile(file){
+  finPdfFile=file;
+  var info=document.getElementById('fin-file-info');
+  var name=document.getElementById('fin-file-name');
+  if(info)info.style.display='flex';
+  if(name)name.textContent=file.name+' ('+Math.round(file.size/1024)+'KB)';
+  var errEl=document.getElementById('finance-error');
+  if(errEl)errEl.style.display='none';
+}
+
+function clearFinPdf(){
+  finPdfFile=null;
+  var info=document.getElementById('fin-file-info');
+  if(info)info.style.display='none';
+  var fileEl=document.getElementById('fin-pdf-file');
+  if(fileEl)fileEl.value='';
+}
+
+function setFinProgress(msg,pct){
+  var prog=document.getElementById('fin-progress');
+  var msgEl=document.getElementById('fin-progress-msg');
+  var bar=document.getElementById('fin-progress-bar');
+  if(prog)prog.style.display=pct<100?'block':'none';
+  if(msgEl)msgEl.textContent=msg;
+  if(bar)bar.style.width=pct+'%';
+}
+
+async function loadPdfJs(){
+  if(window.pdfjsLib)return;
+  await new Promise(function(resolve,reject){
+    var s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload=resolve;s.onerror=reject;
+    document.head.appendChild(s);
+  });
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc=
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+async function extractPdfText(file){
+  await loadPdfJs();
+  var arrayBuffer=await file.arrayBuffer();
+  var pdf=await window.pdfjsLib.getDocument({data:arrayBuffer}).promise;
+  var text='';
+  for(var i=1;i<=pdf.numPages;i++){
+    setFinProgress('📖 텍스트 추출 중... ('+i+'/'+pdf.numPages+'페이지)',Math.round(i/pdf.numPages*60));
+    var page=await pdf.getPage(i);
+    var content=await page.getTextContent();
+    // 좌표 기반으로 정렬해서 추출 (표 구조 유지)
+    var items=content.items;
+    // y좌표 그룹핑으로 같은 행 묶기
+    var rows={};
+    items.forEach(function(item){
+      var y=Math.round(item.transform[5]/5)*5; // 5px 단위로 반올림
+      if(!rows[y])rows[y]=[];
+      rows[y].push({x:item.transform[4],str:item.str});
+    });
+    // y 내림차순(위에서 아래), x 오름차순(왼쪽에서 오른쪽)
+    Object.keys(rows).sort(function(a,b){return b-a;}).forEach(function(y){
+      var row=rows[y].sort(function(a,b){return a.x-b.x;});
+      text+=row.map(function(r){return r.str;}).join(' ')+'\n';
+    });
+  }
+  return text;
+}
+
+async function analyzeFinancePdf(){
+  if(!finPdfFile){alert('PDF 파일을 먼저 첨부해주세요.');return;}
+  var btn=document.getElementById('fin-analyze-btn');
+  var errEl=document.getElementById('finance-error');
+  btn.disabled=true;btn.textContent='🔄 분석 중...';
+  if(errEl)errEl.style.display='none';
+  setFinProgress('📖 PDF 로딩 중...',10);
+
+  try{
+    // 텍스트 추출
+    var text=await extractPdfText(finPdfFile);
+    if(!text.trim())throw new Error('텍스트 추출 실패. OCR 변환된 PDF인지 확인하세요.');
+
+    setFinProgress('🔍 재무 데이터 파싱 중...',80);
+
+    // 파싱
+    var d=parseFinanceOcr(text);
+    if(!d.balanceSheet.totalAssets&&!d.incomeStatement.revenue){
+      throw new Error('재무 데이터 인식 실패. 국세청 표준재무제표증명 형식인지 확인하세요.');
+    }
+    financeAnalyzed=d;
+    setFinProgress('✅ 완료',100);
+
+    // CRM 저장
+    var compBizno=document.getElementById('finance-comp-link')?.value||'';
+    if(compBizno){
+      try{await updateDoc(doc(db,'companies',compBizno),{financeData:d,financeUpdatedAt:Date.now()});setBadge('재무데이터 저장됨',2000);}catch(e){}
+    }
+    closeModal('finance-modal');
+    setTimeout(printFinanceReport,300);
+
+  }catch(e){
+    setFinProgress('',100);
+    if(errEl){errEl.style.display='block';errEl.textContent='오류: '+e.message;}
+  }finally{
+    btn.disabled=false;btn.textContent='🔍 분석 후 보고서 출력';
+  }
+}
+
+var financeAnalyzed=null;
 
 function searchFinanceComp(){
   var inp=document.getElementById('finance-comp-search-inp');
@@ -5216,16 +5309,14 @@ function searchFinanceComp(){
   var q=inp.value.toLowerCase();
   var matches=companies.filter(function(c){
     if(c.active==='N')return false;
-    if(!q)return true;
-    return c.name.toLowerCase().includes(q)||(c._id||'').includes(q);
+    return !q||c.name.toLowerCase().includes(q)||(c._id||'').includes(q);
   }).slice(0,10);
   if(!matches.length){dd.classList.remove('open');return;}
   dd.innerHTML=matches.map(function(c){
     return '<div class="corp-dropdown-item" onclick="selectFinanceComp(this.dataset.bizno,this.dataset.name)" data-bizno="'+c._id+'" data-name="'+c.name.replace(/"/g,'&quot;')+'">'
       +(c.bizclass==='법인'?'🏛️':'👤')+' <b>'+c.name+'</b>'
       +(c.region?' <span style="color:var(--text4);font-size:11px">'+c.region+'</span>':'')
-      +'<span style="color:var(--text4);font-size:10px;margin-left:6px">'+c._id+'</span>'
-      +'</div>';
+      +'<span style="color:var(--text4);font-size:10px;margin-left:6px">'+c._id+'</span></div>';
   }).join('');
   dd.classList.add('open');
 }
@@ -5239,14 +5330,6 @@ function selectFinanceComp(bizno,name){
   var selName=document.getElementById('finance-comp-selected-name');
   if(sel)sel.style.display='flex';
   if(selName)selName.textContent=name;
-  // 업체 정보에서 법인명, 사업자번호 자동 입력
-  var comp=companies.find(function(c){return c._id===bizno;});
-  if(comp){
-    var nameEl=document.getElementById('fin-company-name');
-    var bizEl=document.getElementById('fin-biz-no');
-    if(nameEl&&!nameEl.value)nameEl.value=comp.name;
-    if(bizEl&&!bizEl.value)bizEl.value=comp._id;
-  }
 }
 
 function clearFinanceComp(){
@@ -5260,212 +5343,173 @@ function clearFinanceComp(){
 
 function openFinanceModal(){
   clearFinanceComp();
-  resetFinanceModal();
+  financeAnalyzed=null;
+  var ocrEl=document.getElementById('fin-ocr-text');if(ocrEl)ocrEl.value='';
+  var resEl=document.getElementById('finance-result');if(resEl)resEl.style.display='none';
+  var errEl=document.getElementById('finance-error');if(errEl)errEl.style.display='none';
   openModal('finance-modal');
 }
 
-function resetFinanceModal(){
-  var ids=['fin-company-name','fin-biz-no','fin-period','fin-prev-period',
-    'fin-bs-ca','fin-bs-nca','fin-bs-ta','fin-bs-cl','fin-bs-ncl','fin-bs-tl','fin-bs-cap','fin-bs-re','fin-bs-te',
-    'fin-is-rev','fin-is-cos','fin-is-gp','fin-is-oe','fin-is-oi','fin-is-ni','fin-is-noi','fin-is-noe',
-    'fin-p-ta','fin-p-tl','fin-p-te','fin-p-rev','fin-p-oi','fin-p-ni'];
-  ids.forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
-}
-
-function autoCalcFinance(){
-  var g=function(id){return parseFloat(document.getElementById(id)?.value)||0;};
-  var s=function(id,v){var el=document.getElementById(id);if(el)el.value=v||'';};
-  // 자산총계
-  var ta=g('fin-bs-ca')+g('fin-bs-nca');
-  if(ta)s('fin-bs-ta',ta);
-  // 부채총계
-  var tl=g('fin-bs-cl')+g('fin-bs-ncl');
-  if(tl)s('fin-bs-tl',tl);
-  // 자본총계
-  var te=g('fin-bs-cap')+g('fin-bs-re');
-  if(te)s('fin-bs-te',te);
-  // 매출총손익
-  var gp=g('fin-is-rev')-g('fin-is-cos');
-  if(g('fin-is-rev'))s('fin-is-gp',gp);
-  // 영업손익
-  var oi=gp-g('fin-is-oe');
-  if(g('fin-is-rev'))s('fin-is-oi',oi);
-}
-
-function getFinanceData(){
-  var g=function(id){return parseFloat(document.getElementById(id)?.value)||0;};
-  var gs=function(id){return document.getElementById(id)?.value||'';};
-  var bs={
-    currentAssets:g('fin-bs-ca'), nonCurrentAssets:g('fin-bs-nca'), totalAssets:g('fin-bs-ta'),
-    currentLiabilities:g('fin-bs-cl'), nonCurrentLiabilities:g('fin-bs-ncl'), totalLiabilities:g('fin-bs-tl'),
-    capital:g('fin-bs-cap'), retainedEarnings:g('fin-bs-re'), totalEquity:g('fin-bs-te'),
-  };
-  var is_={
-    revenue:g('fin-is-rev'), costOfSales:g('fin-is-cos'), grossProfit:g('fin-is-gp'),
-    operatingExpenses:g('fin-is-oe'), operatingIncome:g('fin-is-oi'),
-    nonOperatingIncome:g('fin-is-noi'), nonOperatingExpenses:g('fin-is-noe'), netIncome:g('fin-is-ni'),
-  };
-  var hasPrev=g('fin-p-ta')||g('fin-p-rev');
-  var pbs=hasPrev?{totalAssets:g('fin-p-ta'),totalLiabilities:g('fin-p-tl'),totalEquity:g('fin-p-te'),currentAssets:0,nonCurrentAssets:0,currentLiabilities:0,nonCurrentLiabilities:0,capital:0,retainedEarnings:0}:null;
-  var pis=hasPrev?{revenue:g('fin-p-rev'),operatingIncome:g('fin-p-oi'),netIncome:g('fin-p-ni'),costOfSales:0,grossProfit:0,operatingExpenses:0,nonOperatingIncome:0,nonOperatingExpenses:0}:null;
-  return{
-    companyName:gs('fin-company-name'), bizNo:gs('fin-biz-no'),
-    period:gs('fin-period'), prevPeriod:gs('fin-prev-period')||null,
-    balanceSheet:bs, incomeStatement:is_,
-    prevBalanceSheet:pbs, prevIncomeStatement:pis,
-  };
-}
-
-async function generateFinanceReport(){
-  var d=getFinanceData();
-  if(!d.companyName){alert('법인명을 입력해주세요.');return;}
-  if(!d.balanceSheet.totalAssets&&!d.incomeStatement.revenue){
-    alert('재무상태표 또는 손익계산서 데이터를 입력해주세요.');return;
-  }
-  financeAnalyzed=d;
-  // CRM 저장
-  var compBizno=document.getElementById('finance-comp-link')?.value||'';
-  if(compBizno){
-    try{
-      await updateDoc(doc(db,'companies',compBizno),{financeData:d,financeUpdatedAt:Date.now()});
-      setBadge('재무데이터 저장됨',2000);
-    }catch(e){}
-  }
-  closeModal('finance-modal');
-  setTimeout(printFinanceReport,300);
-}
-
-function printFinanceReport(){
-  if(!financeAnalyzed){alert('먼저 데이터를 입력하고 보고서 생성을 클릭해주세요.');return;}
-  var d=financeAnalyzed;
-  var bs=d.balanceSheet;
-  var is_=d.incomeStatement;
-  var pbs=d.prevBalanceSheet;
-  var pis=d.prevIncomeStatement;
-  var hasCompare=!!(pbs&&pis&&d.prevPeriod);
-  var optBS=document.getElementById('finance-opt-bs')?.checked!==false;
-  var optIS=document.getElementById('finance-opt-is')?.checked!==false;
-  var optRatio=document.getElementById('finance-opt-ratio')?.checked!==false;
-  var optComment=document.getElementById('finance-opt-comment')?.checked!==false;
-  var styles=getReportStyles();
-  var extraStyle='<style>.fin-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px;}.fin-table th{background:#F7F8FA;padding:9px 12px;text-align:left;border:1px solid #E4E7EC;font-size:11px;color:#6C6C70;font-weight:600;}.fin-table td{padding:9px 12px;border:1px solid #E4E7EC;}.fin-table .num{text-align:right;font-family:monospace;}.fin-table .total{font-weight:700;background:#F0F4FF;}.fin-table .section{font-weight:600;background:#FAFAFA;}.fin-table .sub{color:#6C6C70;padding-left:24px!important;}.pos{color:#059669;}.neg{color:#DC2626;}.ratio-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}.ratio-card{background:#F7F8FA;border:1px solid #E4E7EC;border-radius:8px;padding:12px;text-align:center;}.ratio-val{font-size:18px;font-weight:700;font-family:monospace;}.ratio-label{font-size:11px;color:#6C6C70;margin-top:3px;}.comment-box{background:#EFF4FF;border:1px solid #C7D7FF;border-radius:8px;padding:14px;font-size:12px;line-height:1.8;}</style>';
-  var chg=function(c,p){if(!p)return '—';var r=Math.round((c-p)/Math.abs(p)*1000)/10;return '<span class="'+(r>=0?'pos':'neg')+'">'+(r>=0?'▲':'▼')+Math.abs(r)+'%</span>';};
-  var html='<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>재무제표 분석 보고서</title>'+styles+extraStyle+'</head><body>';
-  html+='<div class="report-header">';
-  html+='<div class="report-title">📊 재무제표 분석 보고서</div>';
-  html+='<div style="margin-top:6px;font-size:13px;font-weight:500">'+d.companyName+(d.bizNo?' &nbsp;|&nbsp; 사업자: '+d.bizNo:'')+'</div>';
-  html+='<div class="report-meta"><span>사업연도: '+d.period+'</span>'+(hasCompare?'<span>전기: '+d.prevPeriod+'</span>':'')+'<span>출력일: '+fmtDate()+'</span></div></div>';
-
-  // 재무상태표
-  if(optBS){
-    html+='<div class="section"><div class="section-title">재무상태표</div>';
-    html+='<table class="fin-table"><tr><th>계정과목</th><th class="num">당기</th>';
-    if(hasCompare)html+='<th class="num">전기</th><th class="num">증감율</th>';
-    html+='</tr>';
-    [{l:'Ⅰ. 유동자산',c:'section',v:bs.currentAssets,p:pbs?.currentAssets},{l:'Ⅱ. 비유동자산',c:'section',v:bs.nonCurrentAssets,p:pbs?.nonCurrentAssets},{l:'자산총계',c:'total',v:bs.totalAssets,p:pbs?.totalAssets},{l:'Ⅰ. 유동부채',c:'section',v:bs.currentLiabilities,p:pbs?.currentLiabilities},{l:'Ⅱ. 비유동부채',c:'section',v:bs.nonCurrentLiabilities,p:pbs?.nonCurrentLiabilities},{l:'부채총계',c:'total',v:bs.totalLiabilities,p:pbs?.totalLiabilities},{l:'Ⅲ. 자본금',c:'section',v:bs.capital,p:pbs?.capital},{l:'이익잉여금',c:'sub',v:bs.retainedEarnings,p:pbs?.retainedEarnings},{l:'자본총계',c:'total',v:bs.totalEquity,p:pbs?.totalEquity}].forEach(function(r){
-      if(r.v===null||r.v===undefined||r.v===0)return;
-      html+='<tr><td class="'+r.c+'">'+r.l+'</td><td class="num '+(r.v<0?'neg':'')+'">'+r.v.toLocaleString()+'원</td>';
-      if(hasCompare){html+='<td class="num '+(r.p<0?'neg':'')+'">'+( r.p!==null&&r.p!==undefined?r.p.toLocaleString()+'원':'—')+'</td><td class="num">'+chg(r.v,r.p)+'</td>';}
-      html+='</tr>';
-    });
-    html+='</table></div>';
-  }
-
-  // 손익계산서
-  if(optIS){
-    html+='<div class="section"><div class="section-title">손익계산서</div>';
-    html+='<table class="fin-table"><tr><th>계정과목</th><th class="num">당기</th>';
-    if(hasCompare)html+='<th class="num">전기</th><th class="num">증감율</th>';
-    html+='</tr>';
-    var isRows=[
-      {label:'Ⅰ. 매출액',val:is_.revenue,prev:pis?.revenue,cls:'section'},
-      {label:'Ⅱ. 매출원가',val:is_.costOfSales,prev:pis?.costOfSales,cls:'section'},
-      {label:'Ⅲ. 매출총손익',val:is_.grossProfit,prev:pis?.grossProfit,cls:'total'},
-      {label:'Ⅳ. 판매비와관리비',val:is_.operatingExpenses,prev:pis?.operatingExpenses,cls:'section'},
-      {label:'Ⅴ. 영업손익',val:is_.operatingIncome,prev:pis?.operatingIncome,cls:'total'},
-      {label:'Ⅵ. 영업외수익',val:is_.nonOperatingIncome,prev:pis?.nonOperatingIncome,cls:'section'},
-      {label:'Ⅶ. 영업외비용',val:is_.nonOperatingExpenses,prev:pis?.nonOperatingExpenses,cls:'section'},
-      {label:'Ⅹ. 당기순손익',val:is_.netIncome,prev:pis?.netIncome,cls:'total'},
-    ];
-    isRows.forEach(function(r){
-      if(r.val===null||r.val===undefined)return;
-      html+='<tr><td class="'+r.cls+'">'+r.label+'</td>';
-      html+='<td class="num '+(r.val<0?'neg':'')+'">'+(r.val!==null?r.val.toLocaleString()+'원':'—')+'</td>';
-      if(hasCompare){
-        html+='<td class="num '+(r.prev<0?'neg':'')+'">'+(r.prev!==null?r.prev.toLocaleString()+'원':'—')+'</td>';
-        html+='<td class="num">'+chg(r.val,r.prev)+'</td>';
-      }
-      html+='</tr>';
-    });
-    html+='</table></div>';
-  }
-
-  // 재무비율 분석
-  if(optRatio){
-    html+='<div class="section"><div class="section-title">재무비율 분석</div>';
-    var currRatio=bs.currentLiabilities?Math.round(bs.currentAssets/bs.currentLiabilities*100):null;
-    var debtRatio=bs.totalEquity?Math.round(bs.totalLiabilities/bs.totalEquity*100):null;
-    var equityRatio=bs.totalAssets?Math.round(bs.totalEquity/bs.totalAssets*100):null;
-    var opMargin=is_.revenue?Math.round(is_.operatingIncome/is_.revenue*1000)/10:null;
-    var netMargin=is_.revenue?Math.round(is_.netIncome/is_.revenue*1000)/10:null;
-    var roa=bs.totalAssets?Math.round(is_.netIncome/bs.totalAssets*1000)/10:null;
-
-    html+='<div class="ratio-grid">';
-    var ratios=[
-      {label:'유동비율',val:currRatio,unit:'%',desc:'단기 지급능력',good:currRatio>=200},
-      {label:'부채비율',val:debtRatio,unit:'%',desc:'재무 안정성',good:debtRatio<=100},
-      {label:'자기자본비율',val:equityRatio,unit:'%',desc:'자본 건전성',good:equityRatio>=50},
-      {label:'영업이익률',val:opMargin,unit:'%',desc:'영업 수익성',good:opMargin>0},
-      {label:'순이익률',val:netMargin,unit:'%',desc:'최종 수익성',good:netMargin>0},
-      {label:'총자산수익률(ROA)',val:roa,unit:'%',desc:'자산 활용도',good:roa>0},
-    ];
-    ratios.forEach(function(r){
-      var color=r.val===null?'#6C6C70':r.good?'#059669':'#DC2626';
-      html+='<div class="ratio-card">';
-      html+='<div class="ratio-val" style="color:'+color+'">'+(r.val!==null?r.val+r.unit:'—')+'</div>';
-      html+='<div class="ratio-label">'+r.label+'</div>';
-      html+='<div style="font-size:10px;color:#9CA3AF;margin-top:2px">'+r.desc+'</div>';
-      html+='</div>';
-    });
-    html+='</div>';
-
-    // 비율 해석
-    html+='<table class="fin-table"><tr><th>비율</th><th class="num">수치</th><th>평가</th><th>해석</th></tr>';
-    var comments=[
-      {name:'유동비율',val:currRatio,unit:'%',eval_:currRatio>=200?'양호':currRatio>=100?'주의':'위험',comment:currRatio>=200?'단기 채무 상환 능력 양호':currRatio>=100?'단기 채무 상환 능력 보통':'단기 유동성 위험'},
-      {name:'부채비율',val:debtRatio,unit:'%',eval_:debtRatio<=100?'양호':debtRatio<=200?'주의':'위험',comment:debtRatio<=100?'재무구조 안정적':debtRatio<=200?'부채 수준 점검 필요':'과도한 부채로 위험'},
-      {name:'영업이익률',val:opMargin,unit:'%',eval_:opMargin>5?'양호':opMargin>0?'보통':'위험',comment:opMargin>5?'수익성 양호':opMargin>0?'수익성 개선 필요':'영업 손실 발생 중'},
-    ];
-    comments.forEach(function(r){
-      var cls=r.eval_==='양호'?'badge-ok':r.eval_==='주의'||r.eval_==='보통'?'badge-warn':'badge-danger';
-      html+='<tr><td>'+r.name+'</td><td class="num">'+(r.val!==null?r.val+r.unit:'—')+'</td><td><span class="badge '+cls+'">'+r.eval_+'</span></td><td style="color:#6C6C70">'+r.comment+'</td></tr>';
-    });
-    html+='</table></div>';
-  }
-
-  // AI 종합 의견
-  if(optComment){
-    html+='<div class="section"><div class="section-title">종합 의견</div>';
-    html+='<div class="comment-box">';
-    var opinions=[];
-    if(is_.revenue>0)opinions.push('· 매출액 '+is_.revenue.toLocaleString()+'원으로 사업 활동 중.');
-    if(is_.operatingIncome<0)opinions.push('· 영업손실 발생 ('+Math.abs(is_.operatingIncome).toLocaleString()+'원). 판매비와관리비 절감 또는 매출 증대 방안 검토 필요.');
-    if(is_.netIncome<0)opinions.push('· 당기순손실 '+Math.abs(is_.netIncome).toLocaleString()+'원. 이익잉여금 감소로 자본 잠식 위험 주의.');
-    if(bs.totalLiabilities>bs.totalEquity)opinions.push('· 부채가 자본을 초과. 재무 건전성 개선 필요.');
-    if(bs.currentAssets<bs.currentLiabilities)opinions.push('· 유동자산이 유동부채 미만. 단기 유동성 관리 필요.');
-    if(hasCompare){
-      var revChg=pis.revenue?Math.round((is_.revenue-pis.revenue)/pis.revenue*100):null;
-      if(revChg!==null)opinions.push('· 매출액 전기 대비 '+(revChg>=0?'▲'+revChg:'▼'+Math.abs(revChg))+'% '+(revChg>=0?'증가':'감소')+'.');
+function parseFinanceOcr(text){
+  // 숫자 추출
+  function extractNum(patterns){
+    for(var i=0;i<patterns.length;i++){
+      var m=text.match(patterns[i]);
+      if(m){var n=parseInt((m[m.length-1]||'').replace(/,/g,''));if(!isNaN(n))return n;}
     }
-    if(!opinions.length)opinions.push('· 전반적으로 안정적인 재무구조를 유지하고 있습니다.');
-    opinions.push('<br><span style="font-size:11px;color:#9CA3AF">※ 본 분석은 AI 자동 분석 결과이며, 공인회계사의 검토를 대체하지 않습니다.</span>');
-    html+=opinions.join('<br>');
-    html+='</div></div>';
+    return null;
   }
 
-  html+='</body></html>';
-  closeModal('finance-modal');
-  openPrintWindow(html);
+  // 회사명
+  var companyName='';
+  var nm=text.match(/법인명\s+([\S]+(?:\s+[\S]+)?)\s+사업자/)||
+         text.match(/상호[^\n]*\n([^\n]+)/);
+  if(nm)companyName=nm[1].trim();
+
+  // 사업자번호
+  var bizNo='';
+  var bm=text.match(/(\d{3}[-]\d{2}[-]\d{5})/)||text.match(/(\d{3}\s\d{2}\s\d{5})/);
+  if(bm)bizNo=bm[1];
+
+  // 사업연도 - 당기/전기 구분
+  var periods=[];
+  var pm=text.matchAll(/(\d{4}[.\/\-]\d{2}[.\/\-]\d{2})\s*[~～\-]\s*(\d{4}[.\/\-]\d{2}[.\/\-]\d{2})/g);
+  for(var p of pm)periods.push(p[1]+'~'+p[2]);
+
+  // 재무상태표 당기/전기 파싱
+  // 국세청 표준: "코드 당기금액 전기금액" 또는 "코드 금액"
+  function extractBoth(code,labels){
+    // 코드 기반: 코드번호 뒤에 숫자 1~2개
+    var codeRe=new RegExp(code+'\s+([\-]?[\d,]+)(?:\s+([\-]?[\d,]+))?');
+    var m=text.match(codeRe);
+    if(m){
+      var cur=parseInt((m[1]||'').replace(/,/g,''));
+      var prev=m[2]?parseInt(m[2].replace(/,/g,'')):null;
+      return{cur:isNaN(cur)?null:cur, prev:prev};
+    }
+    // 레이블 기반
+    for(var i=0;i<(labels||[]).length;i++){
+      var lr=new RegExp(labels[i]+'\s+([\-]?[\d,]+)(?:\s+([\-]?[\d,]+))?');
+      var lm=text.match(lr);
+      if(lm){
+        var cv=parseInt((lm[1]||'').replace(/,/g,''));
+        var pv=lm[2]?parseInt(lm[2].replace(/,/g,'')):null;
+        return{cur:isNaN(cv)?null:cv, prev:pv};
+      }
+    }
+    return{cur:null,prev:null};
+  }
+
+  var bsMap={
+    currentAssets:    extractBoth('001',['유동자산']),
+    nonCurrentAssets: extractBoth('080',['비유동자산']),
+    totalAssets:      extractBoth('228',['자산총계']),
+    currentLiabilities:    extractBoth('229',['유동부채']),
+    nonCurrentLiabilities: extractBoth('284',['비유동부채']),
+    totalLiabilities: extractBoth('333',['부채총계']),
+    capital:          extractBoth('334',['자본금']),
+    retainedEarnings: extractBoth('372',['이익잉여금']),
+  };
+
+  var isMap={
+    revenue:           extractBoth('001',['매출액','수입금']),
+    costOfSales:       extractBoth('035',['매출원가']),
+    grossProfit:       extractBoth('066',['매출총손익']),
+    operatingExpenses: extractBoth('067',['판매비와관리비']),
+    operatingIncome:   extractBoth('129',['영업손익']),
+    nonOperatingIncome:  extractBoth('130',['영업외수익']),
+    nonOperatingExpenses:extractBoth('179',['영업외비용']),
+    netIncome:         extractBoth('219',['당기순손익']),
+  };
+
+  // 매출액과 유동자산 코드 충돌(001) 해결
+  // 손익계산서가 별도 섹션이면 재추출
+  var isRevM=text.match(/매출액\s*001\s+([\-]?[\d,]+)(?:\s+([\-]?[\d,]+))?/)||
+             text.match(/I\s*\.\s*매출액\s+([\-]?[\d,]+)(?:\s+([\-]?[\d,]+))?/)||
+             text.match(/수입금\s*025\s+([\-]?[\d,]+)(?:\s+([\-]?[\d,]+))?/);
+  if(isRevM){
+    isMap.revenue={cur:parseInt((isRevM[1]||'').replace(/,/g,'')),prev:isRevM[2]?parseInt(isRevM[2].replace(/,/g,'')):null};
+  }
+
+  // 전기 데이터 여부 확인
+  var hasPrev=Object.values(bsMap).some(function(v){return v.prev!==null;})||
+              Object.values(isMap).some(function(v){return v.prev!==null;});
+
+  function buildBS(key){
+    return{
+      currentAssets:    bsMap.currentAssets[key],
+      nonCurrentAssets: bsMap.nonCurrentAssets[key],
+      totalAssets:      bsMap.totalAssets[key],
+      currentLiabilities:    bsMap.currentLiabilities[key],
+      nonCurrentLiabilities: bsMap.nonCurrentLiabilities[key],
+      totalLiabilities: bsMap.totalLiabilities[key],
+      capital:          bsMap.capital[key],
+      retainedEarnings: bsMap.retainedEarnings[key],
+      totalEquity: bsMap.totalAssets[key]!==null&&bsMap.totalLiabilities[key]!==null
+        ? bsMap.totalAssets[key]-bsMap.totalLiabilities[key] : null,
+    };
+  }
+  function buildIS(key){
+    return{
+      revenue:           isMap.revenue[key],
+      costOfSales:       isMap.costOfSales[key],
+      grossProfit:       isMap.grossProfit[key],
+      operatingExpenses: isMap.operatingExpenses[key],
+      operatingIncome:   isMap.operatingIncome[key],
+      nonOperatingIncome:  isMap.nonOperatingIncome[key],
+      nonOperatingExpenses:isMap.nonOperatingExpenses[key],
+      netIncome:         isMap.netIncome[key],
+    };
+  }
+
+  return{
+    companyName: companyName,
+    bizNo: bizNo,
+    period: periods[0]||'',
+    prevPeriod: hasPrev?(periods[1]||'전기'):null,
+    balanceSheet: buildBS('cur'),
+    incomeStatement: buildIS('cur'),
+    prevBalanceSheet: hasPrev?buildBS('prev'):null,
+    prevIncomeStatement: hasPrev?buildIS('prev'):null,
+  };
+}
+
+async function analyzeAndPrintFinance(){
+  var text=document.getElementById('fin-ocr-text')?.value||'';
+  if(!text.trim()){alert('OCR 텍스트를 붙여넣어 주세요.');return;}
+  var errEl=document.getElementById('finance-error');
+  var resEl=document.getElementById('finance-result');
+  var resContent=document.getElementById('finance-result-content');
+  if(errEl)errEl.style.display='none';
+
+  try{
+    var d=parseFinanceOcr(text);
+    if(!d.balanceSheet.totalAssets&&!d.incomeStatement.revenue){
+      throw new Error('재무 데이터를 인식하지 못했습니다. 국세청 코드번호(228, 333 등)가 포함된 OCR 텍스트인지 확인해주세요.');
+    }
+    financeAnalyzed=d;
+
+    // 미리보기
+    var bs=d.balanceSheet; var is_=d.incomeStatement;
+    var preview='<b>'+(d.companyName||'법인명 미인식')+'</b>'+(d.bizNo?' | '+d.bizNo:'')+'<br>';
+    preview+='사업연도: '+(d.period||'미인식')+(d.prevPeriod?' / 전기: '+d.prevPeriod+' (비교식)':'')+'<br><br>';
+    preview+='자산총계: '+(bs.totalAssets?bs.totalAssets.toLocaleString()+'원':'미인식')+' | 부채총계: '+(bs.totalLiabilities?bs.totalLiabilities.toLocaleString()+'원':'미인식')+'<br>';
+    preview+='매출액: '+(is_.revenue?is_.revenue.toLocaleString()+'원':'미인식')+' | 영업손익: '+(is_.operatingIncome!==null?is_.operatingIncome.toLocaleString()+'원':'미인식')+' | 순손익: '+(is_.netIncome!==null?is_.netIncome.toLocaleString()+'원':'미인식');
+    if(d.prevPeriod)preview+='<br><span style="color:var(--ok)">✅ 전기 데이터 감지 → 비교식 보고서 생성</span>';
+    if(resContent)resContent.innerHTML=preview;
+    if(resEl)resEl.style.display='block';
+
+    // CRM 저장
+    var compBizno=document.getElementById('finance-comp-link')?.value||'';
+    if(compBizno){
+      try{await updateDoc(doc(db,'companies',compBizno),{financeData:d,financeUpdatedAt:Date.now()});setBadge('재무데이터 저장됨',2000);}catch(e){}
+    }
+    // 바로 출력
+    setTimeout(printFinanceReport,300);
+    closeModal('finance-modal');
+  }catch(e){
+    if(errEl){errEl.style.display='block';errEl.textContent='오류: '+e.message;}
+  }
 }
 
 // ── CORP AUTOCOMPLETE ──
@@ -5488,7 +5532,8 @@ loadAll();
 Object.assign(window,{
   navTo,manualSave,closeModal,
   openReportModal,printReport,
-  openFinanceModal,resetFinanceModal,generateFinanceReport,autoCalcFinance,printFinanceReport,
+  openFinanceModal,analyzeFinancePdf,handleFinPdfDrop,handleFinPdfSelect,clearFinPdf,
+  searchFinanceComp,selectFinanceComp,clearFinanceComp,
   searchFinanceComp,selectFinanceComp,clearFinanceComp,
   prevMonth,nextMonth,goToday,toggleCat,
   setGanttFilter,setWorkFilter,
