@@ -2573,7 +2573,10 @@ async function deleteConsulting(){
     const batch=writeBatch(db);
     batch.delete(doc(db,'consulting',id));
     consCompanies.filter(cc=>cc.consId===id).forEach(cc=>batch.delete(doc(db,'consulting_company',cc.id)));
-    await batch.commit();closeModal('consulting-modal');
+    await batch.commit();
+    // 구글 캘린더 삭제 동기화
+    gcalSyncCons({id:id},'delete');
+    closeModal('consulting-modal');
   }catch(e){alert('삭제 실패');}
 }
 
@@ -4263,8 +4266,12 @@ async function markAnnualDone(reportId){
 }
 async function deleteAnnualReport(reportId){
   if(!confirm('삭제하시겠습니까?'))return;
-  try{await deleteDoc(doc(db,'annual_reports',reportId));renderAnnualReportList();}
-  catch(e){alert('삭제 실패');}
+  try{
+    await deleteDoc(doc(db,'annual_reports',reportId));
+    // 구글 캘린더 삭제 동기화
+    gcalSyncAnnual({id:reportId},'delete');
+    renderAnnualReportList();
+  }catch(e){alert('삭제 실패');}
 }
 function getAnnualStatusDisplay(certId){
   const reports=annualReports.filter(r=>r.certId===certId).sort((a,b)=>b.year-a.year);
@@ -6247,9 +6254,12 @@ function gcalSyncCons(cons,action){
   var ccs=consCompanies.filter(function(cc){return cc.consId===cons.id;});
   var compNames=ccs.map(function(cc){var comp=companies.find(function(x){return x._id===cc.bizno;});return comp?comp.name:cc.companyName||'';}).join(', ');
   // 시작~마감을 하나의 기간 이벤트로 전송
+  var cm=CAT_META[cons.category]||CAT_META.etc;
   sendToGcal('upsert','cons',{
     id:cons.id,
     title:cons.title,
+    categoryName:cm.name||'지원사업',
+    categoryIcon:cm.icon||'📋',
     startDate:cons.startDate||cons.endDate,
     endDate:cons.endDate||cons.startDate,
     org:cons.org||'',
