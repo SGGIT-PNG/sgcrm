@@ -247,6 +247,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
   <div class="sb-menu" id="nav-matching" onclick="navTo('matching')"><span class="sb-ico">🎯</span><span>지원사업 매칭</span></div>
   <div class="sb-menu" id="nav-companies" onclick="navTo('companies')"><span class="sb-ico">🏛️</span><span>기업 관리</span><span class="sb-cnt" id="sb-corp-cnt">0</span></div>
   <div class="sb-bottom">
+    <div onclick="openGcalModal()" id="gcal-sidebar-btn" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:7px;padding:7px 12px;text-align:center;cursor:pointer;font-size:12px;font-weight:500;color:rgba(255,255,255,.7);margin-bottom:6px;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.15)'" onmouseout="this.style.background='rgba(255,255,255,.08)'">🗓️ 구글 캘린더 연동</div>
     <div onclick="openExcelModal()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:7px;padding:7px 12px;text-align:center;cursor:pointer;font-size:12px;font-weight:500;color:rgba(255,255,255,.7);margin-bottom:6px;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.15)'" onmouseout="this.style.background='rgba(255,255,255,.08)'">📊 엑셀 다운로드</div>
     <div onclick="openReportModal()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:7px;padding:7px 12px;text-align:center;cursor:pointer;font-size:12px;font-weight:500;color:rgba(255,255,255,.7);margin-bottom:6px;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.15)'" onmouseout="this.style.background='rgba(255,255,255,.08)'">📄 레포트 출력</div>
     <div class="sb-save" id="save-badge" onclick="manualSave()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:7px;padding:7px 12px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;color:var(--text2);transition:all .15s;margin-bottom:6px;">💾 저장</div>
@@ -1145,6 +1146,124 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
     <div class="modal-btns">
       <button class="btn btn-ghost" onclick="closeModal('finance-modal')">취소</button>
       <button class="btn btn-primary" id="fin-analyze-btn" onclick="analyzeFinancePdf()">🔍 분석 후 보고서 출력</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 구글 캘린더 연동 설정 -->
+<div class="ov" id="gcal-modal">
+  <div class="modal" style="width:620px;max-height:94vh">
+    <div class="modal-title">
+      <span>🗓️ 구글 캘린더 실시간 연동 설정</span>
+      <button class="modal-close" onclick="closeModal('gcal-modal')">×</button>
+    </div>
+
+    <!-- 연결 상태 -->
+    <div id="gcal-status-bar" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;background:var(--surface2);border:1px solid var(--border)">
+      <div id="gcal-status-dot" style="width:10px;height:10px;border-radius:50%;background:#D1D5DB;flex-shrink:0"></div>
+      <div id="gcal-status-msg" style="font-size:13px;color:var(--text3)">연동 미설정</div>
+      <button onclick="testGcalConnection()" class="btn btn-ghost btn-sm" style="margin-left:auto">🔗 연결 테스트</button>
+    </div>
+
+    <!-- 탭 -->
+    <div style="display:flex;gap:0;border-bottom:2px solid var(--border)">
+      <button id="gcal-tab-setup" onclick="setGcalTab('setup')" style="padding:8px 18px;border:none;background:none;font-size:13px;font-weight:600;color:var(--accent);border-bottom:2px solid var(--accent);margin-bottom:-2px;cursor:pointer;font-family:Pretendard,sans-serif">⚙️ 설정</button>
+      <button id="gcal-tab-guide" onclick="setGcalTab('guide')" style="padding:8px 18px;border:none;background:none;font-size:13px;font-weight:500;color:var(--text3);border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer;font-family:Pretendard,sans-serif">📖 설정 가이드</button>
+      <button id="gcal-tab-sync" onclick="setGcalTab('sync')" style="padding:8px 18px;border:none;background:none;font-size:13px;font-weight:500;color:var(--text3);border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer;font-family:Pretendard,sans-serif">🔄 수동 동기화</button>
+    </div>
+
+    <!-- 탭1: 설정 -->
+    <div id="gcal-pane-setup">
+      <div class="fg">
+        <label class="fl">Apps Script 웹훅 URL <span style="color:var(--danger)">*</span></label>
+        <div style="font-size:11px;color:var(--text4);margin-bottom:6px">Google Apps Script를 배포하면 발급되는 웹 앱 URL을 입력하세요.</div>
+        <input class="fi" id="gcal-webhook-url" placeholder="https://script.google.com/macros/s/xxxxxx/exec">
+      </div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px">
+        <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px">동기화할 항목</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
+            <input type="checkbox" id="gcal-sync-cert" checked style="accent-color:var(--accent)">
+            <span>🔴 인증 만료일 (D-90/30/7/1 알림 포함)</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
+            <input type="checkbox" id="gcal-sync-annual" checked style="accent-color:var(--accent)">
+            <span>🟡 연간 신고 기한 (D-30/7/1 알림)</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
+            <input type="checkbox" id="gcal-sync-cons" checked style="accent-color:var(--accent)">
+            <span>🔵 지원사업 시작일·마감일 (D-30/7 알림)</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
+            <input type="checkbox" id="gcal-sync-todo" style="accent-color:var(--accent)">
+            <span>🟢 ToDo 마감일 (D-1 알림)</span>
+          </label>
+        </div>
+      </div>
+      <div id="gcal-save-msg" style="display:none;font-size:12px;color:var(--ok);font-weight:600;text-align:center">✅ 설정이 저장되었습니다</div>
+      <div class="modal-btns" style="border-top:none;padding-top:0">
+        <button class="btn btn-ghost" onclick="closeModal('gcal-modal')">닫기</button>
+        <button class="btn btn-primary" onclick="saveGcalSettings()">💾 설정 저장</button>
+      </div>
+    </div>
+
+    <!-- 탭2: 설정 가이드 -->
+    <div id="gcal-pane-guide" style="display:none">
+      <div style="font-size:13px;line-height:1.9;color:var(--text2)">
+        <div style="font-size:14px;font-weight:700;color:var(--accent);margin-bottom:12px">📋 Google Apps Script 설정 방법</div>
+
+        <div style="background:var(--surface2);border-radius:8px;padding:12px;margin-bottom:10px">
+          <div style="font-weight:600;margin-bottom:6px">① script.google.com 접속</div>
+          <div style="color:var(--text3);font-size:12px">구글 계정으로 로그인 → 새 프로젝트 생성</div>
+        </div>
+
+        <div style="background:var(--surface2);border-radius:8px;padding:12px;margin-bottom:10px">
+          <div style="font-weight:600;margin-bottom:6px">② 아래 코드 전체 복사 후 붙여넣기</div>
+          <div style="position:relative">
+            <pre id="gcal-script-code" style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:10px;font-size:10px;overflow-x:auto;max-height:160px;overflow-y:auto;font-family:JetBrains Mono,monospace;line-height:1.5;margin:0"></pre>
+            <button onclick="copyGcalScript()" style="position:absolute;top:6px;right:6px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:4px;color:#FFF;font-size:11px;padding:3px 8px;cursor:pointer">복사</button>
+          </div>
+        </div>
+
+        <div style="background:var(--surface2);border-radius:8px;padding:12px;margin-bottom:10px">
+          <div style="font-weight:600;margin-bottom:6px">③ 배포 → 웹 앱으로 배포</div>
+          <div style="color:var(--text3);font-size:12px">
+            · 실행 대상: 나<br>
+            · 액세스 권한: 누구나<br>
+            · 배포 클릭 → URL 복사
+          </div>
+        </div>
+
+        <div style="background:var(--surface2);border-radius:8px;padding:12px;margin-bottom:10px">
+          <div style="font-weight:600;margin-bottom:6px">④ 복사한 URL을 설정 탭에 붙여넣기</div>
+          <div style="color:var(--text3);font-size:12px">설정 탭 → URL 입력 → 연결 테스트 → 저장</div>
+        </div>
+
+        <div style="background:#FFF9EC;border:1px solid #FDE68A;border-radius:8px;padding:10px;font-size:12px;color:#92400E">
+          💡 최초 1회만 설정하면 이후 CRM에서 인증·지원사업을 등록/수정/삭제할 때마다 구글 캘린더가 자동으로 업데이트됩니다.
+        </div>
+      </div>
+    </div>
+
+    <!-- 탭3: 수동 동기화 -->
+    <div id="gcal-pane-sync" style="display:none">
+      <div style="font-size:13px;color:var(--text3);margin-bottom:12px">전체 데이터를 구글 캘린더와 한번에 동기화합니다. 처음 연동 시 또는 데이터가 많이 바뀐 경우 사용하세요.</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px">
+          <div><div style="font-size:13px;font-weight:500">🔴 인증 만료일</div><div style="font-size:11px;color:var(--text4)" id="gcal-cert-count">—</div></div>
+          <button onclick="syncGcalType('cert')" class="btn btn-ghost btn-sm">동기화</button>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px">
+          <div><div style="font-size:13px;font-weight:500">🟡 연간 신고 기한</div><div style="font-size:11px;color:var(--text4)" id="gcal-annual-count">—</div></div>
+          <button onclick="syncGcalType('annual')" class="btn btn-ghost btn-sm">동기화</button>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px">
+          <div><div style="font-size:13px;font-weight:500">🔵 지원사업 일정</div><div style="font-size:11px;color:var(--text4)" id="gcal-cons-count">—</div></div>
+          <button onclick="syncGcalType('cons')" class="btn btn-ghost btn-sm">동기화</button>
+        </div>
+      </div>
+      <button onclick="syncGcalAll()" class="btn btn-primary" style="width:100%">🔄 전체 동기화</button>
+      <div id="gcal-sync-log" style="margin-top:12px;font-size:11px;color:var(--text4);background:var(--surface2);border-radius:6px;padding:10px;max-height:100px;overflow-y:auto;font-family:JetBrains Mono,monospace;display:none"></div>
     </div>
   </div>
 </div>
@@ -2442,7 +2561,9 @@ async function saveConsulting(){
       });
     });
     await batch.commit();
-    setBadge('✅ 저장됨',2000);closeModal('consulting-modal');
+    setBadge('✅ 저장됨',2000);
+    setTimeout(function(){var sc=consulting.find(function(c){return c.id===consId;});if(sc)gcalSyncCons(sc,'upsert');},1000);
+    closeModal('consulting-modal');
   }catch(e){console.error(e);setBadge('⚠️ 저장 실패');}
 }
 async function deleteConsulting(){
@@ -3957,6 +4078,7 @@ async function deleteCert(){
     // 인증 삭제
     await deleteDoc(doc(db,'certifications',id));
     setBadge('삭제 완료',2000);
+    gcalSyncCert({id:id},'delete');
     closeModal('cert-modal');
     if(linkedWorks.length||linkedAnnuals.length){
       alert('삭제 완료\n인증 1건, 업무 '+linkedWorks.length+'건, 연간신고 '+linkedAnnuals.length+'건 삭제됨');
@@ -5970,6 +6092,241 @@ async function downloadExcel(){
   }
 }
 
+// ── GOOGLE CALENDAR INTEGRATION ──
+var GCAL_SETTINGS_KEY='sgcrm_gcal_settings';
+
+function getGcalSettings(){
+  try{var s=localStorage.getItem(GCAL_SETTINGS_KEY);return s?JSON.parse(s):{};}
+  catch(e){return {};}
+}
+
+function saveGcalSettings(){
+  var url=document.getElementById('gcal-webhook-url')?.value.trim()||'';
+  if(!url){alert('웹훅 URL을 입력해주세요.');return;}
+  if(!url.startsWith('https://script.google.com')){
+    alert('올바른 Google Apps Script URL이 아닙니다.');return;
+  }
+  var settings={
+    webhookUrl:url,
+    syncCert:document.getElementById('gcal-sync-cert')?.checked!==false,
+    syncAnnual:document.getElementById('gcal-sync-annual')?.checked!==false,
+    syncCons:document.getElementById('gcal-sync-cons')?.checked!==false,
+    syncTodo:document.getElementById('gcal-sync-todo')?.checked||false,
+    enabled:true,
+  };
+  localStorage.setItem(GCAL_SETTINGS_KEY,JSON.stringify(settings));
+  var msg=document.getElementById('gcal-save-msg');
+  if(msg){msg.style.display='block';setTimeout(function(){msg.style.display='none';},2000);}
+  updateGcalStatus();
+  setBadge('✅ 구글 캘린더 연동 설정 저장',2000);
+}
+
+function openGcalModal(){
+  var s=getGcalSettings();
+  var urlEl=document.getElementById('gcal-webhook-url');
+  if(urlEl)urlEl.value=s.webhookUrl||'';
+  var checkIds={cert:'gcal-sync-cert',annual:'gcal-sync-annual',cons:'gcal-sync-cons',todo:'gcal-sync-todo'};
+  Object.keys(checkIds).forEach(function(k){
+    var el=document.getElementById(checkIds[k]);
+    if(el)el.checked=s['sync'+k.charAt(0).toUpperCase()+k.slice(1)]!==false;
+  });
+  // 스크립트 코드 표시
+  var codeEl=document.getElementById('gcal-script-code');
+  if(codeEl)codeEl.textContent=getAppsScriptCode();
+  // 카운트 업데이트
+  var certEl=document.getElementById('gcal-cert-count');
+  var annualEl=document.getElementById('gcal-annual-count');
+  var consEl=document.getElementById('gcal-cons-count');
+  if(certEl)certEl.textContent=certifications.filter(function(c){return c.expDate;}).length+'건';
+  if(annualEl)annualEl.textContent=annualReports.filter(function(r){return r.status!=='done'&&r.dueDate;}).length+'건';
+  if(consEl)consEl.textContent=consulting.filter(function(c){return c.endDate||c.startDate;}).length+'건';
+  setGcalTab('setup');
+  updateGcalStatus();
+  openModal('gcal-modal');
+}
+
+function setGcalTab(tab){
+  ['setup','guide','sync'].forEach(function(t){
+    var btn=document.getElementById('gcal-tab-'+t);
+    var pane=document.getElementById('gcal-pane-'+t);
+    if(btn){btn.style.color=t===tab?'var(--accent)':'var(--text3)';btn.style.fontWeight=t===tab?'600':'500';btn.style.borderBottomColor=t===tab?'var(--accent)':'transparent';}
+    if(pane)pane.style.display=t===tab?'block':'none';
+  });
+}
+
+function updateGcalStatus(){
+  var s=getGcalSettings();
+  var dot=document.getElementById('gcal-status-dot');
+  var msg=document.getElementById('gcal-status-msg');
+  if(s.enabled&&s.webhookUrl){
+    if(dot)dot.style.background='#10B981';
+    if(msg)msg.textContent='연동 활성화 - 자동 동기화 중';
+  } else {
+    if(dot)dot.style.background='#D1D5DB';
+    if(msg)msg.textContent='연동 미설정';
+  }
+}
+
+async function testGcalConnection(){
+  var url=document.getElementById('gcal-webhook-url')?.value.trim()||getGcalSettings().webhookUrl||'';
+  if(!url){alert('웹훅 URL을 먼저 입력하세요.');return;}
+  var dot=document.getElementById('gcal-status-dot');
+  var msg=document.getElementById('gcal-status-msg');
+  if(dot)dot.style.background='#F59E0B';
+  if(msg)msg.textContent='연결 테스트 중...';
+  try{
+    var resp=await fetch(url,{method:'GET',mode:'no-cors'});
+    if(dot)dot.style.background='#10B981';
+    if(msg)msg.textContent='✅ 연결 성공! 설정을 저장하세요.';
+  }catch(e){
+    if(dot)dot.style.background='#EF4444';
+    if(msg)msg.textContent='❌ 연결 실패: '+e.message;
+  }
+}
+
+function copyGcalScript(){
+  var code=getAppsScriptCode();
+  navigator.clipboard.writeText(code).then(function(){
+    setBadge('✅ 코드 복사됨',2000);
+  });
+}
+
+// ── 캘린더 동기화 핵심 함수 ──
+async function sendToGcal(action,type,payload){
+  var s=getGcalSettings();
+  if(!s.enabled||!s.webhookUrl)return;
+  // 타입별 설정 확인
+  var typeMap={cert:'syncCert',annual:'syncAnnual',cons:'syncCons',todo:'syncTodo'};
+  if(!s[typeMap[type]])return;
+  try{
+    await fetch(s.webhookUrl,{
+      method:'POST',
+      mode:'no-cors',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:action,type:type,payload:payload})
+    });
+  }catch(e){
+    console.warn('캘린더 동기화 실패:',e.message);
+  }
+}
+
+// ── 인증 저장/삭제 시 자동 동기화 ──
+function gcalSyncCert(cert,action){
+  if(action==='delete'){sendToGcal('delete','cert',{id:cert.id});return;}
+  var m=getCertMasterInfo(cert.certMasterId);
+  if(!cert.expDate)return;
+  sendToGcal('upsert','cert',{
+    id:cert.id,companyName:cert.companyName||'',
+    certName:m.certName,expDate:cert.expDate,
+    cycleMonths:m.cycleMonths||null,
+  });
+}
+
+// ── 연간신고 저장/삭제 시 자동 동기화 ──
+function gcalSyncAnnual(report,action){
+  if(action==='delete'){sendToGcal('delete','annual',{id:report.id});return;}
+  var cert=certifications.find(function(c){return c.id===report.certId;});
+  var m=cert?getCertMasterInfo(cert.certMasterId):{certName:'연간신고'};
+  if(!report.dueDate)return;
+  sendToGcal('upsert','annual',{
+    id:report.id,companyName:report.companyName||'',
+    certName:m.certName,dueDate:report.dueDate,year:report.year,
+  });
+}
+
+// ── 지원사업 저장/삭제 시 자동 동기화 ──
+function gcalSyncCons(cons,action){
+  if(action==='delete'){
+    sendToGcal('delete','cons',{id:cons.id+'_start'});
+    sendToGcal('delete','cons',{id:cons.id+'_end'});
+    return;
+  }
+  var ccs=consCompanies.filter(function(cc){return cc.consId===cons.id;});
+  var compNames=ccs.map(function(cc){var comp=companies.find(function(x){return x._id===cc.bizno;});return comp?comp.name:cc.companyName||'';}).join(', ');
+  if(cons.startDate){
+    sendToGcal('upsert','cons',{id:cons.id+'_start',title:cons.title,date:cons.startDate,org:cons.org||'',companies:compNames,isStart:true});
+  }
+  if(cons.endDate){
+    sendToGcal('upsert','cons',{id:cons.id+'_end',title:cons.title,date:cons.endDate,org:cons.org||'',companies:compNames,isStart:false});
+  }
+}
+
+// ── 수동 전체 동기화 ──
+async function syncGcalAll(){
+  var s=getGcalSettings();
+  if(!s.webhookUrl){alert('먼저 웹훅 URL을 설정하세요.');return;}
+  var log=document.getElementById('gcal-sync-log');
+  if(log)log.style.display='block';
+  function addLog(msg){if(log)log.innerHTML+=msg+'<br>';log.scrollTop=log.scrollHeight;}
+  addLog('🔄 전체 동기화 시작...');
+  if(s.syncCert){await syncGcalType('cert',addLog);}
+  if(s.syncAnnual){await syncGcalType('annual',addLog);}
+  if(s.syncCons){await syncGcalType('cons',addLog);}
+  addLog('✅ 전체 동기화 완료!');
+  setBadge('✅ 캘린더 동기화 완료',3000);
+}
+
+async function syncGcalType(type,logFn){
+  var log=logFn||function(){};
+  var s=getGcalSettings();
+  if(!s.webhookUrl)return;
+  var count=0;
+  if(type==='cert'){
+    var targets=certifications.filter(function(c){return c.expDate;});
+    log('🔴 인증 '+targets.length+'건 동기화 중...');
+    for(var i=0;i<targets.length;i++){gcalSyncCert(targets[i],'upsert');count++;}
+  } else if(type==='annual'){
+    var targets2=annualReports.filter(function(r){return r.status!=='done'&&r.dueDate;});
+    log('🟡 연간신고 '+targets2.length+'건 동기화 중...');
+    for(var i=0;i<targets2.length;i++){gcalSyncAnnual(targets2[i],'upsert');count++;}
+  } else if(type==='cons'){
+    log('🔵 지원사업 '+consulting.length+'건 동기화 중...');
+    for(var i=0;i<consulting.length;i++){gcalSyncCons(consulting[i],'upsert');count++;}
+  }
+  log('  → '+count+'건 전송 완료');
+}
+
+// ── Apps Script 코드 (가이드용) ──
+function getAppsScriptCode(){
+  return 'var CALENDAR_ID="primary";\n'
+    +'var COLOR_CERT=CalendarApp.EventColor.RED;\n'
+    +'var COLOR_ANNUAL=CalendarApp.EventColor.YELLOW;\n'
+    +'var COLOR_CONS=CalendarApp.EventColor.BLUE;\n'
+    +'var COLOR_TODO=CalendarApp.EventColor.GREEN;\n\n'
+    +'function doPost(e){\n'
+    +'  try{\n'
+    +'    var data=JSON.parse(e.postData.contents);\n'
+    +'    if(data.action==="upsert")upsertEvent(data.type,data.payload);\n'
+    +'    else if(data.action==="delete")deleteEvent(data.type,data.payload.id);\n'
+    +'    return ContentService.createTextOutput(JSON.stringify({ok:true})).setMimeType(ContentService.MimeType.JSON);\n'
+    +'  }catch(err){\n'
+    +'    return ContentService.createTextOutput(JSON.stringify({ok:false,error:err.message})).setMimeType(ContentService.MimeType.JSON);\n'
+    +'  }\n'
+    +'}\n\n'
+    +'function doGet(e){\n'
+    +'  return ContentService.createTextOutput(JSON.stringify({ok:true,message:"SG솔루션 CRM 캘린더 연동 정상"})).setMimeType(ContentService.MimeType.JSON);\n'
+    +'}\n\n'
+    +'function upsertEvent(type,p){\n'
+    +'  var cal=CalendarApp.getCalendarById(CALENDAR_ID)||CalendarApp.getDefaultCalendar();\n'
+    +'  var existId=findEventByTag(type,p.id);\n'
+    +'  var title="",date,desc="",color,alarms=[];\n'
+    +'  if(type==="cert"){title="[인증만료] "+p.companyName+" - "+p.certName;date=new Date(p.expDate);desc="업체: "+p.companyName+"\\n인증: "+p.certName+"\\n만료일: "+p.expDate;color=COLOR_CERT;alarms=[90*24*60,30*24*60,7*24*60,1*24*60];}\n'
+    +'  else if(type==="annual"){title="[연간신고] "+p.companyName+" - "+p.certName+" "+p.year+"년";date=new Date(p.dueDate);desc="업체: "+p.companyName+"\\n신고기한: "+p.dueDate;color=COLOR_ANNUAL;alarms=[30*24*60,7*24*60,1*24*60];}\n'
+    +'  else if(type==="cons"){title="[지원사업] "+p.title+(p.isStart?" 시작":" 마감");date=new Date(p.date);desc="사업명: "+p.title+"\\n업체: "+p.companies;color=COLOR_CONS;alarms=[30*24*60,7*24*60];}\n'
+    +'  else if(type==="todo"){title="[ToDo] "+p.title;date=new Date(p.dueDate);desc=p.title;color=COLOR_TODO;alarms=[1*24*60];}\n'
+    +'  if(!date||isNaN(date.getTime()))return;\n'
+    +'  var event;\n'
+    +'  if(existId){event=cal.getEventById(existId);if(event){event.setTitle(title);event.setAllDayDate(date);event.setDescription(desc);event.setColor(color);event.removeAllReminders();}else existId=null;}\n'
+    +'  if(!existId){event=cal.createAllDayEvent(title,date,{description:desc});event.setColor(color);saveEventTag(type,p.id,event.getId());}\n'
+    +'  if(event&&alarms.length)alarms.forEach(function(m){event.addPopupReminder(m);});\n'
+    +'}\n\n'
+    +'function deleteEvent(type,id){var eid=findEventByTag(type,id);if(!eid)return;var cal=CalendarApp.getCalendarById(CALENDAR_ID)||CalendarApp.getDefaultCalendar();var e=cal.getEventById(eid);if(e)e.deleteEvent();removeEventTag(type,id);}\n\n'
+    +'function tagKey(t,id){return"sgcrm_"+t+"_"+id;}\n'
+    +'function saveEventTag(t,id,eid){PropertiesService.getScriptProperties().setProperty(tagKey(t,id),eid);}\n'
+    +'function findEventByTag(t,id){return PropertiesService.getScriptProperties().getProperty(tagKey(t,id));}\n'
+    +'function removeEventTag(t,id){PropertiesService.getScriptProperties().deleteProperty(tagKey(t,id));}';
+}
+
 // ── CORP AUTOCOMPLETE ──
 function showCorpDrop(inputId){
   const inp=document.getElementById(inputId);const dd=document.getElementById('dd-'+inputId);
@@ -5990,6 +6347,7 @@ loadAll();
 Object.assign(window,{
   navTo,manualSave,closeModal,
   openExcelModal,downloadExcel,updateXlPreview,
+  openGcalModal,setGcalTab,saveGcalSettings,testGcalConnection,copyGcalScript,syncGcalAll,syncGcalType,
   openReportModal,printReport,
   openFinanceModal,analyzeFinancePdf,handleFinPdfDrop,handleFinPdfSelect,clearFinPdf,printFinanceReport,
   searchFinanceComp,selectFinanceComp,clearFinanceComp,
