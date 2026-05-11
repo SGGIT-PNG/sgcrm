@@ -6195,15 +6195,18 @@ function copyGcalScript(){
 async function sendToGcal(action,type,payload){
   var s=getGcalSettings();
   if(!s.enabled||!s.webhookUrl)return;
-  // 타입별 설정 확인
   var typeMap={cert:'syncCert',annual:'syncAnnual',cons:'syncCons',todo:'syncTodo'};
   if(!s[typeMap[type]])return;
   try{
+    // Apps Script는 no-cors + form data 방식으로 전송
+    // Content-Type 헤더 없이 plain text로 전송
+    var jsonStr=JSON.stringify({action:action,type:type,payload:payload});
+    var formData=new FormData();
+    formData.append('data',jsonStr);
     await fetch(s.webhookUrl,{
       method:'POST',
       mode:'no-cors',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:action,type:type,payload:payload})
+      body:formData
     });
   }catch(e){
     console.warn('캘린더 동기화 실패:',e.message);
