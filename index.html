@@ -247,6 +247,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
   <div class="sb-menu" id="nav-matching" onclick="navTo('matching')"><span class="sb-ico">🎯</span><span>지원사업 매칭</span></div>
   <div class="sb-menu" id="nav-companies" onclick="navTo('companies')"><span class="sb-ico">🏛️</span><span>기업 관리</span><span class="sb-cnt" id="sb-corp-cnt">0</span></div>
   <div class="sb-bottom">
+    <div onclick="openExcelModal()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:7px;padding:7px 12px;text-align:center;cursor:pointer;font-size:12px;font-weight:500;color:rgba(255,255,255,.7);margin-bottom:6px;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.15)'" onmouseout="this.style.background='rgba(255,255,255,.08)'">📊 엑셀 다운로드</div>
     <div onclick="openReportModal()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:7px;padding:7px 12px;text-align:center;cursor:pointer;font-size:12px;font-weight:500;color:rgba(255,255,255,.7);margin-bottom:6px;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.15)'" onmouseout="this.style.background='rgba(255,255,255,.08)'">📄 레포트 출력</div>
     <div class="sb-save" id="save-badge" onclick="manualSave()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:7px;padding:7px 12px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;color:var(--text2);transition:all .15s;margin-bottom:6px;">💾 저장</div>
     <div class="sb-time" id="live-time-sb"></div>
@@ -900,6 +901,73 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
       </div>
       <button class="btn btn-ghost" onclick="closeModal('company-modal')">취소</button>
       <button class="btn btn-primary" onclick="saveCompany()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 엑셀 다운로드 -->
+<div class="ov" id="excel-modal">
+  <div class="modal" style="width:520px">
+    <div class="modal-title">
+      <span>📊 엑셀 다운로드</span>
+      <button class="modal-close" onclick="closeModal('excel-modal')">×</button>
+    </div>
+    <div style="font-size:12px;color:var(--text3);padding:2px 0 8px">다운로드할 시트를 선택하고 기간을 설정하세요. .xlsx 파일로 저장됩니다.</div>
+
+    <!-- 시트 선택 -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px">📋 포함할 시트 선택</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px;background:#FFFFFF;border:1px solid var(--border);border-radius:8px">
+          <input type="checkbox" id="xl-sheet-summary" checked style="width:16px;height:16px;accent-color:var(--accent)">
+          <div><div style="font-size:13px;font-weight:500">📊 종합 요약</div><div style="font-size:11px;color:var(--text4)">핵심 지표·분야별 업무 현황 요약</div></div>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px;background:#FFFFFF;border:1px solid var(--border);border-radius:8px">
+          <input type="checkbox" id="xl-sheet-company" checked style="width:16px;height:16px;accent-color:var(--accent)">
+          <div><div style="font-size:13px;font-weight:500">🏢 기업 현황</div><div style="font-size:11px;color:var(--text4)">등록 업체 전체 정보 · 업무/인증 건수 포함</div></div>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px;background:#FFFFFF;border:1px solid var(--border);border-radius:8px">
+          <input type="checkbox" id="xl-sheet-work" checked style="width:16px;height:16px;accent-color:var(--accent)">
+          <div><div style="font-size:13px;font-weight:500">📋 업무·지원사업 실적</div><div style="font-size:11px;color:var(--text4)">업무 항목·지원사업 상태·신청액·승인액</div></div>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px;background:#FFFFFF;border:1px solid var(--border);border-radius:8px">
+          <input type="checkbox" id="xl-sheet-cert" checked style="width:16px;height:16px;accent-color:var(--accent)">
+          <div><div style="font-size:13px;font-weight:500">🏅 인증·갱신 현황</div><div style="font-size:11px;color:var(--text4)">인증 목록·만료일·D-Day·상태 (임박순 정렬)</div></div>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px;background:#FFFFFF;border:1px solid var(--border);border-radius:8px">
+          <input type="checkbox" id="xl-sheet-todo" checked style="width:16px;height:16px;accent-color:var(--accent)">
+          <div><div style="font-size:13px;font-weight:500">✅ To Do 목록</div><div style="font-size:11px;color:var(--text4)">수시처리 할일 · 상태별 색상 구분</div></div>
+        </label>
+      </div>
+    </div>
+
+    <!-- 기간 필터 -->
+    <div style="display:flex;gap:12px;align-items:center">
+      <div class="fg" style="flex:1">
+        <label class="fl">기간 필터 (업무·지원사업 기준)</label>
+        <select class="fs" id="xl-year-filter">
+          <option value="">전체 기간</option>
+        </select>
+      </div>
+      <div class="fg" style="flex:1">
+        <label class="fl">상태 필터</label>
+        <select class="fs" id="xl-status-filter">
+          <option value="">전체 상태</option>
+          <option value="ing">진행중만</option>
+          <option value="done">완료만</option>
+          <option value="wait">대기만</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 미리보기 -->
+    <div id="xl-preview" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:12px;color:var(--text3)">
+      <span id="xl-preview-text">전체 데이터를 포함합니다.</span>
+    </div>
+
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModal('excel-modal')">취소</button>
+      <button class="btn btn-primary" onclick="downloadExcel()">📥 엑셀 다운로드</button>
     </div>
   </div>
 </div>
@@ -5557,6 +5625,351 @@ function openFinanceModal(){
   openModal('finance-modal');
 }
 
+// ── EXCEL EXPORT ──
+async function loadSheetJS(){
+  if(window.XLSX)return;
+  await new Promise(function(resolve,reject){
+    var s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload=resolve;s.onerror=reject;
+    document.head.appendChild(s);
+  });
+}
+
+function openExcelModal(){
+  // 연도 드롭다운
+  var yearSel=document.getElementById('xl-year-filter');
+  if(yearSel){
+    var years=new Set();
+    workItems.forEach(function(w){if(w.createdAt)years.add(new Date(w.createdAt).getFullYear());});
+    consulting.forEach(function(c){if(c.startDate)years.add(c.startDate.slice(0,4));});
+    var sorted=Array.from(years).sort().reverse();
+    yearSel.innerHTML='<option value="">전체 기간</option>'+sorted.map(function(y){return '<option value="'+y+'">'+y+'년</option>';}).join('');
+  }
+  updateXlPreview();
+  openModal('excel-modal');
+}
+
+function updateXlPreview(){
+  var yearF=document.getElementById('xl-year-filter')?.value||'';
+  var statusF=document.getElementById('xl-status-filter')?.value||'';
+  var compCnt=companies.filter(function(c){return c.active!=='N';}).length;
+  var workCnt=workItems.filter(function(w){
+    if(yearF&&new Date(w.createdAt||0).getFullYear()!=yearF)return false;
+    if(statusF&&w.status!==statusF)return false;
+    return true;
+  }).length;
+  var consCnt=consulting.filter(function(c){
+    if(yearF&&!(c.startDate||'').startsWith(yearF))return false;
+    if(statusF&&c.status!==statusF)return false;
+    return true;
+  }).length;
+  var certCnt=certifications.length;
+  var todoCnt=todos.length;
+  var el=document.getElementById('xl-preview-text');
+  if(el)el.textContent='기업 '+compCnt+'개사 · 업무 '+workCnt+'건 · 지원사업 '+consCnt+'건 · 인증 '+certCnt+'건 · ToDo '+todoCnt+'건';
+}
+
+async function downloadExcel(){
+  setBadge('📊 엑셀 생성 중...');
+  try{
+    await loadSheetJS();
+    var WB=XLSX.utils.book_new();
+    var yearF=document.getElementById('xl-year-filter')?.value||'';
+    var statusF=document.getElementById('xl-status-filter')?.value||'';
+
+    // ── 공통 스타일 헬퍼 ──
+    function hdrStyle(bgColor,fontColor){
+      return{font:{bold:true,color:{rgb:fontColor||'FFFFFF'},sz:11},
+        fill:{fgColor:{rgb:bgColor}},
+        alignment:{horizontal:'center',vertical:'center',wrapText:true},
+        border:{bottom:{style:'medium',color:{rgb:'000000'}}}};
+    }
+    function cellStyle(bg,fontColor,bold,align){
+      var s={alignment:{vertical:'center',wrapText:true}};
+      if(bg)s.fill={fgColor:{rgb:bg}};
+      if(fontColor)s.font={color:{rgb:fontColor},bold:!!bold};
+      else if(bold)s.font={bold:true};
+      if(align)s.alignment.horizontal=align;
+      return s;
+    }
+    function numFmt(v){return v?v.toLocaleString():'—';}
+    function dateFmt(ts){return ts?new Date(ts).toLocaleDateString('ko-KR'):'—';}
+    function addSheet(name,rows,colWidths,tabColor){
+      var ws=XLSX.utils.aoa_to_sheet(rows.map(function(r){return r.map(function(c){return c&&c.v!==undefined?c.v:c;});}));
+      // 스타일 적용
+      rows.forEach(function(row,ri){
+        row.forEach(function(cell,ci){
+          if(cell&&cell.s){
+            var addr=XLSX.utils.encode_cell({r:ri,c:ci});
+            if(!ws[addr])ws[addr]={};
+            ws[addr].s=cell.s;
+          }
+        });
+      });
+      ws['!cols']=colWidths.map(function(w){return{wch:w};});
+      if(tabColor)ws['!tabColor']={rgb:tabColor};
+      XLSX.utils.book_append_sheet(WB,ws,name);
+    }
+
+    var today=new Date().toLocaleDateString('ko-KR');
+    var titleFont={font:{bold:true,sz:14},alignment:{horizontal:'left'}};
+    var subFont={font:{sz:10,color:{rgb:'888888'}}};
+
+    // ══════════════════════════════════
+    // 시트 1: 종합 요약
+    // ══════════════════════════════════
+    if(document.getElementById('xl-sheet-summary')?.checked){
+      var activeComps=companies.filter(function(c){return c.active!=='N';});
+      var ingWorks=workItems.filter(function(w){return w.status==='ing';}).length;
+      var doneWorks=workItems.filter(function(w){return w.status==='done';}).length;
+      var waitWorks=workItems.filter(function(w){return w.status==='wait';}).length;
+      var urgCerts=certifications.filter(function(c){var d=getCertDday(c.expDate);return d>=0&&d<=30;}).length;
+      var expCerts=certifications.filter(function(c){return getCertDday(c.expDate)<0;}).length;
+      var totalCons=consulting.length;
+      var doneCons=consulting.filter(function(c){return c.status==='done';}).length;
+      var totalAmt=consulting.reduce(function(s,c){return s+(+c.amount||0);},0);
+      var approvedAmt=consulting.reduce(function(s,c){return s+(+c.approvedAmt||0);},0);
+
+      var H1='1B2B4B', H2='2563EB', H3='059669', H4='D97706', H5='DC2626';
+      var s1=[
+        [{v:'📊 SG솔루션 CRM - 종합 현황 요약',s:{font:{bold:true,sz:16,color:{rgb:H1}}}},'',' ',' ',' ',' '],
+        [{v:'출력일: '+today,s:subFont},'',' ',' ',' ',' '],
+        [' ',' ',' ',' ',' ',' '],
+        // 핵심 지표 헤더
+        [{v:'관리 업체',s:hdrStyle(H1)},{v:'진행중 업무',s:hdrStyle(H2)},{v:'완료 업무',s:hdrStyle(H3)},{v:'D-30 인증',s:hdrStyle(H4)},{v:'만료 인증',s:hdrStyle(H5)},{v:'지원사업',s:hdrStyle(H1)}],
+        [{v:activeComps.length+'개사',s:cellStyle('EFF4FF','1B2B4B',true,'center')},{v:ingWorks+'건',s:cellStyle('DBEAFE','1D4ED8',true,'center')},{v:doneWorks+'건',s:cellStyle('D1FAE5','065F46',true,'center')},{v:urgCerts+'건',s:cellStyle('FEF3C7','92400E',true,'center')},{v:expCerts+'건',s:cellStyle('FEE2E2','991B1B',true,'center')},{v:totalCons+'건',s:cellStyle('EFF4FF','1B2B4B',true,'center')}],
+        [' ',' ',' ',' ',' ',' '],
+        [{v:'총 신청액',s:hdrStyle(H2)},{v:'승인액',s:hdrStyle(H3)},{v:'완료 지원사업',s:hdrStyle(H3)},{v:'대기 업무',s:hdrStyle('6B7280')},{v:'인증 전체',s:hdrStyle(H1)},{v:'ToDo 전체',s:hdrStyle(H1)}],
+        [{v:Math.round(totalAmt/10000)+'만원',s:cellStyle('DBEAFE','1D4ED8',true,'center')},{v:Math.round(approvedAmt/10000)+'만원',s:cellStyle('D1FAE5','065F46',true,'center')},{v:doneCons+'건',s:cellStyle('D1FAE5','065F46',true,'center')},{v:waitWorks+'건',s:cellStyle('F3F4F6','374151',true,'center')},{v:certifications.length+'건',s:cellStyle('EFF4FF','1B2B4B',true,'center')},{v:todos.length+'건',s:cellStyle('EFF4FF','1B2B4B',true,'center')}],
+        [' ',' ',' ',' ',' ',' '],
+        // 분야별 업무 현황
+        [{v:'📋 분야별 업무 현황',s:{font:{bold:true,sz:12,color:{rgb:H1}}}},'',' ',' ',' ',' '],
+        [{v:'분야',s:hdrStyle(H1)},{v:'전체',s:hdrStyle(H1)},{v:'대기',s:hdrStyle('6B7280')},{v:'진행',s:hdrStyle(H2)},{v:'완료',s:hdrStyle(H3)},{v:'완료율',s:hdrStyle(H3)}],
+      ];
+      CAT_IDS.forEach(function(cat){
+        var m=CAT_META[cat];
+        var items=workItems.filter(function(w){return w.category===cat;});
+        if(!items.length)return;
+        var done=items.filter(function(w){return w.status==='done';}).length;
+        var ing=items.filter(function(w){return w.status==='ing';}).length;
+        var wait=items.filter(function(w){return w.status==='wait';}).length;
+        var pct=items.length?Math.round(done/items.length*100):0;
+        s1.push([
+          {v:m.icon+' '+m.name,s:cellStyle('F9FAFB',null,false,'left')},
+          {v:items.length,s:cellStyle(null,null,true,'center')},
+          {v:wait,s:cellStyle('F3F4F6','6B7280',false,'center')},
+          {v:ing,s:cellStyle('DBEAFE','1D4ED8',false,'center')},
+          {v:done,s:cellStyle('D1FAE5','065F46',false,'center')},
+          {v:pct+'%',s:cellStyle(pct>=100?'D1FAE5':pct>=50?'FEF9C3':'F9FAFB',pct>=100?'065F46':pct>=50?'92400E':'374151',true,'center')},
+        ]);
+      });
+      addSheet('📊 종합요약',s1,[16,14,10,10,10,10],'1B2B4B');
+    }
+
+    // ══════════════════════════════════
+    // 시트 2: 기업 현황
+    // ══════════════════════════════════
+    if(document.getElementById('xl-sheet-company')?.checked){
+      var s2=[
+        [{v:'🏢 기업 현황',s:{font:{bold:true,sz:14,color:{rgb:'1B2B4B'}}}},'',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '],
+        [{v:'출력일: '+today,s:subFont},'',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '],
+        [' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '],
+        [
+          {v:'No',s:hdrStyle('1B2B4B')},{v:'기업명',s:hdrStyle('1B2B4B')},{v:'대표자',s:hdrStyle('1B2B4B')},
+          {v:'고객그룹',s:hdrStyle('1B2B4B')},{v:'지역',s:hdrStyle('1B2B4B')},{v:'규모',s:hdrStyle('1B2B4B')},
+          {v:'업종',s:hdrStyle('1B2B4B')},{v:'업력',s:hdrStyle('1B2B4B')},{v:'연락처',s:hdrStyle('1B2B4B')},
+          {v:'진행업무',s:hdrStyle('2563EB')},{v:'완료업무',s:hdrStyle('059669')},{v:'보유인증',s:hdrStyle('7C3AED')},
+          {v:'등록일',s:hdrStyle('1B2B4B')},
+        ],
+      ];
+      var allComps=companies.sort(function(a,b){return(a.group||'').localeCompare(b.group||'','ko');});
+      allComps.forEach(function(c,idx){
+        var isInactive=c.active==='N';
+        var isKey=c.group==='주요고객';
+        var myWork=workItems.filter(function(w){return w.clientBizno===c._id||w.bizno===c._id;});
+        var ingW=myWork.filter(function(w){return w.status==='ing';}).length;
+        var doneW=myWork.filter(function(w){return w.status==='done';}).length;
+        var myCerts=certifications.filter(function(ct){return ct.bizno===c._id;}).length;
+        var ageLbl=getCompAgeLabel(c.estDate);
+        var rowBg=isInactive?'F3F4F6':isKey?(idx%2===0?'FFFBEB':'FEF9C3'):(idx%2===0?'FFFFFF':'F9FAFB');
+        var fontC=isInactive?'9CA3AF':null;
+        s2.push([
+          {v:idx+1,s:cellStyle(rowBg,fontC,false,'center')},
+          {v:(isInactive?'[비활성] ':'')+c.name,s:cellStyle(rowBg,isKey?'92400E':fontC,isKey)},
+          {v:c.ceo||'—',s:cellStyle(rowBg,fontC)},
+          {v:c.group||'일반고객',s:cellStyle(rowBg,fontC,false,'center')},
+          {v:c.region||'—',s:cellStyle(rowBg,fontC,false,'center')},
+          {v:c.scale||'—',s:cellStyle(rowBg,fontC,false,'center')},
+          {v:c.industry||c.biztype||'—',s:cellStyle(rowBg,fontC)},
+          {v:ageLbl||'—',s:cellStyle(rowBg,fontC,false,'center')},
+          {v:c.tel||'—',s:cellStyle(rowBg,fontC)},
+          {v:ingW,s:cellStyle(rowBg,ingW?'1D4ED8':fontC,ingW>0,'center')},
+          {v:doneW,s:cellStyle(rowBg,doneW?'065F46':fontC,false,'center')},
+          {v:myCerts,s:cellStyle(rowBg,myCerts?'7C3AED':fontC,myCerts>0,'center')},
+          {v:c.joinDate||'—',s:cellStyle(rowBg,fontC,false,'center')},
+        ]);
+      });
+      addSheet('🏢 기업현황',s2,[6,22,10,10,8,8,12,14,14,8,8,8,12],'1B2B4B');
+    }
+
+    // ══════════════════════════════════
+    // 시트 3: 업무·지원사업 실적
+    // ══════════════════════════════════
+    if(document.getElementById('xl-sheet-work')?.checked){
+      var s3=[
+        [{v:'📋 업무·지원사업 실적',s:{font:{bold:true,sz:14,color:{rgb:'065F46'}}}},'',' ',' ',' ',' ',' ',' ',' '],
+        [{v:'출력일: '+today+(yearF?' | '+yearF+'년':' | 전체 기간')+(statusF?' | '+{ing:'진행중',done:'완료',wait:'대기'}[statusF]:''),s:subFont},'',' ',' ',' ',' ',' ',' ',' '],
+        [' ',' ',' ',' ',' ',' ',' ',' ',' '],
+        [
+          {v:'No',s:hdrStyle('065F46')},{v:'구분',s:hdrStyle('065F46')},{v:'분야',s:hdrStyle('065F46')},
+          {v:'업체명',s:hdrStyle('065F46')},{v:'업무명/사업명',s:hdrStyle('065F46')},{v:'담당기관',s:hdrStyle('065F46')},
+          {v:'시작일',s:hdrStyle('065F46')},{v:'완료일',s:hdrStyle('065F46')},
+          {v:'신청액(원)',s:hdrStyle('1D4ED8')},{v:'승인액(원)',s:hdrStyle('059669')},{v:'상태',s:hdrStyle('065F46')},
+        ],
+      ];
+      var rowNum=1;
+      var stMap={ing:{bg:'DBEAFE',fc:'1D4ED8',lbl:'진행'},done:{bg:'D1FAE5',fc:'065F46',lbl:'완료'},wait:{bg:'F3F4F6',fc:'6B7280',lbl:'대기'}};
+      // 지원사업
+      consulting.filter(function(c){
+        if(yearF&&!(c.startDate||'').startsWith(yearF))return false;
+        if(statusF&&c.status!==statusF)return false;
+        return true;
+      }).forEach(function(c){
+        var cm=CAT_META[c.category]||CAT_META.etc;
+        var ccs=consCompanies.filter(function(cc){return cc.consId===c.id;});
+        var st=stMap[c.status]||stMap.wait;
+        var rowBg=rowNum%2===0?'F9FAFB':'FFFFFF';
+        var compNames=ccs.map(function(cc){var comp=companies.find(function(x){return x._id===cc.bizno;});return comp?comp.name:cc.companyName||'—';}).join(', ')||'—';
+        s3.push([
+          {v:rowNum++,s:cellStyle(rowBg,null,false,'center')},
+          {v:'지원사업',s:cellStyle(rowBg,'7C3AED',false,'center')},
+          {v:cm.icon+' '+cm.name,s:cellStyle(rowBg)},
+          {v:compNames,s:cellStyle(rowBg,null,true)},
+          {v:c.title,s:cellStyle(rowBg)},
+          {v:c.org||'—',s:cellStyle(rowBg)},
+          {v:c.startDate||'—',s:cellStyle(rowBg,null,false,'center')},
+          {v:c.endDate||'—',s:cellStyle(rowBg,null,false,'center')},
+          {v:c.amount?c.amount.toLocaleString():'—',s:cellStyle(rowBg,'1D4ED8',false,'right')},
+          {v:c.approvedAmt?c.approvedAmt.toLocaleString():'—',s:cellStyle(rowBg,'065F46',false,'right')},
+          {v:st.lbl,s:cellStyle(st.bg,st.fc,true,'center')},
+        ]);
+      });
+      // 업무
+      workItems.filter(function(w){
+        if(yearF&&new Date(w.createdAt||0).getFullYear()!=yearF)return false;
+        if(statusF&&w.status!==statusF)return false;
+        return true;
+      }).forEach(function(w){
+        var m=CAT_META[w.category]||CAT_META.etc;
+        var st=stMap[w.status]||stMap.wait;
+        var rowBg=rowNum%2===0?'F9FAFB':'FFFFFF';
+        s3.push([
+          {v:rowNum++,s:cellStyle(rowBg,null,false,'center')},
+          {v:'업무',s:cellStyle(rowBg,'2563EB',false,'center')},
+          {v:m.icon+' '+m.name,s:cellStyle(rowBg)},
+          {v:w.client||w.clientBizno||'—',s:cellStyle(rowBg,null,true)},
+          {v:w.name||w.title||'—',s:cellStyle(rowBg)},
+          {v:'—',s:cellStyle(rowBg)},
+          {v:dateFmt(w.createdAt),s:cellStyle(rowBg,null,false,'center')},
+          {v:dateFmt(w.doneAt),s:cellStyle(rowBg,null,false,'center')},
+          {v:'—',s:cellStyle(rowBg,'6B7280',false,'right')},
+          {v:'—',s:cellStyle(rowBg,'6B7280',false,'right')},
+          {v:st.lbl,s:cellStyle(st.bg,st.fc,true,'center')},
+        ]);
+      });
+      addSheet('📋 업무실적',s3,[6,10,14,20,24,12,12,12,14,14,8],'065F46');
+    }
+
+    // ══════════════════════════════════
+    // 시트 4: 인증·갱신 현황
+    // ══════════════════════════════════
+    if(document.getElementById('xl-sheet-cert')?.checked){
+      var sortedCerts=[...certifications].sort(function(a,b){
+        var da=getCertDday(a.expDate);var db=getCertDday(b.expDate);
+        if(da===null)return 1;if(db===null)return -1;return da-db;
+      });
+      var s4=[
+        [{v:'🏅 인증·갱신 현황',s:{font:{bold:true,sz:14,color:{rgb:'7C3AED'}}}},'',' ',' ',' ',' ',' ',' '],
+        [{v:'출력일: '+today+' | 만료 임박순 정렬',s:subFont},'',' ',' ',' ',' ',' ',' '],
+        [' ',' ',' ',' ',' ',' ',' ',' '],
+        [
+          {v:'No',s:hdrStyle('7C3AED')},{v:'업체명',s:hdrStyle('7C3AED')},{v:'인증 종류',s:hdrStyle('7C3AED')},
+          {v:'취득일',s:hdrStyle('7C3AED')},{v:'만료일',s:hdrStyle('7C3AED')},{v:'갱신주기',s:hdrStyle('7C3AED')},
+          {v:'D-Day',s:hdrStyle('DC2626')},{v:'상태',s:hdrStyle('7C3AED')},{v:'담당부서',s:hdrStyle('7C3AED')},
+        ],
+      ];
+      sortedCerts.forEach(function(c,idx){
+        var m=getCertMasterInfo(c.certMasterId);
+        var comp=companies.find(function(x){return x._id===c.bizno;});
+        var dday=getCertDday(c.expDate);
+        var ddayStr=dday===null?'—':dday<0?'만료 D+'+Math.abs(dday):dday===0?'D-Day':'D-'+dday;
+        var ddayBg=dday===null?'F9FAFB':dday<0?'FEE2E2':dday<=7?'FEE2E2':dday<=30?'FEF3C7':dday<=90?'FEF9C3':'D1FAE5';
+        var ddayFc=dday===null?'6B7280':dday<0?'991B1B':dday<=30?'92400E':'065F46';
+        var rowBg=idx%2===0?'FFFFFF':'F9FAFB';
+        s4.push([
+          {v:idx+1,s:cellStyle(rowBg,null,false,'center')},
+          {v:comp?comp.name:(c.companyName||'—'),s:cellStyle(rowBg,null,true)},
+          {v:m.icon+' '+m.certName,s:cellStyle(rowBg)},
+          {v:c.acquireDate||'—',s:cellStyle(rowBg,null,false,'center')},
+          {v:c.expDate||'—',s:cellStyle(rowBg,null,false,'center')},
+          {v:m.cycleMonths?m.cycleMonths+'개월':'—',s:cellStyle(rowBg,null,false,'center')},
+          {v:ddayStr,s:cellStyle(ddayBg,ddayFc,true,'center')},
+          {v:c.status||'유효',s:cellStyle(rowBg,null,false,'center')},
+          {v:c.dept||'—',s:cellStyle(rowBg)},
+        ]);
+      });
+      addSheet('🏅 인증현황',s4,[6,20,16,12,12,10,10,8,12],'7C3AED');
+    }
+
+    // ══════════════════════════════════
+    // 시트 5: To Do 목록
+    // ══════════════════════════════════
+    if(document.getElementById('xl-sheet-todo')?.checked){
+      var stTodo={ing:{bg:'DBEAFE',fc:'1D4ED8',lbl:'진행'},done:{bg:'D1FAE5',fc:'065F46',lbl:'완료'},wait:{bg:'FEF3C7',fc:'92400E',lbl:'대기'}};
+      var sortedTodos=[...todos].sort(function(a,b){
+        var order={ing:0,wait:1,done:2};
+        return (order[a.status]||1)-(order[b.status]||1);
+      });
+      var s5=[
+        [{v:'✅ To Do 목록',s:{font:{bold:true,sz:14,color:{rgb:'0F766E'}}}},'',' ',' ',' '],
+        [{v:'출력일: '+today,s:subFont},'',' ',' ',' '],
+        [' ',' ',' ',' ',' '],
+        [
+          {v:'No',s:hdrStyle('0F766E')},{v:'업체명',s:hdrStyle('0F766E')},{v:'할일 내용',s:hdrStyle('0F766E')},
+          {v:'우선순위',s:hdrStyle('0F766E')},{v:'마감일',s:hdrStyle('DC2626')},{v:'상태',s:hdrStyle('0F766E')},
+        ],
+      ];
+      sortedTodos.forEach(function(t,idx){
+        var st=stTodo[t.status]||stTodo.wait;
+        var rowBg=t.status==='done'?'F9FAFB':(idx%2===0?'FFFFFF':'F0FDFA');
+        var priMap={high:{bg:'FEE2E2',fc:'991B1B',lbl:'높음'},mid:{bg:'FEF3C7',fc:'92400E',lbl:'중간'},low:{bg:'F3F4F6',fc:'6B7280',lbl:'낮음'}};
+        var pri=priMap[t.priority]||priMap.mid;
+        s5.push([
+          {v:idx+1,s:cellStyle(rowBg,t.status==='done'?'9CA3AF':null,false,'center')},
+          {v:t.companyName||t.client||'—',s:cellStyle(rowBg,t.status==='done'?'9CA3AF':null,true)},
+          {v:t.title||t.content||'—',s:cellStyle(rowBg,t.status==='done'?'9CA3AF':null)},
+          {v:pri.lbl,s:cellStyle(pri.bg,pri.fc,true,'center')},
+          {v:t.dueDate||'—',s:cellStyle(rowBg,t.dueDate&&new Date(t.dueDate)<new Date()&&t.status!=='done'?'DC2626':null,false,'center')},
+          {v:st.lbl,s:cellStyle(st.bg,st.fc,true,'center')},
+        ]);
+      });
+      addSheet('✅ ToDo목록',s5,[6,18,30,10,12,8],'0F766E');
+    }
+
+    // 파일명
+    var today2=new Date().toISOString().slice(0,10);
+    var fname='SG솔루션CRM_현황_'+today2+(yearF?'_'+yearF+'년':'')+'.xlsx';
+    XLSX.writeFile(WB,fname,{bookSST:false,type:'binary',cellStyles:true});
+    setBadge('✅ 엑셀 다운로드 완료',3000);
+    closeModal('excel-modal');
+  }catch(e){
+    setBadge('⚠️ 다운로드 실패');
+    alert('엑셀 생성 오류: '+e.message);
+    console.error(e);
+  }
+}
+
 // ── CORP AUTOCOMPLETE ──
 function showCorpDrop(inputId){
   const inp=document.getElementById(inputId);const dd=document.getElementById('dd-'+inputId);
@@ -5576,6 +5989,7 @@ loadAll();
 // ── GLOBAL EXPORTS ──
 Object.assign(window,{
   navTo,manualSave,closeModal,
+  openExcelModal,downloadExcel,updateXlPreview,
   openReportModal,printReport,
   openFinanceModal,analyzeFinancePdf,handleFinPdfDrop,handleFinPdfSelect,clearFinPdf,printFinanceReport,
   searchFinanceComp,selectFinanceComp,clearFinanceComp,
