@@ -2562,7 +2562,9 @@ async function saveConsulting(){
     });
     await batch.commit();
     setBadge('✅ 저장됨',2000);
-    setTimeout(function(){var sc=consulting.find(function(c){return c.id===consId;});if(sc)gcalSyncCons(sc,'upsert');},1000);
+    // 방금 저장한 data 객체를 직접 사용 (Firebase 반영 대기 불필요)
+    var syncData=Object.assign({},data,{id:consId});
+    setTimeout(function(){gcalSyncCons(syncData,'upsert');},500);
     closeModal('consulting-modal');
   }catch(e){console.error(e);setBadge('⚠️ 저장 실패');}
 }
@@ -4035,6 +4037,20 @@ async function saveCert(){
         });
       }
     }
+    // 구글 캘린더 자동 동기화
+    var savedEditId=editId;
+    var savedComp=comp;
+    var savedMasterId=masterId;
+    setTimeout(function(){
+      var certId=savedEditId||'';
+      if(!certId){
+        var latest=certifications.filter(function(c){return c.bizno===savedComp._id&&c.certMasterId===savedMasterId;});
+        latest.sort(function(a,b){return(b.createdAt||0)-(a.createdAt||0);});
+        if(latest.length)certId=latest[0].id;
+      }
+      var sc=certifications.find(function(c){return c.id===certId;});
+      if(sc)gcalSyncCert(sc,'upsert');
+    },1500);
     closeModal('cert-modal');
   }catch(e){alert('저장 실패: '+e.message);}
 }
@@ -6223,12 +6239,20 @@ async function sendToGcal(action,type,payload){
 // ── 인증 저장/삭제 시 자동 동기화 ──
 function gcalSyncCert(cert,action){
   if(action==='delete'){sendToGcal('delete','cert',{id:cert.id});return;}
-  var m=getCertMasterInfo(cert.certMasterId);
   if(!cert.expDate)return;
+  var m=getCertMasterInfo(cert.certMasterId);
+  var certName=cert.certName||m.certName||'인증';
+  var companyName=cert.companyName||'';
+  if(!companyName&&cert.bizno){
+    var comp=companies.find(function(c){return c._id===cert.bizno;});
+    if(comp)companyName=comp.name;
+  }
   sendToGcal('upsert','cert',{
-    id:cert.id,companyName:cert.companyName||'',
-    certName:m.certName,expDate:cert.expDate,
-    cycleMonths:m.cycleMonths||null,
+    id:cert.id,
+    companyName:companyName,
+    certName:certName,
+    expDate:cert.expDate,
+    cycleMonths:m.cycleMonths||cert.cycleMonths||null,
   });
 }
 
