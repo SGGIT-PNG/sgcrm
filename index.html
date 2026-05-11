@@ -5181,11 +5181,8 @@ var finPdfFile=null;
 function handleFinPdfDrop(event){
   event.preventDefault();
   var f=event.dataTransfer.files[0];
-  if(f&&f.type==='application/pdf'){
-    setFinPdfFile(f);
-  } else {
-    alert('PDF 파일만 첨부할 수 있습니다.');
-  }
+  if(f&&f.type==='application/pdf')setFinPdfFile(f);
+  else alert('PDF 파일만 첨부할 수 있습니다.');
   var dz=document.getElementById('fin-drop-zone');
   if(dz){dz.style.borderColor='var(--border2)';dz.style.background='var(--surface2)';}
 }
@@ -5218,7 +5215,7 @@ function setFinProgress(msg,pct){
   var msgEl=document.getElementById('fin-progress-msg');
   var bar=document.getElementById('fin-progress-bar');
   if(prog)prog.style.display=pct<100?'block':'none';
-  if(msgEl)msgEl.textContent=msg;
+  if(msgEl&&msg)msgEl.textContent=msg;
   if(bar)bar.style.width=pct+'%';
 }
 
@@ -5230,8 +5227,7 @@ async function loadPdfJs(){
     s.onload=resolve;s.onerror=reject;
     document.head.appendChild(s);
   });
-  window.pdfjsLib.GlobalWorkerOptions.workerSrc=
-    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 }
 
 async function extractPdfText(file){
@@ -5243,16 +5239,12 @@ async function extractPdfText(file){
     setFinProgress('📖 텍스트 추출 중... ('+i+'/'+pdf.numPages+'페이지)',Math.round(i/pdf.numPages*60));
     var page=await pdf.getPage(i);
     var content=await page.getTextContent();
-    // 좌표 기반으로 정렬해서 추출 (표 구조 유지)
-    var items=content.items;
-    // y좌표 그룹핑으로 같은 행 묶기
     var rows={};
-    items.forEach(function(item){
-      var y=Math.round(item.transform[5]/5)*5; // 5px 단위로 반올림
+    content.items.forEach(function(item){
+      var y=Math.round(item.transform[5]/5)*5;
       if(!rows[y])rows[y]=[];
       rows[y].push({x:item.transform[4],str:item.str});
     });
-    // y 내림차순(위에서 아래), x 오름차순(왼쪽에서 오른쪽)
     Object.keys(rows).sort(function(a,b){return b-a;}).forEach(function(y){
       var row=rows[y].sort(function(a,b){return a.x-b.x;});
       text+=row.map(function(r){return r.str;}).join(' ')+'\n';
@@ -5261,46 +5253,261 @@ async function extractPdfText(file){
   return text;
 }
 
+function parseFinanceOcr(text){
+  function extractBoth(code,labels){
+    var codeRe=new RegExp(code+'\\s+([\\-]?[\\d,]+)(?:\\s+([\\-]?[\\d,]+))?');
+    var m=text.match(codeRe);
+    if(m){
+      var cur=parseInt((m[1]||'').replace(/,/g,''));
+      var prev=m[2]?parseInt(m[2].replace(/,/g,'')):null;
+      return{cur:isNaN(cur)?null:cur,prev:prev};
+    }
+    for(var i=0;i<(labels||[]).length;i++){
+      var lr=new RegExp(labels[i]+'\\s+([\\-]?[\\d,]+)(?:\\s+([\\-]?[\\d,]+))?');
+      var lm=text.match(lr);
+      if(lm){
+        var cv=parseInt((lm[1]||'').replace(/,/g,''));
+        var pv=lm[2]?parseInt(lm[2].replace(/,/g,'')):null;
+        return{cur:isNaN(cv)?null:cv,prev:pv};
+      }
+    }
+    return{cur:null,prev:null};
+  }
+
+  // 회사명
+  var companyName='';
+  var nm=text.match(/법인명\s+([\S]+(?:\s+[\S]+)?)\s+사업자/);
+  if(nm)companyName=nm[1].trim();
+  if(!companyName){
+    var nm2=text.match(/상\s*호[^\n]*\n\s*([^\n]+)/);
+    if(nm2)companyName=nm2[1].trim().split(/\s+/).slice(0,3).join(' ');
+  }
+
+  // 사업자번호
+  var bizNo='';
+  var bm=text.match(/(\d{3}[-]\d{2}[-]\d{5})/)||text.match(/(\d{3}\s\d{2}\s\d{5})/);
+  if(bm)bizNo=bm[1];
+
+  // 사업연도
+  var periods=[];
+  var pmAll=text.matchAll(/(\d{4}[.\-\/]\d{1,2}[.\-\/]\d{1,2})\s*[~～\-]\s*(\d{4}[.\-\/]\d{1,2}[.\-\/]\d{1,2})/g);
+  for(var pm of pmAll)periods.push(pm[1]+'~'+pm[2]);
+
+  // 재무상태표
+  var bsMap={
+    currentAssets:    extractBoth('001',['유동자산']),
+    nonCurrentAssets: extractBoth('080',['비유동자산']),
+    totalAssets:      extractBoth('228',['자산총계']),
+    currentLiabilities:    extractBoth('229',['유동부채']),
+    nonCurrentLiabilities: extractBoth('284',['비유동부채']),
+    totalLiabilities: extractBoth('333',['부채총계']),
+    capital:          extractBoth('334',['자본금']),
+    retainedEarnings: extractBoth('372',['이익잉여금']),
+  };
+
+  // 손익계산서 - 매출액 재추출 (코드 001 충돌 방지)
+  var isMap={
+    revenue:           extractBoth('025',['수입금','매출액']),
+    costOfSales:       extractBoth('035',['매출원가']),
+    grossProfit:       extractBoth('066',['매출총손익']),
+    operatingExpenses: extractBoth('067',['판매비와관리비']),
+    operatingIncome:   extractBoth('129',['영업손익']),
+    nonOperatingIncome:  extractBoth('130',['영업외수익']),
+    nonOperatingExpenses:extractBoth('179',['영업외비용']),
+    netIncome:         extractBoth('219',['당기순손익']),
+  };
+  // 매출액 재시도 (손익계산서 섹션에서)
+  var revM=text.match(/I\s*\.\s*매출액\s+([\-]?[\d,]+)(?:\s+([\-]?[\d,]+))?/)||
+           text.match(/매출액\s*0{0,2}1\s+([\-]?[\d,]+)(?:\s+([\-]?[\d,]+))?/);
+  if(revM){
+    isMap.revenue={
+      cur:parseInt((revM[1]||'').replace(/,/g,'')),
+      prev:revM[2]?parseInt(revM[2].replace(/,/g,'')):null
+    };
+  }
+
+  var hasPrev=Object.values(bsMap).some(function(v){return v.prev!==null;})||
+              Object.values(isMap).some(function(v){return v.prev!==null;});
+
+  function buildBS(k){
+    return{
+      currentAssets:bsMap.currentAssets[k],
+      nonCurrentAssets:bsMap.nonCurrentAssets[k],
+      totalAssets:bsMap.totalAssets[k],
+      currentLiabilities:bsMap.currentLiabilities[k],
+      nonCurrentLiabilities:bsMap.nonCurrentLiabilities[k],
+      totalLiabilities:bsMap.totalLiabilities[k],
+      capital:bsMap.capital[k],
+      retainedEarnings:bsMap.retainedEarnings[k],
+      totalEquity:(bsMap.totalAssets[k]!==null&&bsMap.totalLiabilities[k]!==null)
+        ?bsMap.totalAssets[k]-bsMap.totalLiabilities[k]:null,
+    };
+  }
+  function buildIS(k){
+    return{
+      revenue:isMap.revenue[k],
+      costOfSales:isMap.costOfSales[k],
+      grossProfit:isMap.grossProfit[k],
+      operatingExpenses:isMap.operatingExpenses[k],
+      operatingIncome:isMap.operatingIncome[k],
+      nonOperatingIncome:isMap.nonOperatingIncome[k],
+      nonOperatingExpenses:isMap.nonOperatingExpenses[k],
+      netIncome:isMap.netIncome[k],
+    };
+  }
+
+  return{
+    companyName:companyName||'',
+    bizNo:bizNo||'',
+    period:periods[0]||'',
+    prevPeriod:hasPrev?(periods[1]||'전기'):null,
+    balanceSheet:buildBS('cur'),
+    incomeStatement:buildIS('cur'),
+    prevBalanceSheet:hasPrev?buildBS('prev'):null,
+    prevIncomeStatement:hasPrev?buildIS('prev'):null,
+  };
+}
+
 async function analyzeFinancePdf(){
   if(!finPdfFile){alert('PDF 파일을 먼저 첨부해주세요.');return;}
   var btn=document.getElementById('fin-analyze-btn');
   var errEl=document.getElementById('finance-error');
-  btn.disabled=true;btn.textContent='🔄 분석 중...';
+  if(btn){btn.disabled=true;btn.textContent='🔄 분석 중...';}
   if(errEl)errEl.style.display='none';
   setFinProgress('📖 PDF 로딩 중...',10);
-
   try{
-    // 텍스트 추출
     var text=await extractPdfText(finPdfFile);
-    if(!text.trim())throw new Error('텍스트 추출 실패. OCR 변환된 PDF인지 확인하세요.');
-
+    if(!text||!text.trim()){
+      throw new Error('텍스트 추출 실패. OCR 변환된 PDF인지 확인하세요.');
+    }
     setFinProgress('🔍 재무 데이터 파싱 중...',80);
-
-    // 파싱
     var d=parseFinanceOcr(text);
-    if(!d.balanceSheet.totalAssets&&!d.incomeStatement.revenue){
-      throw new Error('재무 데이터 인식 실패. 국세청 표준재무제표증명 형식인지 확인하세요.');
+    if(!d.balanceSheet.totalAssets&&!d.incomeStatement.revenue&&!d.balanceSheet.totalLiabilities){
+      throw new Error('재무 데이터 인식 실패. 국세청 표준재무제표증명인지 확인하세요.');
     }
     financeAnalyzed=d;
-    setFinProgress('✅ 완료',100);
-
-    // CRM 저장
+    setFinProgress('완료',100);
     var compBizno=document.getElementById('finance-comp-link')?.value||'';
     if(compBizno){
-      try{await updateDoc(doc(db,'companies',compBizno),{financeData:d,financeUpdatedAt:Date.now()});setBadge('재무데이터 저장됨',2000);}catch(e){}
+      try{await updateDoc(doc(db,'companies',compBizno),{financeData:d,financeUpdatedAt:Date.now()});
+      setBadge('재무데이터 저장됨',2000);}catch(ex){}
     }
     closeModal('finance-modal');
     setTimeout(printFinanceReport,300);
-
   }catch(e){
     setFinProgress('',100);
     if(errEl){errEl.style.display='block';errEl.textContent='오류: '+e.message;}
   }finally{
-    btn.disabled=false;btn.textContent='🔍 분석 후 보고서 출력';
+    if(btn){btn.disabled=false;btn.textContent='🔍 분석 후 보고서 출력';}
   }
 }
 
-var financeAnalyzed=null;
+function printFinanceReport(){
+  if(!financeAnalyzed){alert('먼저 PDF를 업로드하고 분석을 실행해주세요.');return;}
+  var d=financeAnalyzed;
+  var bs=d.balanceSheet;
+  var is_=d.incomeStatement;
+  var pbs=d.prevBalanceSheet;
+  var pis=d.prevIncomeStatement;
+  var hasCompare=!!(pbs&&pis&&d.prevPeriod);
+  var optBS=document.getElementById('finance-opt-bs')?.checked!==false;
+  var optIS=document.getElementById('finance-opt-is')?.checked!==false;
+  var optRatio=document.getElementById('finance-opt-ratio')?.checked!==false;
+  var optComment=document.getElementById('finance-opt-comment')?.checked!==false;
+  var styles=getReportStyles();
+  var extra='<style>.ft{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px}.ft th{background:#F7F8FA;padding:8px 10px;text-align:left;border:1px solid #E4E7EC;font-size:11px;color:#6C6C70;font-weight:600}.ft td{padding:8px 10px;border:1px solid #E4E7EC}.ft .num{text-align:right;font-family:monospace}.ft .tot{font-weight:700;background:#EFF4FF}.ft .sec{font-weight:600;background:#FAFAFA}.ft .sub{padding-left:24px!important;color:#6C6C70}.pos{color:#059669}.neg{color:#DC2626}.rg{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}.rc{background:#F7F8FA;border:1px solid #E4E7EC;border-radius:8px;padding:12px;text-align:center}.rv{font-size:18px;font-weight:700;font-family:monospace}.rl{font-size:11px;color:#6C6C70;margin-top:3px}.cb{background:#EFF4FF;border:1px solid #C7D7FF;border-radius:8px;padding:14px;font-size:12px;line-height:1.8}</style>';
+  var chg=function(c,p){
+    if(p===null||p===undefined||p===0)return '<span style="color:#9CA3AF">—</span>';
+    var r=Math.round((c-p)/Math.abs(p)*1000)/10;
+    return '<span class="'+(r>=0?'pos':'neg')+'">'+(r>=0?'▲':'▼')+Math.abs(r)+'%</span>';
+  };
+  var fmt=function(v){return v===null||v===undefined?'—':(v<0?'<span class="neg">':'')+v.toLocaleString()+'원'+(v<0?'</span>':'');};
+  var html='<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>재무제표 분석</title>'+styles+extra+'</head><body>';
+  html+='<div class="report-header"><div class="report-title">📊 재무제표 분석 보고서</div>';
+  html+='<div style="font-size:13px;font-weight:500;margin-top:6px">'+(d.companyName||'—')+(d.bizNo?' | 사업자번호: '+d.bizNo:'')+'</div>';
+  html+='<div class="report-meta"><span>사업연도: '+(d.period||'—')+'</span>'+(hasCompare?'<span>전기: '+d.prevPeriod+'</span>':'')+'<span>출력일: '+fmtDate()+'</span></div></div>';
+
+  if(optBS){
+    html+='<div class="section"><div class="section-title">재무상태표</div><table class="ft"><tr><th>계정과목</th><th class="num">당기</th>';
+    if(hasCompare)html+='<th class="num">전기</th><th class="num">증감율</th>';
+    html+='</tr>';
+    [{l:'Ⅰ. 유동자산',c:'sec',v:bs.currentAssets,p:pbs&&pbs.currentAssets},
+     {l:'Ⅱ. 비유동자산',c:'sec',v:bs.nonCurrentAssets,p:pbs&&pbs.nonCurrentAssets},
+     {l:'자산총계',c:'tot',v:bs.totalAssets,p:pbs&&pbs.totalAssets},
+     {l:'Ⅰ. 유동부채',c:'sec',v:bs.currentLiabilities,p:pbs&&pbs.currentLiabilities},
+     {l:'Ⅱ. 비유동부채',c:'sec',v:bs.nonCurrentLiabilities,p:pbs&&pbs.nonCurrentLiabilities},
+     {l:'부채총계',c:'tot',v:bs.totalLiabilities,p:pbs&&pbs.totalLiabilities},
+     {l:'자본금',c:'sec',v:bs.capital,p:pbs&&pbs.capital},
+     {l:'이익잉여금',c:'sub',v:bs.retainedEarnings,p:pbs&&pbs.retainedEarnings},
+     {l:'자본총계',c:'tot',v:bs.totalEquity,p:pbs&&pbs.totalEquity},
+    ].forEach(function(r){
+      if(r.v===null||r.v===undefined)return;
+      html+='<tr><td class="'+r.c+'">'+r.l+'</td><td class="num">'+fmt(r.v)+'</td>';
+      if(hasCompare)html+='<td class="num">'+fmt(r.p)+'</td><td class="num">'+chg(r.v,r.p)+'</td>';
+      html+='</tr>';
+    });
+    html+='</table></div>';
+  }
+
+  if(optIS){
+    html+='<div class="section"><div class="section-title">손익계산서</div><table class="ft"><tr><th>계정과목</th><th class="num">당기</th>';
+    if(hasCompare)html+='<th class="num">전기</th><th class="num">증감율</th>';
+    html+='</tr>';
+    [{l:'Ⅰ. 매출액',c:'sec',v:is_.revenue,p:pis&&pis.revenue},
+     {l:'Ⅱ. 매출원가',c:'sec',v:is_.costOfSales,p:pis&&pis.costOfSales},
+     {l:'Ⅲ. 매출총손익',c:'tot',v:is_.grossProfit,p:pis&&pis.grossProfit},
+     {l:'Ⅳ. 판매비와관리비',c:'sec',v:is_.operatingExpenses,p:pis&&pis.operatingExpenses},
+     {l:'Ⅴ. 영업손익',c:'tot',v:is_.operatingIncome,p:pis&&pis.operatingIncome},
+     {l:'Ⅵ. 영업외수익',c:'sec',v:is_.nonOperatingIncome,p:pis&&pis.nonOperatingIncome},
+     {l:'Ⅶ. 영업외비용',c:'sec',v:is_.nonOperatingExpenses,p:pis&&pis.nonOperatingExpenses},
+     {l:'Ⅹ. 당기순손익',c:'tot',v:is_.netIncome,p:pis&&pis.netIncome},
+    ].forEach(function(r){
+      if(r.v===null||r.v===undefined)return;
+      html+='<tr><td class="'+r.c+'">'+r.l+'</td><td class="num">'+fmt(r.v)+'</td>';
+      if(hasCompare)html+='<td class="num">'+fmt(r.p)+'</td><td class="num">'+chg(r.v,r.p)+'</td>';
+      html+='</tr>';
+    });
+    html+='</table></div>';
+  }
+
+  if(optRatio&&bs.totalAssets){
+    var curr=bs.currentLiabilities?Math.round(bs.currentAssets/bs.currentLiabilities*100):null;
+    var debt=bs.totalEquity?Math.round(bs.totalLiabilities/bs.totalEquity*100):null;
+    var eq=Math.round(bs.totalEquity/bs.totalAssets*100);
+    var op=is_.revenue?Math.round(is_.operatingIncome/is_.revenue*1000)/10:null;
+    var net=is_.revenue?Math.round(is_.netIncome/is_.revenue*1000)/10:null;
+    var roa=Math.round(is_.netIncome/bs.totalAssets*1000)/10;
+    html+='<div class="section"><div class="section-title">재무비율 분석</div><div class="rg">';
+    [{lb:'유동비율',v:curr,u:'%',g:curr>=200},{lb:'부채비율',v:debt,u:'%',g:debt!==null&&debt<=100},
+     {lb:'자기자본비율',v:eq,u:'%',g:eq>=50},{lb:'영업이익률',v:op,u:'%',g:op>0},
+     {lb:'순이익률',v:net,u:'%',g:net>0},{lb:'ROA',v:roa,u:'%',g:roa>0}
+    ].forEach(function(r){
+      var c=r.v===null?'#6C6C70':r.g?'#059669':'#DC2626';
+      html+='<div class="rc"><div class="rv" style="color:'+c+'">'+(r.v!==null?r.v+r.u:'—')+'</div><div class="rl">'+r.lb+'</div></div>';
+    });
+    html+='</div></div>';
+  }
+
+  if(optComment){
+    html+='<div class="section"><div class="section-title">종합 의견</div><div class="cb">';
+    var ops=[];
+    if(is_.revenue)ops.push('· 매출액 '+is_.revenue.toLocaleString()+'원으로 영업 활동 중.');
+    if(is_.operatingIncome<0)ops.push('· 영업손실 '+Math.abs(is_.operatingIncome).toLocaleString()+'원 발생. 비용 절감 또는 매출 증대 방안 필요.');
+    else if(is_.operatingIncome>0)ops.push('· 영업이익 '+is_.operatingIncome.toLocaleString()+'원으로 본업 수익성 양호.');
+    if(is_.netIncome<0)ops.push('· 당기순손실 '+Math.abs(is_.netIncome).toLocaleString()+'원. 이익잉여금 감소로 자본 잠식 주의.');
+    if(bs.totalLiabilities>bs.totalAssets)ops.push('· 부채가 자산을 초과. 재무 건전성 개선 시급.');
+    if(hasCompare&&pis&&pis.revenue&&is_.revenue){
+      var rChg=Math.round((is_.revenue-pis.revenue)/Math.abs(pis.revenue)*100);
+      ops.push('· 매출 전기 대비 '+(rChg>=0?'▲':'▼')+Math.abs(rChg)+'% '+(rChg>=0?'증가':'감소')+'.');
+    }
+    if(!ops.length)ops.push('· 전반적으로 안정적인 재무구조를 유지하고 있습니다.');
+    ops.push('<br><span style="font-size:11px;color:#9CA3AF">※ 본 분석은 자동 분석 결과이며 공인회계사 검토를 대체하지 않습니다.</span>');
+    html+=ops.join('<br>')+'</div></div>';
+  }
+  html+='</body></html>';
+  openPrintWindow(html);
+}
+
 
 function searchFinanceComp(){
   var inp=document.getElementById('finance-comp-search-inp');
@@ -5350,168 +5557,6 @@ function openFinanceModal(){
   openModal('finance-modal');
 }
 
-function parseFinanceOcr(text){
-  // 숫자 추출
-  function extractNum(patterns){
-    for(var i=0;i<patterns.length;i++){
-      var m=text.match(patterns[i]);
-      if(m){var n=parseInt((m[m.length-1]||'').replace(/,/g,''));if(!isNaN(n))return n;}
-    }
-    return null;
-  }
-
-  // 회사명
-  var companyName='';
-  var nm=text.match(/법인명\s+([\S]+(?:\s+[\S]+)?)\s+사업자/)||
-         text.match(/상호[^\n]*\n([^\n]+)/);
-  if(nm)companyName=nm[1].trim();
-
-  // 사업자번호
-  var bizNo='';
-  var bm=text.match(/(\d{3}[-]\d{2}[-]\d{5})/)||text.match(/(\d{3}\s\d{2}\s\d{5})/);
-  if(bm)bizNo=bm[1];
-
-  // 사업연도 - 당기/전기 구분
-  var periods=[];
-  var pm=text.matchAll(/(\d{4}[.\/\-]\d{2}[.\/\-]\d{2})\s*[~～\-]\s*(\d{4}[.\/\-]\d{2}[.\/\-]\d{2})/g);
-  for(var p of pm)periods.push(p[1]+'~'+p[2]);
-
-  // 재무상태표 당기/전기 파싱
-  // 국세청 표준: "코드 당기금액 전기금액" 또는 "코드 금액"
-  function extractBoth(code,labels){
-    // 코드 기반: 코드번호 뒤에 숫자 1~2개
-    var codeRe=new RegExp(code+'\s+([\-]?[\d,]+)(?:\s+([\-]?[\d,]+))?');
-    var m=text.match(codeRe);
-    if(m){
-      var cur=parseInt((m[1]||'').replace(/,/g,''));
-      var prev=m[2]?parseInt(m[2].replace(/,/g,'')):null;
-      return{cur:isNaN(cur)?null:cur, prev:prev};
-    }
-    // 레이블 기반
-    for(var i=0;i<(labels||[]).length;i++){
-      var lr=new RegExp(labels[i]+'\s+([\-]?[\d,]+)(?:\s+([\-]?[\d,]+))?');
-      var lm=text.match(lr);
-      if(lm){
-        var cv=parseInt((lm[1]||'').replace(/,/g,''));
-        var pv=lm[2]?parseInt(lm[2].replace(/,/g,'')):null;
-        return{cur:isNaN(cv)?null:cv, prev:pv};
-      }
-    }
-    return{cur:null,prev:null};
-  }
-
-  var bsMap={
-    currentAssets:    extractBoth('001',['유동자산']),
-    nonCurrentAssets: extractBoth('080',['비유동자산']),
-    totalAssets:      extractBoth('228',['자산총계']),
-    currentLiabilities:    extractBoth('229',['유동부채']),
-    nonCurrentLiabilities: extractBoth('284',['비유동부채']),
-    totalLiabilities: extractBoth('333',['부채총계']),
-    capital:          extractBoth('334',['자본금']),
-    retainedEarnings: extractBoth('372',['이익잉여금']),
-  };
-
-  var isMap={
-    revenue:           extractBoth('001',['매출액','수입금']),
-    costOfSales:       extractBoth('035',['매출원가']),
-    grossProfit:       extractBoth('066',['매출총손익']),
-    operatingExpenses: extractBoth('067',['판매비와관리비']),
-    operatingIncome:   extractBoth('129',['영업손익']),
-    nonOperatingIncome:  extractBoth('130',['영업외수익']),
-    nonOperatingExpenses:extractBoth('179',['영업외비용']),
-    netIncome:         extractBoth('219',['당기순손익']),
-  };
-
-  // 매출액과 유동자산 코드 충돌(001) 해결
-  // 손익계산서가 별도 섹션이면 재추출
-  var isRevM=text.match(/매출액\s*001\s+([\-]?[\d,]+)(?:\s+([\-]?[\d,]+))?/)||
-             text.match(/I\s*\.\s*매출액\s+([\-]?[\d,]+)(?:\s+([\-]?[\d,]+))?/)||
-             text.match(/수입금\s*025\s+([\-]?[\d,]+)(?:\s+([\-]?[\d,]+))?/);
-  if(isRevM){
-    isMap.revenue={cur:parseInt((isRevM[1]||'').replace(/,/g,'')),prev:isRevM[2]?parseInt(isRevM[2].replace(/,/g,'')):null};
-  }
-
-  // 전기 데이터 여부 확인
-  var hasPrev=Object.values(bsMap).some(function(v){return v.prev!==null;})||
-              Object.values(isMap).some(function(v){return v.prev!==null;});
-
-  function buildBS(key){
-    return{
-      currentAssets:    bsMap.currentAssets[key],
-      nonCurrentAssets: bsMap.nonCurrentAssets[key],
-      totalAssets:      bsMap.totalAssets[key],
-      currentLiabilities:    bsMap.currentLiabilities[key],
-      nonCurrentLiabilities: bsMap.nonCurrentLiabilities[key],
-      totalLiabilities: bsMap.totalLiabilities[key],
-      capital:          bsMap.capital[key],
-      retainedEarnings: bsMap.retainedEarnings[key],
-      totalEquity: bsMap.totalAssets[key]!==null&&bsMap.totalLiabilities[key]!==null
-        ? bsMap.totalAssets[key]-bsMap.totalLiabilities[key] : null,
-    };
-  }
-  function buildIS(key){
-    return{
-      revenue:           isMap.revenue[key],
-      costOfSales:       isMap.costOfSales[key],
-      grossProfit:       isMap.grossProfit[key],
-      operatingExpenses: isMap.operatingExpenses[key],
-      operatingIncome:   isMap.operatingIncome[key],
-      nonOperatingIncome:  isMap.nonOperatingIncome[key],
-      nonOperatingExpenses:isMap.nonOperatingExpenses[key],
-      netIncome:         isMap.netIncome[key],
-    };
-  }
-
-  return{
-    companyName: companyName,
-    bizNo: bizNo,
-    period: periods[0]||'',
-    prevPeriod: hasPrev?(periods[1]||'전기'):null,
-    balanceSheet: buildBS('cur'),
-    incomeStatement: buildIS('cur'),
-    prevBalanceSheet: hasPrev?buildBS('prev'):null,
-    prevIncomeStatement: hasPrev?buildIS('prev'):null,
-  };
-}
-
-async function analyzeAndPrintFinance(){
-  var text=document.getElementById('fin-ocr-text')?.value||'';
-  if(!text.trim()){alert('OCR 텍스트를 붙여넣어 주세요.');return;}
-  var errEl=document.getElementById('finance-error');
-  var resEl=document.getElementById('finance-result');
-  var resContent=document.getElementById('finance-result-content');
-  if(errEl)errEl.style.display='none';
-
-  try{
-    var d=parseFinanceOcr(text);
-    if(!d.balanceSheet.totalAssets&&!d.incomeStatement.revenue){
-      throw new Error('재무 데이터를 인식하지 못했습니다. 국세청 코드번호(228, 333 등)가 포함된 OCR 텍스트인지 확인해주세요.');
-    }
-    financeAnalyzed=d;
-
-    // 미리보기
-    var bs=d.balanceSheet; var is_=d.incomeStatement;
-    var preview='<b>'+(d.companyName||'법인명 미인식')+'</b>'+(d.bizNo?' | '+d.bizNo:'')+'<br>';
-    preview+='사업연도: '+(d.period||'미인식')+(d.prevPeriod?' / 전기: '+d.prevPeriod+' (비교식)':'')+'<br><br>';
-    preview+='자산총계: '+(bs.totalAssets?bs.totalAssets.toLocaleString()+'원':'미인식')+' | 부채총계: '+(bs.totalLiabilities?bs.totalLiabilities.toLocaleString()+'원':'미인식')+'<br>';
-    preview+='매출액: '+(is_.revenue?is_.revenue.toLocaleString()+'원':'미인식')+' | 영업손익: '+(is_.operatingIncome!==null?is_.operatingIncome.toLocaleString()+'원':'미인식')+' | 순손익: '+(is_.netIncome!==null?is_.netIncome.toLocaleString()+'원':'미인식');
-    if(d.prevPeriod)preview+='<br><span style="color:var(--ok)">✅ 전기 데이터 감지 → 비교식 보고서 생성</span>';
-    if(resContent)resContent.innerHTML=preview;
-    if(resEl)resEl.style.display='block';
-
-    // CRM 저장
-    var compBizno=document.getElementById('finance-comp-link')?.value||'';
-    if(compBizno){
-      try{await updateDoc(doc(db,'companies',compBizno),{financeData:d,financeUpdatedAt:Date.now()});setBadge('재무데이터 저장됨',2000);}catch(e){}
-    }
-    // 바로 출력
-    setTimeout(printFinanceReport,300);
-    closeModal('finance-modal');
-  }catch(e){
-    if(errEl){errEl.style.display='block';errEl.textContent='오류: '+e.message;}
-  }
-}
-
 // ── CORP AUTOCOMPLETE ──
 function showCorpDrop(inputId){
   const inp=document.getElementById(inputId);const dd=document.getElementById('dd-'+inputId);
@@ -5532,7 +5577,7 @@ loadAll();
 Object.assign(window,{
   navTo,manualSave,closeModal,
   openReportModal,printReport,
-  openFinanceModal,analyzeFinancePdf,handleFinPdfDrop,handleFinPdfSelect,clearFinPdf,
+  openFinanceModal,analyzeFinancePdf,handleFinPdfDrop,handleFinPdfSelect,clearFinPdf,printFinanceReport,
   searchFinanceComp,selectFinanceComp,clearFinanceComp,
   searchFinanceComp,selectFinanceComp,clearFinanceComp,
   prevMonth,nextMonth,goToday,toggleCat,
