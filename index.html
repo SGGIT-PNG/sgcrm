@@ -6240,18 +6240,21 @@ function gcalSyncAnnual(report,action){
 // ── 지원사업 저장/삭제 시 자동 동기화 ──
 function gcalSyncCons(cons,action){
   if(action==='delete'){
-    sendToGcal('delete','cons',{id:cons.id+'_start'});
-    sendToGcal('delete','cons',{id:cons.id+'_end'});
+    sendToGcal('delete','cons',{id:cons.id});
     return;
   }
+  if(!cons.startDate&&!cons.endDate)return;
   var ccs=consCompanies.filter(function(cc){return cc.consId===cons.id;});
   var compNames=ccs.map(function(cc){var comp=companies.find(function(x){return x._id===cc.bizno;});return comp?comp.name:cc.companyName||'';}).join(', ');
-  if(cons.startDate){
-    sendToGcal('upsert','cons',{id:cons.id+'_start',title:cons.title,date:cons.startDate,org:cons.org||'',companies:compNames,isStart:true});
-  }
-  if(cons.endDate){
-    sendToGcal('upsert','cons',{id:cons.id+'_end',title:cons.title,date:cons.endDate,org:cons.org||'',companies:compNames,isStart:false});
-  }
+  // 시작~마감을 하나의 기간 이벤트로 전송
+  sendToGcal('upsert','cons',{
+    id:cons.id,
+    title:cons.title,
+    startDate:cons.startDate||cons.endDate,
+    endDate:cons.endDate||cons.startDate,
+    org:cons.org||'',
+    companies:compNames,
+  });
 }
 
 // ── 수동 전체 동기화 ──
