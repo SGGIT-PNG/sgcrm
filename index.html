@@ -998,15 +998,15 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
           <input class="fi" id="comp-birth-d" placeholder="DD" maxlength="2" style="width:48px;text-align:center">
         </div>
       </div>
-      <div class="fg"><label class="fl">법인번호</label><input class="fi" id="comp-corp-no" placeholder="000000-0000000"></div>
+      <div class="fg"><label class="fl">법인번호</label><input class="fi" id="comp-corp-no" placeholder="000000-0000000" oninput="fmtCorpno(this)"></div>
     </div>
     <div class="frow">
       <div class="fg"><label class="fl">사업자번호 <span id="comp-bizno-auto" style="color:var(--gold);font-size:11px"></span></label>
-        <input class="fi" id="comp-bizno" placeholder="000-00-00000 (예비창업자는 비워두세요)" oninput="checkBizno()"></div>
+        <input class="fi" id="comp-bizno" placeholder="000-00-00000 (예비창업자는 비워두세요)" oninput="fmtBizno(this);checkBizno()"></div>
       <div class="fg"><label class="fl">업종</label><input class="fi" id="comp-biztype" placeholder="제조업, IT, 바이오 등"></div>
     </div>
     <div class="frow">
-      <div class="fg"><label class="fl">연락처</label><input class="fi" id="comp-tel" placeholder="010-0000-0000"></div>
+      <div class="fg"><label class="fl">연락처</label><input class="fi" id="comp-tel" placeholder="010-0000-0000" oninput="fmtTel(this)"></div>
       <div class="fg"><label class="fl">이메일</label><input class="fi" id="comp-email" placeholder="example@company.com"></div>
     </div>
     <div class="frow">
@@ -1580,8 +1580,26 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
       <div class="fg"><label class="fl">공고 기관</label><input class="fi" id="cons-org" placeholder="예: 소진공"></div>
     </div>
     <div class="frow">
-      <div class="fg"><label class="fl">시작일</label><input class="fi" id="cons-start" type="date"></div>
-      <div class="fg"><label class="fl">마감일 *</label><input class="fi" id="cons-end" type="date"></div>
+      <div class="fg"><label class="fl">시작일</label>
+        <div style="display:flex;align-items:center;gap:4px">
+          <input class="fi" id="cons-start-y" placeholder="YYYY" maxlength="4" style="width:62px;text-align:center" oninput="autoTabDate(this,'cons-start-m',4);consDateCompose()">
+          <span style="color:var(--text4)">-</span>
+          <input class="fi" id="cons-start-m" placeholder="MM" maxlength="2" style="width:44px;text-align:center" oninput="autoTabDate(this,'cons-start-d',2);consDateCompose()">
+          <span style="color:var(--text4)">-</span>
+          <input class="fi" id="cons-start-d" placeholder="DD" maxlength="2" style="width:44px;text-align:center" oninput="consDateCompose()">
+        </div>
+        <input type="hidden" id="cons-start">
+      </div>
+      <div class="fg"><label class="fl">마감일 *</label>
+        <div style="display:flex;align-items:center;gap:4px">
+          <input class="fi" id="cons-end-y" placeholder="YYYY" maxlength="4" style="width:62px;text-align:center" oninput="autoTabDate(this,'cons-end-m',4);consDateCompose()">
+          <span style="color:var(--text4)">-</span>
+          <input class="fi" id="cons-end-m" placeholder="MM" maxlength="2" style="width:44px;text-align:center" oninput="autoTabDate(this,'cons-end-d',2);consDateCompose()">
+          <span style="color:var(--text4)">-</span>
+          <input class="fi" id="cons-end-d" placeholder="DD" maxlength="2" style="width:44px;text-align:center" oninput="consDateCompose()">
+        </div>
+        <input type="hidden" id="cons-end">
+      </div>
     </div>
     <div class="frow">
       <div class="fg"><label class="fl">상태</label>
@@ -2401,7 +2419,77 @@ function toggleBizDateFields(){
 }
 
 function autoTabDate(el,nextId,maxLen){
+  el.value=el.value.replace(/[^0-9]/g,'');
   if(el.value.length>=maxLen){const next=document.getElementById(nextId);if(next)next.focus();}
+}
+
+// 지원사업 날짜 조합 (YYYY-MM-DD → hidden input)
+function consDateCompose(){
+  function compose(prefix){
+    var y=document.getElementById(prefix+'-y')?.value||'';
+    var m=document.getElementById(prefix+'-m')?.value||'';
+    var d=document.getElementById(prefix+'-d')?.value||'';
+    var hidden=document.getElementById(prefix);
+    if(hidden){
+      if(y.length===4&&m.length>=1&&d.length>=1){
+        hidden.value=y+'-'+m.padStart(2,'0')+'-'+d.padStart(2,'0');
+      } else if(y.length===4&&m.length>=1){
+        hidden.value=y+'-'+m.padStart(2,'0');
+      } else {
+        hidden.value='';
+      }
+    }
+  }
+  compose('cons-start');
+  compose('cons-end');
+}
+
+// 날짜 문자열 → 분리 필드에 채우기
+function splitDateToFields(dateStr,prefix){
+  if(!dateStr)return;
+  var parts=dateStr.split('-');
+  var yEl=document.getElementById(prefix+'-y');
+  var mEl=document.getElementById(prefix+'-m');
+  var dEl=document.getElementById(prefix+'-d');
+  if(yEl)yEl.value=parts[0]||'';
+  if(mEl)mEl.value=parts[1]||'';
+  if(dEl)dEl.value=parts[2]||'';
+}
+
+// 기업 사업자번호 자동 하이픈 (000-00-00000)
+function fmtBizno(el){
+  var v=el.value.replace(/[^0-9]/g,'');
+  if(v.length>10)v=v.slice(0,10);
+  if(v.length>5)el.value=v.slice(0,3)+'-'+v.slice(3,5)+'-'+v.slice(5);
+  else if(v.length>3)el.value=v.slice(0,3)+'-'+v.slice(3);
+  else el.value=v;
+}
+
+// 법인등록번호 자동 하이픈 (000000-0000000)
+function fmtCorpno(el){
+  var v=el.value.replace(/[^0-9]/g,'');
+  if(v.length>13)v=v.slice(0,13);
+  if(v.length>6)el.value=v.slice(0,6)+'-'+v.slice(6);
+  else el.value=v;
+}
+
+// 연락처 자동 하이픈 (010-0000-0000 / 02-000-0000)
+function fmtTel(el){
+  var v=el.value.replace(/[^0-9]/g,'');
+  if(v.length>11)v=v.slice(0,11);
+  var result='';
+  if(v.startsWith('02')){
+    if(v.length<=2)result=v;
+    else if(v.length<=5)result=v.slice(0,2)+'-'+v.slice(2);
+    else if(v.length<=9)result=v.slice(0,2)+'-'+v.slice(2,5)+'-'+v.slice(5);
+    else result=v.slice(0,2)+'-'+v.slice(2,6)+'-'+v.slice(6);
+  } else {
+    if(v.length<=3)result=v;
+    else if(v.length<=6)result=v.slice(0,3)+'-'+v.slice(3);
+    else if(v.length<=10)result=v.slice(0,3)+'-'+v.slice(3,6)+'-'+v.slice(6);
+    else result=v.slice(0,3)+'-'+v.slice(3,7)+'-'+v.slice(7);
+  }
+  el.value=result;
 }
 
 // 업력 자동 계산 (사업개시일 기준)
@@ -2730,6 +2818,8 @@ function openConsultingModal(id){
     document.getElementById('cons-org').value=c.org||'';
     document.getElementById('cons-start').value=c.startDate||'';
     document.getElementById('cons-end').value=c.endDate||'';
+    splitDateToFields(c.startDate,'cons-start');
+    splitDateToFields(c.endDate,'cons-end');
     document.getElementById('cons-status').value=c.status||'wait';
     document.getElementById('cons-amount').value=c.amount||'';
     document.getElementById('cons-approved-amt').value=c.approvedAmt||'';
@@ -2756,7 +2846,10 @@ function openConsultingModal(id){
   } else {
     document.getElementById('cons-modal-title').textContent='📋 지원사업·정책자금 추가';
     document.getElementById('cons-edit-id').value='';
-    ['cons-title','cons-org','cons-start','cons-end','cons-amount','cons-approved-amt','cons-memo'].forEach(id=>document.getElementById(id).value='');
+    ['cons-title','cons-org','cons-start','cons-end','cons-amount','cons-approved-amt','cons-memo',
+     'cons-start-y','cons-start-m','cons-start-d','cons-end-y','cons-end-m','cons-end-d'].forEach(id=>{
+       const el=document.getElementById(id);if(el)el.value='';
+    });
     ['cons-region','cons-scale','cons-industry','cons-age'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
     document.getElementById('cons-category').value='policy';
     document.getElementById('cons-status').value='wait';
@@ -6887,6 +6980,7 @@ loadAll();
 // ── GLOBAL EXPORTS ──
 Object.assign(window,{
   navTo,manualSave,closeModal,
+  fmtBizno,fmtCorpno,fmtTel,consDateCompose,
   toggleMobileDrawer,closeMobileDrawer,mobileNavTo,
   openExcelModal,downloadExcel,updateXlPreview,
   openGcalModal,setGcalTab,saveGcalSettings,testGcalConnection,copyGcalScript,syncGcalAll,syncGcalType,
