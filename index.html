@@ -172,7 +172,10 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
 .cli-label-td{padding:6px 12px 6px 26px;border-right:1px solid var(--border);white-space:nowrap;min-width:140px;}
 .gbar{position:absolute;top:50%;transform:translateY(-50%);height:16px;border-radius:8px;display:flex;align-items:center;overflow:hidden;cursor:pointer;transition:opacity .15s;z-index:2;}
 .gbar:hover{opacity:.8;}
-.gbar-label{font-size:9px;font-weight:600;padding:0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;color:#FFF;}
+.gbar-label{font-size:9px;font-weight:600;padding:0 6px;white-space:nowrap;color:#FFF;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+/* 간트바 툴팁 */
+.gbar[title]:hover::after{content:attr(title);position:absolute;top:-28px;left:0;background:rgba(0,0,0,.85);color:#FFF;padding:4px 8px;border-radius:6px;font-size:11px;white-space:nowrap;z-index:100;pointer-events:none;}
+.gbar{position:relative;}
 
 .todo-wrap{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
 .todo-col{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:14px;}
@@ -966,7 +969,13 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
             <option value="">전체(비활성포함)</option>
             <option value="N">비활성만</option>
           </select>
-          <span id="corp-search-result" style="font-size:12px;color:var(--text4);margin-left:auto"></span>
+          <span id="corp-search-result" style="font-size:12px;color:var(--text4)"></span>
+          <select class="fs" id="corp-per-page" onchange="renderCompaniesPage()" style="width:80px;margin-left:auto">
+            <option value="10">10개</option>
+            <option value="20" selected>20개</option>
+            <option value="50">50개</option>
+            <option value="0">전체</option>
+          </select>
         </div>
       </div>
       <div class="card"><div class="tbl-wrap"><table class="tbl">
@@ -1104,7 +1113,8 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
         <input class="fi" id="comp-est-d" placeholder="DD" maxlength="2" style="width:48px;text-align:center" oninput="calcCompAge()">
       </div>
     </div>
-    <div class="fg"><label class="fl">주소</label><input class="fi" id="comp-addr" placeholder="서울시 강남구..."></div>
+    <div class="fg"><label class="fl">사업장 주소</label><input class="fi" id="comp-addr" placeholder="사업장 주소를 입력하세요..."></div>
+    <div class="fg"><label class="fl">대표자 주소</label><input class="fi" id="comp-ceo-addr" placeholder="대표자 주소 (사업장과 다른 경우)"></div>
     <div class="frow">
       <div class="fg"><label class="fl">고객 그룹</label>
         <select class="fs" id="comp-group">
@@ -1724,16 +1734,12 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
       <label class="fl">결과 *</label>
       <div style="display:flex;gap:8px">
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:10px 16px;border:2px solid var(--border);border-radius:8px;flex:1;transition:all .15s" id="cr-lbl-pass">
-          <input type="radio" name="cr-result" value="pass" onchange="onCrResultChange()" style="accent-color:#059669">
-          <span style="font-size:13px;font-weight:500;color:#059669">🟢 합격</span>
+          <input type="radio" name="cr-result" value="pass" onchange="onCrResultChange()" style="accent-color:#059669" checked>
+          <span style="font-size:13px;font-weight:500;color:#059669">🟢 선정</span>
         </label>
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:10px 16px;border:2px solid var(--border);border-radius:8px;flex:1;transition:all .15s" id="cr-lbl-fail">
           <input type="radio" name="cr-result" value="fail" onchange="onCrResultChange()" style="accent-color:#DC2626">
-          <span style="font-size:13px;font-weight:500;color:#DC2626">🔴 불합격</span>
-        </label>
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:10px 16px;border:2px solid var(--border);border-radius:8px;flex:1;transition:all .15s" id="cr-lbl-wait">
-          <input type="radio" name="cr-result" value="wait" onchange="onCrResultChange()" style="accent-color:#6B7280" checked>
-          <span style="font-size:13px;font-weight:500;color:#6B7280">⚪ 대기</span>
+          <span style="font-size:13px;font-weight:500;color:#DC2626">🔴 미선정</span>
         </label>
       </div>
     </div>
@@ -1743,7 +1749,14 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
       <div class="frow">
         <div class="fg">
           <label class="fl">최종 승인일</label>
-          <input class="fi" id="cr-approved-date" type="date">
+          <div style="display:flex;align-items:center;gap:4px">
+            <input class="fi" id="cr-approved-y" placeholder="YYYY" maxlength="4" style="width:62px;text-align:center" oninput="autoTabDate(this,'cr-approved-m',4);composeApprovedDate()">
+            <span style="color:var(--text4)">-</span>
+            <input class="fi" id="cr-approved-m" placeholder="MM" maxlength="2" style="width:44px;text-align:center" oninput="autoTabDate(this,'cr-approved-d',2);composeApprovedDate()">
+            <span style="color:var(--text4)">-</span>
+            <input class="fi" id="cr-approved-d" placeholder="DD" maxlength="2" style="width:44px;text-align:center" oninput="composeApprovedDate()">
+          </div>
+          <input type="hidden" id="cr-approved-date">
         </div>
         <div class="fg">
           <label class="fl">최종 승인액 (만원)</label>
@@ -1755,7 +1768,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
     <!-- 불합격 시 입력 -->
     <div id="cr-fail-fields" style="display:none">
       <div class="fg">
-        <label class="fl">불합격 사유 (선택)</label>
+        <label class="fl">미선정 사유 (선택)</label>
         <select class="fs" id="cr-fail-reason">
           <option value="">선택...</option>
           <option value="서류미흡">서류 미흡</option>
@@ -2444,6 +2457,19 @@ function consDateCompose(){
   compose('cons-end');
 }
 
+// 최종 승인일 조합
+function composeApprovedDate(){
+  var y=document.getElementById('cr-approved-y')?.value||'';
+  var m=document.getElementById('cr-approved-m')?.value||'';
+  var d=document.getElementById('cr-approved-d')?.value||'';
+  var hidden=document.getElementById('cr-approved-date');
+  if(hidden){
+    if(y.length===4&&m.length>=1&&d.length>=1)
+      hidden.value=y+'-'+m.padStart(2,'0')+'-'+d.padStart(2,'0');
+    else hidden.value='';
+  }
+}
+
 // 날짜 문자열 → 분리 필드에 채우기
 function splitDateToFields(dateStr,prefix){
   if(!dateStr)return;
@@ -2750,14 +2776,14 @@ function renderGantt(sfx){
     </td>`;
     for(let d=1;d<=days;d++){
       const ds=dateStr(y,m,d);const inR=c.startDate&&c.endDate&&ds>=c.startDate&&ds<=c.endDate;const isS=c.startDate&&ds===c.startDate;
-      body+=`<td class="cat-bar-td">${inR?`<div style="position:absolute;inset:6px 0;background:rgba(0,0,0,.04);border-radius:${isS?'9px 0 0 9px':'0'}"></div>`:''}${isS?`<div class="gbar" style="left:2px;right:0;background:${color}" onclick="event.stopPropagation();openConsultingModal('${c.id}')"><span class="gbar-label">${c.title}</span></div>`:''}</td>`;
+      body+=`<td class="cat-bar-td">${inR?`<div style="position:absolute;inset:6px 0;background:rgba(0,0,0,.04);border-radius:${isS?'9px 0 0 9px':'0'}"></div>`:''}${isS?`<div class="gbar" style="left:2px;right:0;background:${color}" title="${c.title}" onclick="event.stopPropagation();openConsultingModal('${c.id}')"><span class="gbar-label">${c.title}</span></div>`:''}</td>`;
     }
     body+=`</tr>`;
     ccs.forEach(cc=>{
       const cliDone=cc.status==='done';
       const cliExpired=cliDone&&isDoneExpired({status:cc.status,doneAt:cc.doneAt});
       // 결과 배지
-      const RBADGE={pass:'<span style="font-size:9px;background:#D1FAE5;color:#065F46;padding:1px 5px;border-radius:6px;font-weight:700;margin-left:4px">합격</span>',fail:'<span style="font-size:9px;background:#FEE2E2;color:#991B1B;padding:1px 5px;border-radius:6px;font-weight:700;margin-left:4px">불합격</span>',wait:''};
+      const RBADGE={pass:'<span style="font-size:9px;background:#D1FAE5;color:#065F46;padding:1px 5px;border-radius:6px;font-weight:700;margin-left:4px">선정</span>',fail:'<span style="font-size:9px;background:#FEE2E2;color:#991B1B;padding:1px 5px;border-radius:6px;font-weight:700;margin-left:4px">미선정</span>',wait:''};
       const resultBadge=RBADGE[cc.result||'wait']||'';
       const approvedInfo=cc.result==='pass'&&cc.approvedDate?`<span style="font-size:9px;color:var(--text4);margin-left:4px">${cc.approvedDate}${cc.approvedAmt?' · '+Number(cc.approvedAmt).toLocaleString()+'만':''}</span>`:'';
       body+=`<tr class="cli-row${exp?'':' hidden'}${cliDone?' gantt-cli-done':''}${cliExpired?' gantt-cli-expired':''}" data-cat="${c.id}"><td class="cli-label-td">
@@ -4759,6 +4785,7 @@ function openCompanyModal(bizno){
     document.getElementById('comp-tel').value=c.tel||'';
     document.getElementById('comp-email').value=c.email||'';
     document.getElementById('comp-addr').value=c.addr||'';
+    const ceoAddrEl=document.getElementById('comp-ceo-addr');if(ceoAddrEl)ceoAddrEl.value=c.ceoAddr||'';
     document.getElementById('comp-group').value=c.group||'일반고객';
     document.getElementById('comp-active').value=c.active||'Y';
     document.getElementById('comp-bizclass').value=c.bizclass||'법인';
@@ -4797,7 +4824,7 @@ function openCompanyModal(bizno){
   } else {
     document.getElementById('company-modal-title').textContent='🏛️ 기업 등록';
     document.getElementById('comp-edit-bizno').value='';
-    ['comp-name','comp-ceo','comp-corp-no','comp-bizno','comp-biztype','comp-tel','comp-email','comp-addr','comp-memo'].forEach(id=>document.getElementById(id).value='');
+    ['comp-name','comp-ceo','comp-corp-no','comp-bizno','comp-biztype','comp-tel','comp-email','comp-addr','comp-ceo-addr','comp-memo'].forEach(id=>document.getElementById(id).value='');
     ['comp-scale','comp-region','comp-revenue','comp-industry'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
     const ageDisp=document.getElementById('comp-age-display');if(ageDisp){ageDisp.textContent='사업개시일 입력 시 자동 계산';ageDisp.style.color='var(--text3)';}
     ['comp-birth-y','comp-birth-m','comp-birth-d','comp-reg-y','comp-reg-m','comp-reg-d','comp-est-y','comp-est-m','comp-est-d'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
@@ -4832,6 +4859,7 @@ async function saveCompany(){
     tel:document.getElementById('comp-tel').value,
     email:document.getElementById('comp-email').value,
     addr:document.getElementById('comp-addr').value,
+    ceoAddr:document.getElementById('comp-ceo-addr')?.value||'',
     group:document.getElementById('comp-group').value,
     active:document.getElementById('comp-active').value,
     bizclass:document.getElementById('comp-bizclass').value,
@@ -5008,11 +5036,16 @@ function renderCompaniesPage(){
     return true;
   });
 
+  // 페이지당 개수
+  const perPage=+(document.getElementById('corp-per-page')?.value||20);
+  const pageData=perPage>0?filtered.slice(0,perPage):filtered;
+
   // 검색 결과 수 표시
   const resultEl=document.getElementById('corp-search-result');
-  if(resultEl)resultEl.textContent=filtered.length+'개 업체'+( filtered.length<companies.length?' (전체 '+companies.length+'개 중)':'');
+  const moreStr=filtered.length>pageData.length?' ('+filtered.length+'개 중 '+pageData.length+'개 표시)':'';
+  if(resultEl)resultEl.textContent=filtered.length+'개 업체'+moreStr;
 
-  document.getElementById('corp-tbody').innerHTML=filtered.length?filtered.map(c=>{
+  document.getElementById('corp-tbody').innerHTML=filtered.length?pageData.map(c=>{
     const mycons=consulting.filter(x=>consCompanies.some(cc=>cc.consId===x.id&&cc.bizno===c._id));
     const amt=mycons.reduce((s,x)=>s+(+x.amount||0),0);
     const isInactive=c.active==='N';
@@ -6906,6 +6939,7 @@ function openConsResultModal(idx){
   var result=cc.result||'wait';
   document.querySelectorAll('input[name="cr-result"]').forEach(function(r){r.checked=r.value===result;});
   document.getElementById('cr-approved-date').value=cc.approvedDate||'';
+  splitDateToFields(cc.approvedDate||'','cr-approved');
   document.getElementById('cr-approved-amt').value=cc.approvedAmt||'';
   document.getElementById('cr-fail-reason').value=cc.reason||'';
   document.getElementById('cr-memo').value=cc.memo||'';
@@ -6914,10 +6948,10 @@ function openConsResultModal(idx){
 }
 
 function onCrResultChange(){
-  var result=document.querySelector('input[name="cr-result"]:checked')?.value||'wait';
+  var result=document.querySelector('input[name="cr-result"]:checked')?.value||'pass';
   // 결과 라벨 하이라이트
   var colors={pass:'#059669',fail:'#DC2626',wait:'#6B7280'};
-  ['pass','fail','wait'].forEach(function(v){
+  ['pass','fail'].forEach(function(v){
     var lbl=document.getElementById('cr-lbl-'+v);
     if(lbl)lbl.style.borderColor=result===v?colors[v]:'var(--border)';
     if(lbl)lbl.style.background=result===v?(v==='pass'?'#F0FDF4':v==='fail'?'#FFF5F5':'#F9FAFB'):'transparent';
@@ -6933,7 +6967,7 @@ function saveConsResult(){
   var idx=+document.getElementById('cr-comp-idx').value;
   var cc=tempConsCompanies[idx];
   if(!cc)return;
-  var result=document.querySelector('input[name="cr-result"]:checked')?.value||'wait';
+  var result=document.querySelector('input[name="cr-result"]:checked')?.value||'pass';
   cc.result=result;
   cc.approvedDate=result==='pass'?document.getElementById('cr-approved-date').value:'';
   cc.approvedAmt=result==='pass'?(+document.getElementById('cr-approved-amt').value||0):0;
@@ -6980,7 +7014,7 @@ loadAll();
 // ── GLOBAL EXPORTS ──
 Object.assign(window,{
   navTo,manualSave,closeModal,
-  fmtBizno,fmtCorpno,fmtTel,consDateCompose,
+  fmtBizno,fmtCorpno,fmtTel,consDateCompose,composeApprovedDate,
   toggleMobileDrawer,closeMobileDrawer,mobileNavTo,
   openExcelModal,downloadExcel,updateXlPreview,
   openGcalModal,setGcalTab,saveGcalSettings,testGcalConnection,copyGcalScript,syncGcalAll,syncGcalType,
