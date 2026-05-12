@@ -1686,6 +1686,83 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
   </div>
 </div>
 
+<!-- MODAL: 지원사업 결과 입력 -->
+<div class="ov" id="cons-result-modal">
+  <div class="modal" style="width:480px">
+    <div class="modal-title">
+      <span>🏆 지원사업 결과 입력</span>
+      <button class="modal-close" onclick="closeModal('cons-result-modal')">×</button>
+    </div>
+    <input type="hidden" id="cr-comp-idx">
+
+    <!-- 업체/사업 정보 -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px">
+      <div style="font-size:13px;font-weight:600;color:var(--text)" id="cr-comp-name">업체명</div>
+      <div style="font-size:12px;color:var(--text4);margin-top:2px" id="cr-cons-title">지원사업명</div>
+    </div>
+
+    <!-- 결과 선택 -->
+    <div class="fg">
+      <label class="fl">결과 *</label>
+      <div style="display:flex;gap:8px">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:10px 16px;border:2px solid var(--border);border-radius:8px;flex:1;transition:all .15s" id="cr-lbl-pass">
+          <input type="radio" name="cr-result" value="pass" onchange="onCrResultChange()" style="accent-color:#059669">
+          <span style="font-size:13px;font-weight:500;color:#059669">🟢 합격</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:10px 16px;border:2px solid var(--border);border-radius:8px;flex:1;transition:all .15s" id="cr-lbl-fail">
+          <input type="radio" name="cr-result" value="fail" onchange="onCrResultChange()" style="accent-color:#DC2626">
+          <span style="font-size:13px;font-weight:500;color:#DC2626">🔴 불합격</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:10px 16px;border:2px solid var(--border);border-radius:8px;flex:1;transition:all .15s" id="cr-lbl-wait">
+          <input type="radio" name="cr-result" value="wait" onchange="onCrResultChange()" style="accent-color:#6B7280" checked>
+          <span style="font-size:13px;font-weight:500;color:#6B7280">⚪ 대기</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- 합격 시 입력 -->
+    <div id="cr-pass-fields">
+      <div class="frow">
+        <div class="fg">
+          <label class="fl">최종 승인일</label>
+          <input class="fi" id="cr-approved-date" type="date">
+        </div>
+        <div class="fg">
+          <label class="fl">최종 승인액 (만원)</label>
+          <input class="fi" id="cr-approved-amt" type="number" placeholder="0">
+        </div>
+      </div>
+    </div>
+
+    <!-- 불합격 시 입력 -->
+    <div id="cr-fail-fields" style="display:none">
+      <div class="fg">
+        <label class="fl">불합격 사유 (선택)</label>
+        <select class="fs" id="cr-fail-reason">
+          <option value="">선택...</option>
+          <option value="서류미흡">서류 미흡</option>
+          <option value="요건미충족">지원 요건 미충족</option>
+          <option value="예산소진">예산 소진</option>
+          <option value="경쟁탈락">경쟁 탈락</option>
+          <option value="자진취소">자진 취소</option>
+          <option value="기타">기타</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 메모 -->
+    <div class="fg">
+      <label class="fl">메모 (선택)</label>
+      <textarea class="fta" id="cr-memo" rows="2" placeholder="추가 내용을 입력하세요..."></textarea>
+    </div>
+
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModal('cons-result-modal')">취소</button>
+      <button class="btn btn-primary" onclick="saveConsResult()">저장</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: 인증 종류 추가/수정 -->
 <div class="ov" id="cert-master-modal">
   <div class="modal" style="width:500px">
@@ -2581,6 +2658,7 @@ function renderGantt(sfx){
         <button onclick="event.stopPropagation();openConsultingModal('${c.id}')" style="margin-left:6px;padding:2px 8px;background:#F0F0F0;border:1px solid rgba(37,99,235,.4);border-radius:5px;color:var(--blue);font-size:11px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">관리</button>
       </div>
       <div style="font-size:11px;color:var(--text4);margin-top:2px">${c.org||''} ${c.endDate?'· ~'+c.endDate:''} ${c.amount?'· '+fmtAmt(c.amount):''}</div>
+      ${getConsResultSummary(c.id)}
     </td>`;
     for(let d=1;d<=days;d++){
       const ds=dateStr(y,m,d);const inR=c.startDate&&c.endDate&&ds>=c.startDate&&ds<=c.endDate;const isS=c.startDate&&ds===c.startDate;
@@ -2590,8 +2668,13 @@ function renderGantt(sfx){
     ccs.forEach(cc=>{
       const cliDone=cc.status==='done';
       const cliExpired=cliDone&&isDoneExpired({status:cc.status,doneAt:cc.doneAt});
+      // 결과 배지
+      const RBADGE={pass:'<span style="font-size:9px;background:#D1FAE5;color:#065F46;padding:1px 5px;border-radius:6px;font-weight:700;margin-left:4px">합격</span>',fail:'<span style="font-size:9px;background:#FEE2E2;color:#991B1B;padding:1px 5px;border-radius:6px;font-weight:700;margin-left:4px">불합격</span>',wait:''};
+      const resultBadge=RBADGE[cc.result||'wait']||'';
+      const approvedInfo=cc.result==='pass'&&cc.approvedDate?`<span style="font-size:9px;color:var(--text4);margin-left:4px">${cc.approvedDate}${cc.approvedAmt?' · '+Number(cc.approvedAmt).toLocaleString()+'만':''}</span>`:'';
       body+=`<tr class="cli-row${exp?'':' hidden'}${cliDone?' gantt-cli-done':''}${cliExpired?' gantt-cli-expired':''}" data-cat="${c.id}"><td class="cli-label-td">
-        <div class="cli-name-cell">${dot(cc.status||'wait')}${cc.companyName} ${badge(cc.status||'wait')}</div>
+        <div class="cli-name-cell">${dot(cc.status||'wait')}${cc.companyName} ${badge(cc.status||'wait')}${resultBadge}</div>
+        ${approvedInfo?`<div style="padding-left:16px">${approvedInfo}</div>`:''}
       </td>`;
       for(let d=1;d<=days;d++){
         const ds=dateStr(y,m,d);const inR=c.startDate&&c.endDate&&ds>=c.startDate&&ds<=c.endDate;
@@ -2661,7 +2744,14 @@ function openConsultingModal(id){
     if(consIndustryEl)consIndustryEl.value=c.targetIndustry||'';
     if(consAgeEl)consAgeEl.value=c.targetAge||'';
     // consulting_company 테이블에서 참여업체 로드
-    tempConsCompanies=getConsCompanies(id).map(cc=>({...cc}));
+    tempConsCompanies=getConsCompanies(id).map(cc=>({
+    ...cc,
+    result:cc.result||'wait',
+    approvedDate:cc.approvedDate||'',
+    approvedAmt:cc.approvedAmt||0,
+    reason:cc.reason||'',
+    memo:cc.memo||'',
+  }));
     document.getElementById('cons-del-btn').style.display='';
   } else {
     document.getElementById('cons-modal-title').textContent='📋 지원사업·정책자금 추가';
@@ -2733,14 +2823,36 @@ function addConsCompanyDirect(bizno){
 }
 
 function renderConsCompaniesList(){
-  document.getElementById('cons-companies-list').innerHTML=tempConsCompanies.map((cc,i)=>`
-    <div class="ci" style="cursor:default">
-      <div style="font-size:14px;flex:1">🏢 ${cc.companyName}<span style="font-size:11px;color:var(--text4);margin-left:6px">${cc.bizno}</span></div>
-      <select data-idx="${i}" onchange="updateConsCompanyStatus(this)" style="background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--white);font-size:12px;padding:2px 5px;outline:none;font-family:'Noto Sans KR',sans-serif">
-        ${['wait','ing','done'].map(s=>`<option value="${s}"${cc.status===s?' selected':''}>${ST[s].label}</option>`).join('')}
-      </select>
-      <button data-idx="${i}" onclick="removeConsCompany(this)" style="background:none;border:none;color:var(--text4);cursor:pointer;font-size:16px">×</button>
-    </div>`).join('')||`<div style="font-size:13px;color:var(--text4);padding:4px">참여 업체 없음</div>`;
+  var RESULT_BADGE={
+    pass:'<span style="font-size:10px;background:#D1FAE5;color:#065F46;padding:2px 8px;border-radius:10px;font-weight:600">🟢 합격</span>',
+    fail:'<span style="font-size:10px;background:#FEE2E2;color:#991B1B;padding:2px 8px;border-radius:10px;font-weight:600">🔴 불합격</span>',
+    wait:'<span style="font-size:10px;background:#F3F4F6;color:#6B7280;padding:2px 8px;border-radius:10px;font-weight:600">⚪ 대기</span>',
+  };
+  document.getElementById('cons-companies-list').innerHTML=tempConsCompanies.map((cc,i)=>{
+    var badge=RESULT_BADGE[cc.result||'wait'];
+    var approvedInfo='';
+    if(cc.result==='pass'){
+      if(cc.approvedDate)approvedInfo+='<span style="font-size:10px;color:var(--text4)">승인일: '+cc.approvedDate+'</span>';
+      if(cc.approvedAmt)approvedInfo+='<span style="font-size:10px;color:var(--ok);margin-left:6px;font-weight:600">'+Number(cc.approvedAmt).toLocaleString()+'만원</span>';
+    } else if(cc.result==='fail'&&cc.reason){
+      approvedInfo='<span style="font-size:10px;color:var(--danger)">사유: '+cc.reason+'</span>';
+    }
+    return `<div class="ci" style="cursor:default;flex-direction:column;align-items:stretch;gap:6px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="font-size:13px;font-weight:500;flex:1">🏢 ${cc.companyName}<span style="font-size:11px;color:var(--text4);margin-left:6px">${cc.bizno}</span></div>
+        <select data-idx="${i}" onchange="updateConsCompanyStatus(this)" style="background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--white);font-size:11px;padding:2px 5px;outline:none;font-family:'Noto Sans KR',sans-serif">
+          ${['wait','ing','done'].map(s=>`<option value="${s}"${cc.status===s?' selected':''}>${ST[s].label}</option>`).join('')}
+        </select>
+        <button data-idx="${i}" onclick="openConsResultModal(${i})" style="background:var(--accent-pale);border:1px solid var(--accent-border);border-radius:6px;color:var(--accent);cursor:pointer;font-size:11px;padding:3px 8px;font-family:Pretendard,sans-serif;white-space:nowrap">🏆 결과</button>
+        <button data-idx="${i}" onclick="removeConsCompany(this)" style="background:none;border:none;color:var(--text4);cursor:pointer;font-size:16px">×</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding-left:4px">
+        ${badge}
+        ${approvedInfo}
+        ${cc.memo?'<span style="font-size:10px;color:var(--text4);font-style:italic">'+cc.memo+'</span>':''}
+      </div>
+    </div>`;
+  }).join('')||`<div style="font-size:13px;color:var(--text4);padding:4px">참여 업체 없음</div>`;
 }
 function updateConsCompanyStatus(select){const idx=+select.getAttribute('data-idx');if(tempConsCompanies[idx])tempConsCompanies[idx].status=select.value;}
 function removeConsCompany(btn){const idx=+btn.getAttribute('data-idx');tempConsCompanies.splice(idx,1);renderConsCompaniesList();}
@@ -2791,6 +2903,11 @@ async function saveConsulting(){
       batch.set(newRef,{
         consId,bizno:cc.bizno,companyName:cc.companyName,status:cc.status,
         doneAt:cc.status==='done'&&prevCc?.status!=='done'?Date.now():cc.status!=='done'?null:(prevCc?.doneAt||null),
+        result:cc.result||'wait',
+        approvedDate:cc.approvedDate||'',
+        approvedAmt:cc.approvedAmt||0,
+        reason:cc.reason||'',
+        memo:cc.memo||'',
         createdAt:cc.createdAt||Date.now(),updatedAt:Date.now()
       });
     });
@@ -6683,6 +6800,74 @@ document.addEventListener('DOMContentLoaded',function(){
   setTimeout(initMobileNav,500);
 });
 
+// ── CONS RESULT ──
+function openConsResultModal(idx){
+  var cc=tempConsCompanies[idx];
+  if(!cc)return;
+  document.getElementById('cr-comp-idx').value=idx;
+  document.getElementById('cr-comp-name').textContent='🏢 '+cc.companyName;
+  // 현재 지원사업명
+  var consTitle=document.getElementById('cons-title')?.value||'';
+  document.getElementById('cr-cons-title').textContent=consTitle;
+  // 기존 결과 불러오기
+  var result=cc.result||'wait';
+  document.querySelectorAll('input[name="cr-result"]').forEach(function(r){r.checked=r.value===result;});
+  document.getElementById('cr-approved-date').value=cc.approvedDate||'';
+  document.getElementById('cr-approved-amt').value=cc.approvedAmt||'';
+  document.getElementById('cr-fail-reason').value=cc.reason||'';
+  document.getElementById('cr-memo').value=cc.memo||'';
+  onCrResultChange();
+  openModal('cons-result-modal');
+}
+
+function onCrResultChange(){
+  var result=document.querySelector('input[name="cr-result"]:checked')?.value||'wait';
+  // 결과 라벨 하이라이트
+  var colors={pass:'#059669',fail:'#DC2626',wait:'#6B7280'};
+  ['pass','fail','wait'].forEach(function(v){
+    var lbl=document.getElementById('cr-lbl-'+v);
+    if(lbl)lbl.style.borderColor=result===v?colors[v]:'var(--border)';
+    if(lbl)lbl.style.background=result===v?(v==='pass'?'#F0FDF4':v==='fail'?'#FFF5F5':'#F9FAFB'):'transparent';
+  });
+  // 필드 표시/숨김
+  var passFields=document.getElementById('cr-pass-fields');
+  var failFields=document.getElementById('cr-fail-fields');
+  if(passFields)passFields.style.display=result==='pass'?'block':'none';
+  if(failFields)failFields.style.display=result==='fail'?'block':'none';
+}
+
+function saveConsResult(){
+  var idx=+document.getElementById('cr-comp-idx').value;
+  var cc=tempConsCompanies[idx];
+  if(!cc)return;
+  var result=document.querySelector('input[name="cr-result"]:checked')?.value||'wait';
+  cc.result=result;
+  cc.approvedDate=result==='pass'?document.getElementById('cr-approved-date').value:'';
+  cc.approvedAmt=result==='pass'?(+document.getElementById('cr-approved-amt').value||0):0;
+  cc.reason=result==='fail'?document.getElementById('cr-fail-reason').value:'';
+  cc.memo=document.getElementById('cr-memo').value;
+  // 합격이면 업무 상태도 완료로 변경 제안
+  if(result==='pass'&&cc.status!=='done'){
+    cc.status='done';
+  }
+  closeModal('cons-result-modal');
+  renderConsCompaniesList();
+}
+
+// 간트 행에 업체별 결과 요약 배지 표시
+function getConsResultSummary(consId){
+  var ccs=consCompanies.filter(function(cc){return cc.consId===consId;});
+  if(!ccs.length)return '';
+  var pass=ccs.filter(function(cc){return cc.result==='pass';}).length;
+  var fail=ccs.filter(function(cc){return cc.result==='fail';}).length;
+  var wait=ccs.filter(function(cc){return !cc.result||cc.result==='wait';}).length;
+  var parts=[];
+  if(pass)parts.push('<span style="font-size:9px;background:#D1FAE5;color:#065F46;padding:1px 5px;border-radius:6px;font-weight:700">합격 '+pass+'</span>');
+  if(fail)parts.push('<span style="font-size:9px;background:#FEE2E2;color:#991B1B;padding:1px 5px;border-radius:6px;font-weight:700">불합격 '+fail+'</span>');
+  if(wait&&(pass||fail))parts.push('<span style="font-size:9px;background:#F3F4F6;color:#6B7280;padding:1px 5px;border-radius:6px">대기 '+wait+'</span>');
+  return parts.length?'<div style="display:flex;gap:3px;margin-top:3px;flex-wrap:wrap">'+parts.join('')+'</div>':'';
+}
+
 // ── CORP AUTOCOMPLETE ──
 function showCorpDrop(inputId){
   const inp=document.getElementById(inputId);const dd=document.getElementById('dd-'+inputId);
@@ -6719,6 +6904,7 @@ Object.assign(window,{
   openCertFromWork,onCfwTypeChange,cfwCalcExpDate,saveCertFromWork,skipCertFromWork,
   renderAnnualReportList,addAnnualReport,markAnnualDone,deleteAnnualReport,
   openConsultingModal,saveConsulting,deleteConsulting,addConsCompany,renderConsCompaniesList,updateConsCompanyStatus,removeConsCompany,
+  openConsResultModal,saveConsResult,onCrResultChange,
   openTodoModal,saveTodo,cycleTodo,deleteTodoItem,
   renderWork,openWorkModal,saveWork,confirmDeleteWork,cycleWork,
   renderClientsPage,setCliPageOv,setCliPageSub,setCliGroupFilter,
