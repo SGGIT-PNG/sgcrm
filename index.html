@@ -215,18 +215,230 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:10px;}
 ::-webkit-scrollbar-thumb:hover{color:var(--text4);}
 
+/* ── 모바일 반응형 ── */
 @media(max-width:768px){
-  #sidebar{width:56px;}
-  .sb-menu span:not(.sb-ico){display:none;}
-  .sb-logo-title,.sb-logo-sub,.sb-section,.sb-cnt{display:none;}
-  .todo-wrap{grid-template-columns:1fr;}
-  .grid4,.grid5{grid-template-columns:1fr 1fr;}
-  .grid3{grid-template-columns:1fr 1fr;}
-  .frow{flex-direction:column;}
+  /* 사이드바 숨김 - 하단 탭바로 대체 */
+  #sidebar{display:none!important;}
+  #main{margin-left:0!important;}
+
+  /* 상단 모바일 헤더 */
+  #mobile-header{display:flex!important;}
+
+  /* 하단 탭바 */
+  #mobile-tabbar{display:flex!important;}
+
+  /* 메인 컨텐츠 하단 탭바 높이만큼 패딩 */
+  #main{padding-bottom:64px!important;}
+
+  /* 페이지 패딩 축소 */
+  .page-section{padding:12px 10px!important;}
+
+  /* 모달 전체화면 */
+  .modal{
+    width:100vw!important;
+    max-width:100vw!important;
+    max-height:100vh!important;
+    height:100vh!important;
+    border-radius:0!important;
+    margin:0!important;
+    padding:16px!important;
+  }
+  .ov{align-items:flex-start!important;padding:0!important;}
+
+  /* 테이블 가로 스크롤 */
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .tbl{min-width:600px;}
+  .tbl th,.tbl td{padding:8px 8px!important;font-size:11px!important;white-space:nowrap;}
+
+  /* 그리드 1컬럼 */
+  .grid4,.grid5,.grid3,.grid2{grid-template-columns:1fr!important;}
+  .frow{flex-direction:column!important;gap:8px!important;}
+  .todo-wrap{grid-template-columns:1fr!important;}
+
+  /* 카드 패딩 축소 */
+  .card{padding:10px!important;border-radius:8px!important;}
+  .stat-mini{padding:10px 12px!important;}
+
+  /* 버튼 터치 최적화 */
+  .btn{min-height:40px!important;font-size:13px!important;}
+  .btn-sm{min-height:34px!important;padding:6px 12px!important;}
+
+  /* 간트 차트 가로 스크롤 */
+  .gantt-wrap,.gantt-wrap-sub{overflow-x:auto!important;-webkit-overflow-scrolling:touch;}
+
+  /* 서치 인풋 풀 너비 */
+  .search-wrap{max-width:100%!important;width:100%!important;}
+
+  /* 섹션 헤더 축소 */
+  .page-title{font-size:16px!important;}
+  .page-sub{font-size:11px!important;}
+
+  /* 필터 영역 세로 정렬 */
+  [style*="display:flex"][style*="gap"]{flex-wrap:wrap!important;}
+
+  /* 인증 탭 */
+  .cert-tab-btn{padding:8px 10px!important;font-size:11px!important;}
+
+  /* 토글 버튼 */
+  .toggle-btn{flex-wrap:wrap!important;}
+  .toggle-opt{padding:5px 10px!important;font-size:11px!important;}
+
+  /* 매칭 카드 */
+  .comp-block{padding:10px!important;}
+
+  /* select 풀 너비 */
+  select.fs{width:100%!important;}
+
+  /* 입력 폼 */
+  .fi,.fta{font-size:14px!important;} /* 모바일에서 줌 방지 */
 }
+
+/* 모바일 헤더 (기본 숨김) */
+#mobile-header{
+  display:none;
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  height:52px;
+  background:var(--sb-bg);
+  align-items:center;
+  padding:0 16px;
+  gap:12px;
+  box-shadow:0 2px 8px rgba(0,0,0,.15);
+}
+#mobile-header-title{
+  flex:1;font-size:14px;font-weight:600;
+  color:rgba(255,255,255,.9);
+}
+#mobile-menu-btn{
+  background:none;border:none;
+  color:rgba(255,255,255,.8);
+  font-size:22px;cursor:pointer;
+  padding:6px;line-height:1;
+}
+
+/* 모바일 드로어 */
+#mobile-drawer{
+  display:none;
+  position:fixed;top:0;left:0;bottom:0;
+  width:280px;z-index:300;
+  background:var(--sb-bg);
+  overflow-y:auto;
+  transform:translateX(-100%);
+  transition:transform .25s ease;
+  box-shadow:4px 0 20px rgba(0,0,0,.3);
+}
+#mobile-drawer.open{transform:translateX(0)!important;}
+#mobile-drawer-overlay{
+  display:none;
+  position:fixed;inset:0;z-index:299;
+  background:rgba(0,0,0,.4);
+}
+
+/* 모바일 상단 헤더 공간 확보 */
+@media(max-width:768px){
+  body{padding-top:52px;}
+  #mobile-drawer{display:block;}
+  #mobile-drawer-overlay{display:block;opacity:0;pointer-events:none;transition:opacity .25s;}
+  #mobile-drawer-overlay.open{opacity:1!important;pointer-events:auto!important;}
+}
+
+.mob-drawer-item{
+  display:block;width:100%;text-align:left;
+  padding:11px 12px;border-radius:8px;
+  font-size:13px;color:rgba(255,255,255,.8);
+  cursor:pointer;border:none;background:none;
+  font-family:Pretendard,sans-serif;
+  transition:background .1s;
+}
+.mob-drawer-item:hover,.mob-drawer-item:active{
+  background:rgba(255,255,255,.1);color:#FFF;
+}
+
+/* 하단 탭바 (기본 숨김) */
+#mobile-tabbar{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;z-index:200;
+  height:60px;
+  background:#FFFFFF;
+  border-top:1px solid var(--border);
+  box-shadow:0 -2px 10px rgba(0,0,0,.08);
+  align-items:stretch;
+}
+.mob-tab{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:2px;cursor:pointer;
+  border:none;background:none;
+  color:var(--text4);font-size:9px;
+  font-family:Pretendard,sans-serif;
+  padding:4px 2px;
+  transition:color .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.mob-tab.active{color:var(--accent);}
+.mob-tab .mob-ico{font-size:20px;line-height:1;}
+.mob-tab .mob-lbl{font-size:9px;font-weight:500;white-space:nowrap;}
 </style>
 </head>
 <body>
+
+<!-- 모바일 헤더 -->
+<header id="mobile-header">
+  <button id="mobile-menu-btn" onclick="toggleMobileDrawer()">☰</button>
+  <div id="mobile-header-title">SG솔루션 CRM</div>
+  <button onclick="manualSave()" style="background:none;border:none;color:rgba(255,255,255,.7);font-size:18px;cursor:pointer;padding:6px">💾</button>
+</header>
+
+<!-- 모바일 드로어 오버레이 -->
+<div id="mobile-drawer-overlay" onclick="closeMobileDrawer()"></div>
+
+<!-- 모바일 드로어 (사이드바 내용 복사) -->
+<nav id="mobile-drawer">
+  <div style="padding:16px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:space-between">
+    <div>
+      <div style="font-size:15px;font-weight:700;color:#FFF">SG솔루션</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.5)">Business CRM v3</div>
+    </div>
+    <button onclick="closeMobileDrawer()" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:22px;cursor:pointer">×</button>
+  </div>
+  <div style="padding:8px">
+    <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,.35);padding:10px 8px 4px;letter-spacing:.05em">메인 메뉴</div>
+    <div class="mob-drawer-item" onclick="mobileNavTo('overview')">🏠 전체 현황</div>
+    <div class="mob-drawer-item" onclick="mobileNavTo('gantt')">📅 지원사업·정책자금</div>
+    <div class="mob-drawer-item" onclick="mobileNavTo('todo')">✅ 수시처리 To Do List</div>
+    <div class="mob-drawer-item" onclick="mobileNavTo('work')">📋 업무 영역별</div>
+    <div class="mob-drawer-item" onclick="mobileNavTo('clients')">🏢 업체별 진행현황</div>
+    <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,.35);padding:10px 8px 4px;letter-spacing:.05em">관리</div>
+    <div class="mob-drawer-item" onclick="mobileNavTo('cert')">🏅 인증·갱신관리</div>
+    <div class="mob-drawer-item" onclick="mobileNavTo('stats')">📊 누적통계</div>
+    <div class="mob-drawer-item" onclick="mobileNavTo('history')">📁 완료업무이력</div>
+    <div class="mob-drawer-item" onclick="mobileNavTo('matching')">🎯 지원사업매칭</div>
+    <div class="mob-drawer-item" onclick="mobileNavTo('companies')">🏛️ 기업관리</div>
+    <div style="border-top:1px solid rgba(255,255,255,.1);margin:8px 0;padding-top:8px">
+      <div class="mob-drawer-item" onclick="closeMobileDrawer();openGcalModal()">🗓️ 구글 캘린더 연동</div>
+      <div class="mob-drawer-item" onclick="closeMobileDrawer();openExcelModal()">📊 엑셀 다운로드</div>
+      <div class="mob-drawer-item" onclick="closeMobileDrawer();openReportModal()">📄 레포트 출력</div>
+    </div>
+  </div>
+</nav>
+
+<!-- 하단 탭바 -->
+<div id="mobile-tabbar">
+  <button class="mob-tab active" id="mobtab-overview" onclick="mobileNavTo('overview')">
+    <span class="mob-ico">🏠</span><span class="mob-lbl">현황</span>
+  </button>
+  <button class="mob-tab" id="mobtab-gantt" onclick="mobileNavTo('gantt')">
+    <span class="mob-ico">📅</span><span class="mob-lbl">지원사업</span>
+  </button>
+  <button class="mob-tab" id="mobtab-todo" onclick="mobileNavTo('todo')">
+    <span class="mob-ico">✅</span><span class="mob-lbl">ToDo</span>
+  </button>
+  <button class="mob-tab" id="mobtab-cert" onclick="mobileNavTo('cert')">
+    <span class="mob-ico">🏅</span><span class="mob-lbl">인증</span>
+  </button>
+  <button class="mob-tab" id="mobtab-companies" onclick="mobileNavTo('companies')">
+    <span class="mob-ico">🏢</span><span class="mob-lbl">기업</span>
+  </button>
+</div>
 
 <!-- SIDEBAR -->
 <nav id="sidebar">
@@ -6367,6 +6579,88 @@ function getAppsScriptCode(){
     +'function removeEventTag(t,id){PropertiesService.getScriptProperties().deleteProperty(tagKey(t,id));}';
 }
 
+// ── MOBILE ──
+var PAGE_LABELS={
+  overview:'전체 현황', gantt:'지원사업·정책자금', todo:'To Do List',
+  work:'업무 영역별', clients:'업체별 진행현황', cert:'인증·갱신관리',
+  stats:'누적통계', history:'완료업무이력', matching:'지원사업매칭',
+  companies:'기업관리'
+};
+
+function isMobile(){return window.innerWidth<=768;}
+
+function toggleMobileDrawer(){
+  var drawer=document.getElementById('mobile-drawer');
+  var overlay=document.getElementById('mobile-drawer-overlay');
+  if(!drawer)return;
+  var isOpen=drawer.classList.contains('open');
+  if(isOpen){
+    drawer.classList.remove('open');
+    overlay.classList.remove('open');
+  } else {
+    drawer.classList.add('open');
+    overlay.classList.add('open');
+  }
+}
+
+function closeMobileDrawer(){
+  var drawer=document.getElementById('mobile-drawer');
+  var overlay=document.getElementById('mobile-drawer-overlay');
+  if(drawer)drawer.classList.remove('open');
+  if(overlay)overlay.classList.remove('open');
+}
+
+function mobileNavTo(page){
+  closeMobileDrawer();
+  navTo(page);
+  // 하단 탭바 활성화
+  var tabMap={overview:'overview',gantt:'gantt',todo:'todo',cert:'cert',companies:'companies'};
+  document.querySelectorAll('.mob-tab').forEach(function(btn){btn.classList.remove('active');});
+  var activeTab=document.getElementById('mobtab-'+page);
+  if(activeTab)activeTab.classList.add('active');
+  // 모바일 헤더 타이틀 업데이트
+  var titleEl=document.getElementById('mobile-header-title');
+  if(titleEl)titleEl.textContent=PAGE_LABELS[page]||'SG솔루션 CRM';
+}
+
+// navTo 래핑 - 모바일 헤더 타이틀 자동 업데이트
+var _origNavTo=null;
+function initMobileNav(){
+  _origNavTo=window.navTo;
+  if(window.navTo&&!window.navTo._mobilePatch){
+    var orig=window.navTo;
+    window.navTo=function(page){
+      orig(page);
+      if(isMobile()){
+        var titleEl=document.getElementById('mobile-header-title');
+        if(titleEl)titleEl.textContent=PAGE_LABELS[page]||'SG솔루션 CRM';
+        // 탭바 활성화
+        document.querySelectorAll('.mob-tab').forEach(function(btn){btn.classList.remove('active');});
+        var activeTab=document.getElementById('mobtab-'+page);
+        if(activeTab)activeTab.classList.add('active');
+      }
+    };
+    window.navTo._mobilePatch=true;
+  }
+}
+
+// 터치 스와이프로 드로어 닫기
+function initMobileSwipe(){
+  var startX=0;
+  var drawer=document.getElementById('mobile-drawer');
+  if(!drawer)return;
+  drawer.addEventListener('touchstart',function(e){startX=e.touches[0].clientX;},{passive:true});
+  drawer.addEventListener('touchend',function(e){
+    var diff=startX-e.changedTouches[0].clientX;
+    if(diff>60)closeMobileDrawer();
+  },{passive:true});
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  initMobileSwipe();
+  setTimeout(initMobileNav,500);
+});
+
 // ── CORP AUTOCOMPLETE ──
 function showCorpDrop(inputId){
   const inp=document.getElementById(inputId);const dd=document.getElementById('dd-'+inputId);
@@ -6386,6 +6680,7 @@ loadAll();
 // ── GLOBAL EXPORTS ──
 Object.assign(window,{
   navTo,manualSave,closeModal,
+  toggleMobileDrawer,closeMobileDrawer,mobileNavTo,
   openExcelModal,downloadExcel,updateXlPreview,
   openGcalModal,setGcalTab,saveGcalSettings,testGcalConnection,copyGcalScript,syncGcalAll,syncGcalType,
   openReportModal,printReport,
