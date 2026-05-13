@@ -5134,6 +5134,7 @@ function resetCorpSearch(){
   const activeEl=document.getElementById('corp-filter-active');
   if(activeEl)activeEl.value='Y';
   renderCompaniesPage();
+}
 var corpCurrentPage = 1;
 
 function setCorpPage(p){
@@ -7213,7 +7214,6 @@ document.addEventListener('click',(e)=>{document.querySelectorAll('.corp-dropdow
 // ── INIT ──
 loadAll();
 
-} // close missing brace
 
 // ── GLOBAL EXPORTS ──
 Object.assign(window,{
