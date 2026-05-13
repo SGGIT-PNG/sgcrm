@@ -157,25 +157,82 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
 .gantt-row-label-sub{font-size:11px;color:var(--text2);min-width:120px;background:var(--surface);}
 .gantt-row-done .gantt-row-label,.gantt-cli-done .gantt-row-label-sub{color:var(--text4);}
 .gantt-bar{height:18px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#FFF;}
-.cat-bar-td{padding:3px 2px;border:1px solid var(--border);vertical-align:middle;position:relative;height:32px;}
-.cli-bar-td{padding:2px 2px;border:1px solid var(--border);vertical-align:middle;position:relative;height:26px;}
+/* ── 간트차트 ── */
+/* 헤더 */
+.gantt-label-th{
+  background:var(--sb-bg);color:rgba(255,255,255,.85);
+  font-size:11px;font-weight:600;padding:6px 12px;
+  border:1px solid rgba(255,255,255,.1);
+  white-space:nowrap;min-width:160px;position:sticky;left:0;z-index:10;
+  text-align:left;letter-spacing:.02em;
+}
+.gantt-day-th{
+  background:#F7F8FA;border:0.5px solid var(--border);
+  padding:4px 2px;text-align:center;min-width:32px;
+  font-size:10px;color:var(--text2);white-space:nowrap;position:relative;
+}
+.gantt-day-th .day-num{display:block;font-weight:600;font-size:11px;line-height:1.4;}
+.gantt-day-th .day-dow{display:block;font-size:9px;color:var(--text4);}
+.gantt-day-th.sat .day-num,.gantt-day-th.sat .day-dow{color:#2563EB;}
+.gantt-day-th.sun .day-num,.gantt-day-th.sun .day-dow{color:#DC2626;}
+.gantt-day-th.today-col{background:#FFF7ED;}
+.gantt-day-th.today-col .day-num{color:#EA580C;font-weight:700;}
+.gantt-day-th.today-col::after{
+  content:'';position:absolute;left:0;right:0;bottom:-100vh;
+  width:2px;left:50%;transform:translateX(-50%);
+  background:#EF4444;opacity:0.5;pointer-events:none;
+  height:10000px;z-index:1;
+}
+/* 셀 */
+.cat-bar-td{
+  padding:3px 1px;border:0.5px solid var(--border);
+  vertical-align:middle;position:relative;height:36px;
+  background:var(--bg);
+}
+.cli-bar-td{
+  padding:2px 1px;border:0.5px solid var(--border);
+  vertical-align:middle;position:relative;height:28px;
+  background:var(--bg);
+}
+/* 주말 셀 배경 */
+.cat-bar-td.sat,.cli-bar-td.sat{background:#F0F4FF;}
+.cat-bar-td.sun,.cli-bar-td.sun{background:#FFF5F5;}
+/* 오늘 셀 */
+.cat-bar-td.today-cell,.cli-bar-td.today-cell{background:#FFF7ED;}
+/* 행 */
 .cat-row td{background:var(--surface);cursor:pointer;transition:background .1s;}
 .cat-row:hover td{background:var(--surface2);}
-.cat-label-td{padding:8px 12px;border-right:1px solid var(--border);white-space:nowrap;min-width:160px;}
+.cat-label-td{
+  padding:8px 12px;border-right:1px solid var(--border);
+  white-space:nowrap;min-width:160px;
+  background:var(--surface);position:sticky;left:0;z-index:5;
+}
 .cat-name{font-size:12px;font-weight:600;display:flex;align-items:center;gap:5px;}
 .cat-arrow{font-size:9px;color:var(--text4);transition:transform .2s;}
 .cat-arrow.open{transform:rotate(90deg);}
-.cli-row td{border-bottom:1px solid var(--border);transition:background .1s;}
+.cli-row td{border-bottom:0.5px solid var(--border);transition:background .1s;}
 .cli-row:hover td{background:var(--surface2);}
 .filter-active .gantt-row-done,.filter-active .gantt-cli-done{display:none;}
 .cli-row.hidden{display:none;}
-.cli-label-td{padding:6px 12px 6px 26px;border-right:1px solid var(--border);white-space:nowrap;min-width:140px;}
-.gbar{position:absolute;top:50%;transform:translateY(-50%);height:16px;border-radius:8px;display:flex;align-items:center;overflow:hidden;cursor:pointer;transition:opacity .15s;z-index:2;}
-.gbar:hover{opacity:.8;}
-.gbar-label{font-size:9px;font-weight:600;padding:0 6px;white-space:nowrap;color:#FFF;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
-/* 간트바 툴팁 */
-.gbar[title]:hover::after{content:attr(title);position:absolute;top:-28px;left:0;background:rgba(0,0,0,.85);color:#FFF;padding:4px 8px;border-radius:6px;font-size:11px;white-space:nowrap;z-index:100;pointer-events:none;}
-.gbar{position:relative;}
+.cli-label-td{
+  padding:6px 12px 6px 26px;border-right:1px solid var(--border);
+  white-space:nowrap;min-width:140px;
+  background:var(--bg);position:sticky;left:0;z-index:5;
+}
+/* 간트 바 */
+.gbar{
+  position:absolute;top:50%;transform:translateY(-50%);
+  height:22px;border-radius:11px;
+  display:flex;align-items:center;overflow:hidden;
+  cursor:pointer;transition:opacity .15s;z-index:2;
+}
+.gbar:hover{opacity:.85;transform:translateY(-50%) scaleY(1.05);}
+/* 툴팁 */
+.gbar[title]:hover::after{
+  content:attr(title);position:absolute;top:-30px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,.85);color:#FFF;padding:5px 10px;
+  border-radius:6px;font-size:11px;white-space:nowrap;z-index:100;pointer-events:none;
+}
 
 .todo-wrap{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
 .todo-col{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:14px;}
@@ -2726,11 +2783,14 @@ function renderGantt(sfx){
   const y=calY,m=calM,days=daysInMonth(y,m),today=new Date();
   titleEl.textContent=`${y}년 ${m+1}월`;
   const DOW=['일','월','화','수','목','금','토'];
-  let head=`<tr><th class="gantt-label-th">지원사업·정책자금 / 업체</th>`;
+  let head=`<tr><th class="gantt-label-th">업무 / 업체</th>`;
   for(let d=1;d<=days;d++){
     const dw=new Date(y,m,d).getDay();
     const isT=y===today.getFullYear()&&m===today.getMonth()&&d===today.getDate();
-    head+=`<th class="gantt-day-th${isT?' today-col':''}${dw===0?' sun':dw===6?' sat':''}"><span class="day-num">${d}</span><span class="day-dow">${DOW[dw]}</span></th>`;
+    const satCls=dw===6?' sat':'';
+    const sunCls=dw===0?' sun':'';
+    const todayCls=isT?' today-col':'';
+    head+=`<th class="gantt-day-th${todayCls}${satCls}${sunCls}"><span class="day-num">${d}</span><span class="day-dow">${DOW[dw]}</span></th>`;
   }
   head+=`</tr>`;
   let body='';
@@ -2774,9 +2834,55 @@ function renderGantt(sfx){
       <div style="font-size:11px;color:var(--text4);margin-top:2px">${c.org||''} ${c.endDate?'· ~'+c.endDate:''} ${c.amount?'· '+fmtAmt(c.amount):''}</div>
       ${getConsResultSummary(c.id)}
     </td>`;
-    for(let d=1;d<=days;d++){
-      const ds=dateStr(y,m,d);const inR=c.startDate&&c.endDate&&ds>=c.startDate&&ds<=c.endDate;const isS=c.startDate&&ds===c.startDate;
-      body+=`<td class="cat-bar-td">${inR?`<div style="position:absolute;inset:6px 0;background:rgba(0,0,0,.04);border-radius:${isS?'9px 0 0 9px':'0'}"></div>`:''}${isS?`<div class="gbar" style="left:2px;right:0;background:${color}" title="${c.title}" onclick="event.stopPropagation();openConsultingModal('${c.id}')"><span class="gbar-label">${c.title}</span></div>`:''}</td>`;
+    // colspan 방식: 기간에 해당하는 셀을 합쳐서 바 배치
+    let d=1;
+    while(d<=days){
+      const ds=dateStr(y,m,d);
+      const inRange=c.startDate&&c.endDate&&ds>=c.startDate&&ds<=c.endDate;
+      const isStart=c.startDate&&ds===c.startDate;
+      if(isStart){
+        // 기간 계산 (이번달 내 span)
+        let span=1;
+        for(let dd=d+1;dd<=days;dd++){
+          const dds=dateStr(y,m,dd);
+          if(dds<=c.endDate)span++;
+          else break;
+        }
+        // 오늘이 이 span 안에 포함되는지 확인
+        let todayMarker='';
+        for(let tt=d;tt<d+span;tt++){
+          const tds=dateStr(y,m,tt);const tIsT=y===today.getFullYear()&&m===today.getMonth()&&tt===today.getDate();
+          if(tIsT){const leftPct=Math.round((tt-d)/span*100);todayMarker=`<div style="position:absolute;left:calc(${leftPct}% + ${leftPct===0?0:0}px);top:0;bottom:0;width:2px;background:#EF4444;opacity:.7;z-index:3;pointer-events:none"></div>`;}
+        }
+        const dw_s=new Date(y,m,d).getDay();
+        body+=`<td class="cat-bar-td" colspan="${span}" style="position:relative">
+          ${todayMarker}
+          <div class="gbar" style="position:absolute;left:3px;right:3px;top:50%;transform:translateY(-50%);height:22px;background:${color};border-radius:11px;display:flex;align-items:center;overflow:hidden;cursor:pointer;z-index:2;box-shadow:0 1px 4px rgba(0,0,0,.15)" title="${c.title}" onclick="event.stopPropagation();openConsultingModal('${c.id}')">
+            <span style="font-size:10px;font-weight:600;color:#FFF;padding:0 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;text-align:center;letter-spacing:.01em">${c.title}</span>
+          </div>
+        </td>`;
+        d+=span;
+      } else if(inRange){
+        // 기간 중간인데 시작일이 지난달인 경우
+        let span=1;
+        for(let dd=d+1;dd<=days;dd++){
+          const dds=dateStr(y,m,dd);
+          if(dds<=c.endDate)span++;
+          else break;
+        }
+        body+=`<td class="cat-bar-td" colspan="${span}" style="position:relative">
+          <div style="position:absolute;left:0;right:2px;top:50%;transform:translateY(-50%);height:20px;background:${color};border-radius:0 10px 10px 0;display:flex;align-items:center;overflow:hidden;cursor:pointer;z-index:2" title="${c.title}" onclick="event.stopPropagation();openConsultingModal('${c.id}')">
+            <span style="font-size:10px;font-weight:600;color:#FFF;padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;text-align:center">${c.title}</span>
+          </div>
+        </td>`;
+        d+=span;
+      } else {
+        const dw2=new Date(y,m,d).getDay();
+        const isT2=y===today.getFullYear()&&m===today.getMonth()&&d===today.getDate();
+        const dayCls2=(dw2===6?' sat':dw2===0?' sun':'')+(isT2?' today-cell':'');
+        body+=`<td class="cat-bar-td${dayCls2}"></td>`;
+        d++;
+      }
     }
     body+=`</tr>`;
     ccs.forEach(cc=>{
@@ -2790,9 +2896,33 @@ function renderGantt(sfx){
         <div class="cli-name-cell">${dot(cc.status||'wait')}${cc.companyName} ${badge(cc.status||'wait')}${resultBadge}</div>
         ${approvedInfo?`<div style="padding-left:16px">${approvedInfo}</div>`:''}
       </td>`;
-      for(let d=1;d<=days;d++){
-        const ds=dateStr(y,m,d);const inR=c.startDate&&c.endDate&&ds>=c.startDate&&ds<=c.endDate;
-        body+=`<td class="cli-bar-td">${inR?`<div style="position:absolute;inset:4px 0;background:rgba(0,0,0,.04);border-radius:3px"></div>`:''}</td>`;
+      // 업체 행 - 기간 음영 colspan 처리
+      let cd=1;
+      while(cd<=days){
+        const cds=dateStr(y,m,cd);
+        const cInRange=c.startDate&&c.endDate&&cds>=c.startDate&&cds<=c.endDate;
+        const cIsStart=c.startDate&&cds===c.startDate;
+        if(cIsStart||cInRange){
+          let cSpan=1;
+          for(let dd=cd+1;dd<=days;dd++){
+            const dds=dateStr(y,m,dd);
+            if(c.endDate&&dds<=c.endDate)cSpan++;
+            else break;
+          }
+          const isFirst=cIsStart;
+          const isLast=(cd+cSpan-1)===days||(c.endDate&&dateStr(y,m,cd+cSpan-1)===c.endDate);
+          const radius=isFirst&&isLast?'6px':isFirst?'6px 0 0 6px':isLast?'0 6px 6px 0':'0';
+          body+=`<td class="cli-bar-td" colspan="${cSpan}" style="position:relative">
+            <div style="position:absolute;left:${isFirst?'1px':'0'};right:${isLast?'1px':'0'};top:3px;bottom:3px;background:${color}22;border-radius:${radius}"></div>
+          </td>`;
+          cd+=cSpan;
+        } else {
+          const dw3=new Date(y,m,cd).getDay();
+          const isT3=y===today.getFullYear()&&m===today.getMonth()&&cd===today.getDate();
+          const dayCls3=(dw3===6?' sat':dw3===0?' sun':'')+(isT3?' today-cell':'');
+          body+=`<td class="cli-bar-td${dayCls3}"></td>`;
+          cd++;
+        }
       }
       body+=`</tr>`;
     });
