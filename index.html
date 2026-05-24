@@ -3169,13 +3169,17 @@ async function saveConsulting(){
     closeModal('consulting-modal');
 
     // 인증 관련 카테고리이고, 업체 중 새로 완료된 업체가 있으면 팝업
+    console.log('[CRM] saveConsulting - category:',data.category,'isCert:',isCertCategory(data.category),'tempCCs:',tempConsCompanies.length);
     if(isCertCategory(data.category)){
       const prevCcs=editId?consCompanies.filter(x=>x.consId===editId):[];
       const newlyDone=tempConsCompanies.filter(function(cc){
         if(cc.status!=='done')return false;
         const prev=prevCcs.find(function(p){return p.bizno===cc.bizno;});
-        return !prev||prev.status!=='done';
+        const isDone=!prev||prev.status!=='done';
+        console.log('[CRM] cc:',cc.companyName,'status:',cc.status,'prevStatus:',prev?.status,'isDone:',isDone);
+        return isDone;
       });
+      console.log('[CRM] newlyDone:',newlyDone.length);
       if(newlyDone.length>0){
         setTimeout(function(){
           openCertFromCons(consId,newlyDone,data.category);
