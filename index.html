@@ -2920,8 +2920,10 @@ function renderGantt(sfx){
       const cliDone=cc.status==='done';
       const cliExpired=cliDone&&isDoneExpired({status:cc.status,doneAt:cc.doneAt});
       // 결과 배지
+      const HIDE_R=['iso','lab','direct_prod','patent','admin','family','venture','innobiz'];
+      const showR=HIDE_R.indexOf(c.category)===-1&&!(CAT_META[c.category]&&CAT_META[c.category].requiresCert);
       const RBADGE={pass:'<span style="font-size:9px;background:#D1FAE5;color:#065F46;padding:1px 5px;border-radius:6px;font-weight:700;margin-left:4px">선정</span>',fail:'<span style="font-size:9px;background:#FEE2E2;color:#991B1B;padding:1px 5px;border-radius:6px;font-weight:700;margin-left:4px">미선정</span>',wait:''};
-      const resultBadge=RBADGE[cc.result||'wait']||'';
+      const resultBadge=showR?(RBADGE[cc.result||'wait']||''):'';
       const approvedInfo=cc.result==='pass'&&cc.approvedDate?`<span style="font-size:9px;color:var(--text4);margin-left:4px">${cc.approvedDate}${cc.approvedAmt?' · '+Number(cc.approvedAmt).toLocaleString()+'만':''}</span>`:'';
       body+=`<tr class="cli-row${exp?'':' hidden'}${cliDone?' gantt-cli-done':''}${cliExpired?' gantt-cli-expired':''}" data-cat="${c.id}"><td class="cli-label-td">
         <div class="cli-name-cell">${dot(cc.status||'wait')}${cc.companyName} ${badge(cc.status||'wait')}${resultBadge}</div>
@@ -3133,17 +3135,25 @@ function addConsCompanyDirect(bizno){
 
 function renderConsCompaniesList(){
   var RESULT_BADGE={
-    pass:'<span style="font-size:10px;background:#D1FAE5;color:#065F46;padding:2px 8px;border-radius:10px;font-weight:600">🟢 합격</span>',
-    fail:'<span style="font-size:10px;background:#FEE2E2;color:#991B1B;padding:2px 8px;border-radius:10px;font-weight:600">🔴 불합격</span>',
-    wait:'<span style="font-size:10px;background:#F3F4F6;color:#6B7280;padding:2px 8px;border-radius:10px;font-weight:600">⚪ 대기</span>',
+    pass:'<span style="font-size:10px;background:#D1FAE5;color:#065F46;padding:2px 8px;border-radius:10px;font-weight:600">🟢 선정</span>',
+    fail:'<span style="font-size:10px;background:#FEE2E2;color:#991B1B;padding:2px 8px;border-radius:10px;font-weight:600">🔴 미선정</span>',
+    wait:'',  // 결과 미입력 시 배지 표시 안 함
   };
   document.getElementById('cons-companies-list').innerHTML=tempConsCompanies.map((cc,i)=>{
-    var badge=RESULT_BADGE[cc.result||'wait'];
+    // 분류 확인 - 결과/배지 표시 여부
+    var editConsId2=document.getElementById('cons-edit-id')?.value||'';
+    var editCons2=editConsId2?consulting.find(function(c){return c.id===editConsId2;}):null;
+    var currentCat2=editCons2?editCons2.category:(document.getElementById('cons-category')?.value||'');
+    var RESULT_CATS=['policy','support','finance','etc']; // 결과 표시할 분류
+    var HIDE_RESULT_CATS=['iso','lab','direct_prod','patent','admin','family','venture','innobiz'];
+    var showResult=HIDE_RESULT_CATS.indexOf(currentCat2)===-1&&!(CAT_META[currentCat2]&&CAT_META[currentCat2].requiresCert);
+
+    var badge=showResult?RESULT_BADGE[cc.result||'wait']:'';
     var approvedInfo='';
-    if(cc.result==='pass'){
+    if(showResult&&cc.result==='pass'){
       if(cc.approvedDate)approvedInfo+='<span style="font-size:10px;color:var(--text4)">승인일: '+cc.approvedDate+'</span>';
       if(cc.approvedAmt)approvedInfo+='<span style="font-size:10px;color:var(--ok);margin-left:6px;font-weight:600">'+Number(cc.approvedAmt).toLocaleString()+'만원</span>';
-    } else if(cc.result==='fail'&&cc.reason){
+    } else if(showResult&&cc.result==='fail'&&cc.reason){
       approvedInfo='<span style="font-size:10px;color:var(--danger)">사유: '+cc.reason+'</span>';
     }
     return `<div class="ci" style="cursor:default;flex-direction:column;align-items:stretch;gap:6px">
@@ -7417,6 +7427,9 @@ function saveConsResult(){
 
 // 간트 행에 업체별 결과 요약 배지 표시
 function getConsResultSummary(consId){
+  var cons=consulting.find(function(c){return c.id===consId;});
+  var HIDE_R=['iso','lab','direct_prod','patent','admin','family','venture','innobiz'];
+  if(cons&&(HIDE_R.indexOf(cons.category)>-1||(CAT_META[cons.category]&&CAT_META[cons.category].requiresCert)))return '';
   var ccs=consCompanies.filter(function(cc){return cc.consId===consId;});
   if(!ccs.length)return '';
   var pass=ccs.filter(function(cc){return cc.result==='pass';}).length;
