@@ -3180,7 +3180,7 @@ function renderConsCompaniesList(){
           var hideCats=['iso','lab','direct_prod','patent','admin','family','venture','innobiz'];
           var hideResult=hideCats.indexOf(currentCat)>-1||(CAT_META[currentCat]&&CAT_META[currentCat].requiresCert);
           if(hideResult)return '';
-          return '<button data-idx="${i}" onclick="openConsResultModal(${i})" style="background:var(--accent-pale);border:1px solid var(--accent-border);border-radius:6px;color:var(--accent);cursor:pointer;font-size:11px;padding:3px 8px;font-family:Pretendard,sans-serif;white-space:nowrap">🏆 결과</button>';
+          return '<button data-idx="'+i+'" onclick="openConsResultModal('+i+')" style="background:var(--accent-pale);border:1px solid var(--accent-border);border-radius:6px;color:var(--accent);cursor:pointer;font-size:11px;padding:3px 8px;font-family:Pretendard,sans-serif;white-space:nowrap">🏆 결과</button>';
         })()}
         <button data-idx="${i}" onclick="removeConsCompany(this)" style="background:none;border:none;color:var(--text4);cursor:pointer;font-size:16px">×</button>
       </div>
