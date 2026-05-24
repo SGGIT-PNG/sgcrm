@@ -1644,7 +1644,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
     <div class="fg"><label class="fl">대분류명 *</label><input class="fi" id="cons-title" placeholder="예: 소상공인 정책자금 신청"></div>
     <div class="frow">
       <div class="fg"><label class="fl">분류</label>
-        <select class="fs" id="cons-category"></select>
+        <select class="fs" id="cons-category" onchange="onConsCategoryChange()"></select>
       </div>
       <div class="fg"><label class="fl">공고 기관</label><input class="fi" id="cons-org" placeholder="예: 소진공"></div>
     </div>
@@ -1682,7 +1682,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
     <div class="fg"><label class="fl">메모</label><textarea class="fta" id="cons-memo"></textarea></div>
 
     <!-- 대상 조건 섹션 -->
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:4px">
+    <div id="cons-target-wrap" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:4px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div style="font-size:12px;font-weight:600;color:var(--text3)">🎯 대상 조건 (매칭용)</div>
         <span id="cons-match-count" style="font-size:11px;color:var(--accent);font-weight:600"></span>
@@ -3013,9 +3013,38 @@ function openConsultingModal(id){
     document.getElementById('cons-status').value='wait';
     document.getElementById('cons-del-btn').style.display='none';
   }
-  renderConsCompaniesList();previewConsMatch();openModal('consulting-modal');
+  renderConsCompaniesList();previewConsMatch();onConsCategoryChange();openModal('consulting-modal');
 }
 // 지원사업 모달 - 조건 입력 시 매칭 업체 실시간 미리보기
+// 분류에 따라 대상 조건 섹션 표시/숨김
+var CATS_WITH_TARGET=['policy','support','etc','finance']; // 대상 조건 표시할 분류
+
+function onConsCategoryChange(){
+  var cat=document.getElementById('cons-category')?.value||'';
+  var wrap=document.getElementById('cons-target-wrap');
+  if(!wrap)return;
+
+  // CAT_META에서 현재 분류 확인
+  var m=CAT_META[cat];
+  // 인증 관련 분류 or 기타 행정류는 숨김
+  var hideCats=['iso','lab','direct_prod','patent','admin','family','venture','innobiz'];
+  var shouldHide=hideCats.indexOf(cat)>-1||(m&&m.requiresCert);
+
+  wrap.style.display=shouldHide?'none':'block';
+  wrap.style.transition='all .2s';
+
+  // 숨길 때 값 초기화
+  if(shouldHide){
+    ['cons-region','cons-scale','cons-industry','cons-age'].forEach(function(id){
+      var el=document.getElementById(id);if(el)el.value='';
+    });
+    var cnt=document.getElementById('cons-match-count');
+    if(cnt)cnt.textContent='';
+    var preview=document.getElementById('cons-match-preview');
+    if(preview)preview.style.display='none';
+  }
+}
+
 function previewConsMatch(){
   var tmpCons={
     targetRegion:document.getElementById('cons-region')?.value||'',
@@ -3094,7 +3123,17 @@ function renderConsCompaniesList(){
         <select data-idx="${i}" onchange="updateConsCompanyStatus(this)" style="background:#FFFFFF;border:1.5px solid var(--border2);border-radius:6px;color:#1C1C1E;font-size:11px;padding:3px 6px;outline:none;font-family:'Pretendard','Noto Sans KR',sans-serif;font-weight:500;cursor:pointer;min-width:68px">
           ${['wait','ing','done'].map(s=>`<option value="${s}"${cc.status===s?' selected':''}>${ST[s].label}</option>`).join('')}
         </select>
-        <button data-idx="${i}" onclick="openConsResultModal(${i})" style="background:var(--accent-pale);border:1px solid var(--accent-border);border-radius:6px;color:var(--accent);cursor:pointer;font-size:11px;padding:3px 8px;font-family:Pretendard,sans-serif;white-space:nowrap">🏆 결과</button>
+        ${(function(){
+          // 현재 편집 중인 지원사업 분류 확인
+          var editConsId=document.getElementById('cons-edit-id')?.value||'';
+          var editCons=editConsId?consulting.find(function(c){return c.id===editConsId;}):null;
+          var currentCat=editCons?editCons.category:(document.getElementById('cons-category')?.value||'');
+          // 인증 관련 분류는 결과 버튼 숨김
+          var hideCats=['iso','lab','direct_prod','patent','admin','family','venture','innobiz'];
+          var hideResult=hideCats.indexOf(currentCat)>-1||(CAT_META[currentCat]&&CAT_META[currentCat].requiresCert);
+          if(hideResult)return '';
+          return '<button data-idx="${i}" onclick="openConsResultModal(${i})" style="background:var(--accent-pale);border:1px solid var(--accent-border);border-radius:6px;color:var(--accent);cursor:pointer;font-size:11px;padding:3px 8px;font-family:Pretendard,sans-serif;white-space:nowrap">🏆 결과</button>';
+        })()}
         <button data-idx="${i}" onclick="removeConsCompany(this)" style="background:none;border:none;color:var(--text4);cursor:pointer;font-size:16px">×</button>
       </div>
       <div style="display:flex;align-items:center;gap:8px;padding-left:4px">
@@ -7410,7 +7449,7 @@ Object.assign(window,{
   showCorpDrop,hideCorpDrop,selectCorpDrop,
   calcCompAge,
   setMatchTab,renderMatchingPage,quickAddToConsulting,
-  previewConsMatch,addConsCompanyDirect,
+  previewConsMatch,addConsCompanyDirect,onConsCategoryChange,
   setMatchCompStatus,toggleMatchCard,
   openCalendarExportModal,updateCalPreview,exportCalendar,
   migrateBizno,
