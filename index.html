@@ -3164,10 +3164,24 @@ async function saveConsulting(){
     });
     await batch.commit();
     setBadge('✅ 저장됨',2000);
-    // 방금 저장한 data 객체를 직접 사용 (Firebase 반영 대기 불필요)
     var syncData=Object.assign({},data,{id:consId});
     setTimeout(function(){gcalSyncCons(syncData,'upsert');},500);
     closeModal('consulting-modal');
+
+    // 인증 관련 카테고리이고, 업체 중 새로 완료된 업체가 있으면 팝업
+    if(isCertCategory(data.category)){
+      const prevCcs=editId?consCompanies.filter(x=>x.consId===editId):[];
+      const newlyDone=tempConsCompanies.filter(function(cc){
+        if(cc.status!=='done')return false;
+        const prev=prevCcs.find(function(p){return p.bizno===cc.bizno;});
+        return !prev||prev.status!=='done';
+      });
+      if(newlyDone.length>0){
+        setTimeout(function(){
+          openCertFromCons(consId,newlyDone,data.category);
+        },500);
+      }
+    }
   }catch(e){console.error(e);setBadge('⚠️ 저장 실패');}
 }
 async function deleteConsulting(){
@@ -3334,6 +3348,58 @@ async function confirmDeleteWork(){
   if(!editId||!confirm('삭제하시겠습니까?'))return;
   try{await deleteDoc(doc(db,'work_items',editId));closeModal('work-modal');}catch(e){alert('삭제 실패');}
 }
+// 간트차트(consulting) 업체 완료 → 인증 등록 팝업
+var certFromConsQueue = []; // 팝업 대기열 (여러 업체)
+var certFromConsConsId = '';
+var certFromConsCat = '';
+
+function openCertFromCons(consId, doneCompanies, category){
+  // 이미 인증 등록된 업체 제외
+  const toRegister=doneCompanies.filter(function(cc){
+    return !certifications.some(function(c){
+      return c.bizno===cc.bizno&&c.certMasterId&&getRelatedCertMasters(category).some(function(m){return m.id===c.certMasterId;});
+    });
+  });
+  if(!toRegister.length)return;
+
+  certFromConsQueue=[...toRegister];
+  certFromConsConsId=consId;
+  certFromConsCat=category;
+  processNextCertFromCons();
+}
+
+function processNextCertFromCons(){
+  if(!certFromConsQueue.length)return;
+  const cc=certFromConsQueue[0];
+  const comp=companies.find(function(c){return c._id===cc.bizno;})||{name:cc.companyName};
+
+  // 팝업 확인
+  const relatedMasters=getRelatedCertMasters(certFromConsCat);
+  const certNames=relatedMasters.map(function(m){return m.certName;}).join(', ')||'관련 인증';
+
+  var confirmMsg='[인증·갱신 등록]\n\n✅ '+comp.name+' 업무가 완료되었습니다.\n\n인증·갱신 관리에 등록하시겠습니까?\n('+certNames+')\n\n[확인] 바로 등록   [취소] 나중에';
+  if(!confirm(confirmMsg)){
+    certFromConsQueue.shift();
+    processNextCertFromCons();
+    return;
+  }
+
+  // cert-from-work 모달 활용 (consId 연결)
+  document.getElementById('cfw-work-id').value='cons:'+certFromConsConsId+':'+cc.bizno;
+  document.getElementById('cfw-comp-name').value=comp.name;
+  const masterSel=document.getElementById('cfw-master-sel');
+  if(masterSel){
+    masterSel.innerHTML=relatedMasters.length
+      ?relatedMasters.map(function(m){return '<option value="'+m.id+'">'+m.icon+' '+m.certName+'</option>';}).join('')
+      :certMasterOptions();
+  }
+  ['cfw-acq-y','cfw-acq-m','cfw-acq-d','cfw-exp-y','cfw-exp-m','cfw-exp-d'].forEach(function(id){
+    const el=document.getElementById(id);if(el)el.value='';
+  });
+  onCfwTypeChange();
+  openModal('cert-from-work-modal');
+}
+
 // 인증 관련 카테고리 판별 (CAT_META.requiresCert 기반)
 function isCertCategory(cat){
   return CAT_META[cat]?.requiresCert===true;
@@ -3439,9 +3505,22 @@ function cfwCalcExpDate(){
 }
 async function saveCertFromWork(){
   const workItemId=document.getElementById('cfw-work-id').value;
-  const it=workItems.find(x=>x.id===workItemId);if(!it)return;
+
+  // cons: 접두어 → 간트차트에서 호출된 케이스
+  var isFromCons=workItemId.startsWith('cons:');
+  var it=null;
+  var compBizno='';
+  if(isFromCons){
+    var parts=workItemId.split(':');
+    compBizno=parts[2]||'';
+  } else {
+    it=workItems.find(x=>x.id===workItemId);if(!it)return;
+  }
+
   const compName=document.getElementById('cfw-comp-name').value.trim();
-  const comp=companies.find(c=>c.name===compName)||companies.find(c=>c._id===it.clientBizno);
+  const comp=companies.find(c=>c.name===compName)||
+    (compBizno?companies.find(c=>c._id===compBizno):null)||
+    (it?companies.find(c=>c._id===it.clientBizno):null);
   if(!comp){alert('업체 정보를 확인해주세요.');return;}
   const acqDate=getDateFields('cfw-acq-y','cfw-acq-m','cfw-acq-d');
   if(!acqDate){alert('취득일을 입력해주세요.');return;}
@@ -3494,7 +3573,9 @@ async function saveCertFromWork(){
     }
     // work_items에 certId 연결 (첫 번째 단계)
     if(firstCertId){
-      await updateDoc(doc(db,'work_items',workItemId),{certId:firstCertId,updatedAt:Date.now()});
+      if(!isFromCons){
+        await updateDoc(doc(db,'work_items',workItemId),{certId:firstCertId,updatedAt:Date.now()});
+      }
     }
     closeModal('cert-from-work-modal');
     setBadge('✅ 인증 등록 완료',2000);
@@ -3502,6 +3583,11 @@ async function saveCertFromWork(){
 }
 async function skipCertFromWork(){
   closeModal('cert-from-work-modal');
+  // cons: 케이스면 다음 업체 처리
+  if(document.getElementById('cfw-work-id')?.value?.startsWith('cons:')){
+    certFromConsQueue.shift();
+    setTimeout(processNextCertFromCons,300);
+  }
 }
 function makePagination(currentPage,totalPages,onClickFn){
   if(totalPages<=1)return '';
@@ -7234,6 +7320,7 @@ Object.assign(window,{
   openCertModal,onCertTypeChange,saveCert,deleteCert,calcCertExpDate,
   markCertPhaseDone,createComplexPhases,buildIsoConfirmMsg,
   openCertFromWork,onCfwTypeChange,cfwCalcExpDate,saveCertFromWork,skipCertFromWork,
+  openCertFromCons,processNextCertFromCons,
   renderAnnualReportList,addAnnualReport,markAnnualDone,deleteAnnualReport,
   openConsultingModal,saveConsulting,deleteConsulting,addConsCompany,renderConsCompaniesList,updateConsCompanyStatus,removeConsCompany,
   openConsResultModal,saveConsResult,onCrResultChange,
