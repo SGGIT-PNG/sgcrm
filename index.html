@@ -3168,21 +3168,12 @@ async function saveConsulting(){
     setTimeout(function(){gcalSyncCons(syncData,'upsert');},500);
     closeModal('consulting-modal');
 
-    // 인증 관련 카테고리이고, 업체 중 새로 완료된 업체가 있으면 팝업
-    console.log('[CRM] saveConsulting - category:',data.category,'isCert:',isCertCategory(data.category),'tempCCs:',tempConsCompanies.length);
+    // 인증 관련 카테고리이고, 완료된 업체 중 인증 미등록 업체가 있으면 팝업
     if(isCertCategory(data.category)){
-      const prevCcs=editId?consCompanies.filter(x=>x.consId===editId):[];
-      const newlyDone=tempConsCompanies.filter(function(cc){
-        if(cc.status!=='done')return false;
-        const prev=prevCcs.find(function(p){return p.bizno===cc.bizno;});
-        const isDone=!prev||prev.status!=='done';
-        console.log('[CRM] cc:',cc.companyName,'status:',cc.status,'prevStatus:',prev?.status,'isDone:',isDone);
-        return isDone;
-      });
-      console.log('[CRM] newlyDone:',newlyDone.length);
-      if(newlyDone.length>0){
+      const doneCcs=tempConsCompanies.filter(function(cc){return cc.status==='done';});
+      if(doneCcs.length>0){
         setTimeout(function(){
-          openCertFromCons(consId,newlyDone,data.category);
+          openCertFromCons(consId,doneCcs,data.category);
         },500);
       }
     }
@@ -3358,13 +3349,31 @@ var certFromConsConsId = '';
 var certFromConsCat = '';
 
 function openCertFromCons(consId, doneCompanies, category){
-  // 이미 인증 등록된 업체 제외
+  const relMasters=getRelatedCertMasters(category);
+  // 완료 업체 중 아직 인증이 등록 안 된 업체만 팝업
   const toRegister=doneCompanies.filter(function(cc){
-    return !certifications.some(function(c){
-      return c.bizno===cc.bizno&&c.certMasterId&&getRelatedCertMasters(category).some(function(m){return m.id===c.certMasterId;});
+    // 이미 해당 카테고리 인증이 하나라도 등록된 업체는 제외
+    const hasCert=certifications.some(function(c){
+      if(c.bizno!==cc.bizno)return false;
+      if(!relMasters.length)return false;
+      return relMasters.some(function(m){return m.id===c.certMasterId;});
     });
+    return !hasCert;
   });
-  if(!toRegister.length)return;
+  if(!toRegister.length){
+    // 이미 모두 등록됨 → 갱신 여부 확인
+    if(doneCompanies.length>0){
+      var names=doneCompanies.map(function(cc){return cc.companyName;}).join(', ');
+      if(confirm('[인증 갱신 확인]\n\n'+names+'\n\n해당 업체는 이미 인증이 등록되어 있습니다.\n갱신 등록을 하시겠습니까?')){
+        // 강제로 팝업
+        certFromConsQueue=[...doneCompanies];
+        certFromConsConsId=consId;
+        certFromConsCat=category;
+        processNextCertFromCons();
+      }
+    }
+    return;
+  }
 
   certFromConsQueue=[...toRegister];
   certFromConsConsId=consId;
