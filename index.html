@@ -676,7 +676,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
               <button class="toggle-opt" onclick="setGanttFilter('done')">완료</button>
               <button class="toggle-opt" onclick="setGanttFilter('all')">전체</button>
           </div>
-          <select class="fs" id="gantt-region-filter" onchange="renderGantt('sub')" style="width:100px">
+          <select class="fs" id="gantt-region-filter" onchange="renderGantt('');renderGantt('sub')" style="width:100px">
             <option value="">전체 지역</option>
             <option value="서울">서울</option><option value="경기">경기</option>
             <option value="인천">인천</option><option value="부산">부산</option>
@@ -688,7 +688,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
             <option value="경북">경북</option><option value="경남">경남</option>
             <option value="제주">제주</option>
           </select>
-          <select class="fs" id="gantt-industry-filter" onchange="renderGantt('sub')" style="width:120px">
+          <select class="fs" id="gantt-industry-filter" onchange="renderGantt('');renderGantt('sub')" style="width:120px">
             <option value="">전체 업종</option>
             <option value="제조">제조업</option>
             <option value="IT">IT·소프트웨어</option>
