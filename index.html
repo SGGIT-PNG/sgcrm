@@ -2271,11 +2271,40 @@ async function loadAll(){
     try{
       if(!certMaster.length) await initCertMaster();
       else{
+        const batch2=writeBatch(db);
+        let needsUpdate=false;
+
+        // 1. lab/rnd_dept reportType 보정
         const needsFix=certMaster.filter(m=>['lab','rnd_dept'].includes(m.id)&&m.reportType!=='annual');
         if(needsFix.length){
-          const batch=writeBatch(db);
-          needsFix.forEach(m=>batch.update(doc(db,'cert_master',m.id),{reportType:'annual',annualMonth:4,annualDay:30}));
-          await batch.commit();
+          needsFix.forEach(m=>batch2.update(doc(db,'cert_master',m.id),{reportType:'annual',annualMonth:4,annualDay:30}));
+          needsUpdate=true;
+        }
+
+        // 2. ISO 4단계 phases 보정 (3단계 → 4단계 자동 업데이트)
+        const ISO_IDS=['iso_9001','iso_14001','iso_45001','iso_22000','iso_37001','iso_37301'];
+        const NEW_ISO_PHASES=[
+          {name:'최초심사',months:12,isInitial:true},
+          {name:'1차 사후심사',months:12,isPost:true},
+          {name:'2차 사후심사',months:12,isPost:true},
+          {name:'갱신심사',months:12,isRenewal:true},
+        ];
+        const isoNeedsFix=certMaster.filter(function(m){
+          return ISO_IDS.includes(m.id)&&(!m.phases||m.phases.length!==4);
+        });
+        if(isoNeedsFix.length){
+          isoNeedsFix.forEach(function(m){
+            batch2.update(doc(db,'cert_master',m.id),{
+              phases:NEW_ISO_PHASES,
+              cycleMonths:48
+            });
+          });
+          needsUpdate=true;
+          console.log('[CRM] ISO 4단계 phases 자동 보정:',isoNeedsFix.map(m=>m.id));
+        }
+
+        if(needsUpdate){
+          await batch2.commit();
           const snap=await getDocs(COL.cert_master());
           certMaster=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.sortOrder||99)-(b.sortOrder||99));
         }
