@@ -4119,9 +4119,10 @@ function setHistPage(page){histPage=page;renderHistoryPage();}
 // cert_master가 없을 때 기본값 자동 등록
 async function initCertMaster(){
   const ISO_PHASES=[
-    {name:'최초인증',months:12},
-    {name:'1차 사후심사',months:12},
-    {name:'2차 사후심사',months:12},
+    {name:'최초심사',months:12,isInitial:true},
+    {name:'1차 사후심사',months:12,isPost:true},
+    {name:'2차 사후심사',months:12,isPost:true},
+    {name:'갱신심사',months:12,isRenewal:true},
   ];
   const defaults=[
     {id:'venture',     certName:'벤처기업인증',   icon:'🚀',cycleType:'fixed', reportType:'renewal',cycleMonths:36,alertDays:[90,30,7],description:'3년마다 갱신 (기술성 평가)',sortOrder:1},
@@ -4131,12 +4132,12 @@ async function initCertMaster(){
     {id:'lab',         certName:'기업부설연구소',  icon:'🔬',cycleType:'fixed', reportType:'annual',cycleMonths:12,annualMonth:4,annualDay:30,alertDays:[60,30,7],description:'매년 4월 30일까지 연차보고서 제출 (미신고 시 취소)',sortOrder:4},
     {id:'rnd_dept',    certName:'연구개발전담부서',icon:'🔭',cycleType:'fixed', reportType:'annual',cycleMonths:12,annualMonth:4,annualDay:30,alertDays:[60,30,7],description:'매년 4월 30일까지 연차보고서 제출',sortOrder:5},
     {id:'direct_prod', certName:'직접생산확인',    icon:'📦',cycleType:'fixed', reportType:'renewal',cycleMonths:36,alertDays:[90,30,7],description:'3년마다 갱신',sortOrder:6},
-    {id:'iso_9001',    certName:'ISO 9001',  icon:'🏅',cycleType:'complex',reportType:'renewal',cycleMonths:36,phases:ISO_PHASES,alertDays:[90,30,7],description:'품질경영시스템',sortOrder:10},
-    {id:'iso_14001',   certName:'ISO 14001', icon:'🌿',cycleType:'complex',reportType:'renewal',cycleMonths:36,phases:ISO_PHASES,alertDays:[90,30,7],description:'환경경영시스템',sortOrder:11},
-    {id:'iso_45001',   certName:'ISO 45001', icon:'🦺',cycleType:'complex',reportType:'renewal',cycleMonths:36,phases:ISO_PHASES,alertDays:[90,30,7],description:'안전보건경영시스템',sortOrder:12},
-    {id:'iso_22000',   certName:'ISO 22000', icon:'🍽️',cycleType:'complex',reportType:'renewal',cycleMonths:36,phases:ISO_PHASES,alertDays:[90,30,7],description:'식품안전경영시스템',sortOrder:13},
-    {id:'iso_37001',   certName:'ISO 37001', icon:'⚖️',cycleType:'complex',reportType:'renewal',cycleMonths:36,phases:ISO_PHASES,alertDays:[90,30,7],description:'반부패경영시스템',sortOrder:14},
-    {id:'iso_37301',   certName:'ISO 37301', icon:'📜',cycleType:'complex',reportType:'renewal',cycleMonths:36,phases:ISO_PHASES,alertDays:[90,30,7],description:'컴플라이언스경영시스템',sortOrder:15},
+    {id:'iso_9001',    certName:'ISO 9001',  icon:'🏅',cycleType:'complex',reportType:'renewal',cycleMonths:48,phases:ISO_PHASES,alertDays:[90,30,7],description:'품질경영시스템',sortOrder:10},
+    {id:'iso_14001',   certName:'ISO 14001', icon:'🌿',cycleType:'complex',reportType:'renewal',cycleMonths:48,phases:ISO_PHASES,alertDays:[90,30,7],description:'환경경영시스템',sortOrder:11},
+    {id:'iso_45001',   certName:'ISO 45001', icon:'🦺',cycleType:'complex',reportType:'renewal',cycleMonths:48,phases:ISO_PHASES,alertDays:[90,30,7],description:'안전보건경영시스템',sortOrder:12},
+    {id:'iso_22000',   certName:'ISO 22000', icon:'🍽️',cycleType:'complex',reportType:'renewal',cycleMonths:48,phases:ISO_PHASES,alertDays:[90,30,7],description:'식품안전경영시스템',sortOrder:13},
+    {id:'iso_37001',   certName:'ISO 37001', icon:'⚖️',cycleType:'complex',reportType:'renewal',cycleMonths:48,phases:ISO_PHASES,alertDays:[90,30,7],description:'반부패경영시스템',sortOrder:14},
+    {id:'iso_37301',   certName:'ISO 37301', icon:'📜',cycleType:'complex',reportType:'renewal',cycleMonths:48,phases:ISO_PHASES,alertDays:[90,30,7],description:'컴플라이언스경영시스템',sortOrder:15},
   ];
   const batch=writeBatch(db);
   defaults.forEach(d=>{const {id,...data}=d;batch.set(doc(db,'cert_master',id),{...data,createdAt:Date.now()});});
@@ -4383,7 +4384,15 @@ function certRow(c){
     <td>${isAnnual?'<span class="badge" style="background:#F0F0F0;color:#2563EB">연간신고</span>':certStatusBadge(c)}</td>
     <td>${statusCell}</td>
     <td>
-      ${isComplex&&c.status!=='완료'?`<button onclick="markCertPhaseDone('${c.id}')" style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:6px;color:var(--ok);font-size:11px;padding:2px 6px;cursor:pointer;margin-right:4px">완료</button>`:''}
+      ${isComplex&&c.status!=='완료'?(function(){
+        var phaseInfo=m.phases&&m.phases[c.phaseIndex];
+        var isRenewal=phaseInfo&&phaseInfo.isRenewal;
+        var btnColor=isRenewal?'rgba(234,88,12,.15)':'rgba(16,185,129,.15)';
+        var btnBorder=isRenewal?'rgba(234,88,12,.3)':'rgba(16,185,129,.3)';
+        var btnTxtColor=isRenewal?'var(--warn)':'var(--ok)';
+        var btnLabel=isRenewal?'🔄 갱신심사 완료':'✅ 완료';
+        return '<button onclick="markCertPhaseDone(this.dataset.cid)" data-cid="'+c.id+'" style="background:'+btnColor+';border:1px solid '+btnBorder+';border-radius:6px;color:'+btnTxtColor+';font-size:11px;padding:2px 8px;cursor:pointer;margin-right:4px;font-weight:'+(isRenewal?'600':'400')+'">'+btnLabel+'</button>';
+      })():''}
       <button onclick="openCertModal('${c.id}')" style="background:none;border:none;color:var(--text4);font-size:14px;cursor:pointer">&#9998;</button>
     </td>
   </tr>`;
@@ -4756,13 +4765,68 @@ async function saveCert(){
   }catch(e){alert('저장 실패: '+e.message);}
 }
 // ISO 사후심사 단계 완료 처리
-async function markCertPhaseDone(certId){
-  if(!confirm('이 단계를 완료 처리하시겠습니까?'))return;
+async function markCertPhaseDone(certIdOrEl){
+  var certId=typeof certIdOrEl==="string"?certIdOrEl:(certIdOrEl?.dataset?.cid||certIdOrEl?.dataset?.id||certIdOrEl);
+  var cert=certifications.find(function(c){return c.id===certId;});
+  if(!cert)return;
+  var m=getCertMasterInfo(cert.certMasterId);
+  var isRenewalPhase=cert.isLastPhase||
+    (m.phases&&m.phases[cert.phaseIndex]&&m.phases[cert.phaseIndex].isRenewal);
+
+  var confirmMsg=isRenewalPhase
+    ?'🔄 갱신심사 단계를 완료 처리하시겠습니까?\n\n완료 후 새 인증 주기(최초심사→사후심사→갱신심사)를 시작할 수 있습니다.'
+    :'이 단계를 완료 처리하시겠습니까?';
+  if(!confirm(confirmMsg))return;
+
   try{
     await updateDoc(doc(db,'certifications',certId),{
       status:'완료',updatedAt:Date.now()
     });
     setBadge('✅ 단계 완료',2000);
+
+    // 갱신심사 완료 → 새 사이클 시작 팝업
+    if(isRenewalPhase){
+      var comp=companies.find(function(c){return c._id===cert.bizno;});
+      var compName=comp?comp.name:(cert.companyName||'');
+      var certName=m.certName||'ISO 인증';
+      setTimeout(function(){
+        if(confirm('🎉 갱신심사 완료!\n\n['+compName+'] '+certName+'\n\n새 인증 주기를 시작하시겠습니까?\n(최초심사 → 1차 사후심사 → 2차 사후심사 → 갱신심사)')){
+          // 새 사이클 시작 - 인증 등록 모달 열기 (취득일 자동 입력)
+          var today=new Date().toISOString().slice(0,10);
+          openCertModal();
+          setTimeout(function(){
+            // 업체, 인증종류 자동 입력
+            var compSearch=document.getElementById('cert-comp-search-inp');
+            if(compSearch){compSearch.style.display='';compSearch.value=compName;}
+            // 인증마스터 자동 선택
+            var masterSel=document.getElementById('cert-master-sel');
+            if(masterSel){
+              for(var i=0;i<masterSel.options.length;i++){
+                if(masterSel.options[i].value===cert.certMasterId){
+                  masterSel.selectedIndex=i;
+                  onCertMasterChange&&onCertMasterChange();
+                  break;
+                }
+              }
+            }
+            // 취득일 자동 입력 (오늘 기준)
+            var parts=today.split('-');
+            var acqY=document.getElementById('cert-acq-y');
+            var acqM=document.getElementById('cert-acq-m');
+            var acqD=document.getElementById('cert-acq-d');
+            if(acqY)acqY.value=parts[0];
+            if(acqM)acqM.value=parts[1];
+            if(acqD)acqD.value=parts[2];
+            // 단계 자동 선택 (1단계: 최초심사)
+            var phaseWrap=document.getElementById('cert-phase-wrap');
+            var phaseSel=document.getElementById('cert-phase-sel');
+            if(phaseWrap)phaseWrap.style.display='';
+            if(phaseSel&&phaseSel.options.length>0)phaseSel.selectedIndex=0;
+            setBadge('새 사이클 시작 - 취득일과 만료일을 확인해주세요',4000);
+          },400);
+        }
+      },500);
+    }
   }catch(e){alert('처리 실패: '+e.message);}
 }
 
