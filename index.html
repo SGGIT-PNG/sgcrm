@@ -4958,35 +4958,41 @@ async function deleteCert(){
   const id=document.getElementById('cert-edit-id').value;
   if(!id)return;
 
-  // 연결된 work_items 확인
-  const linkedWorks=workItems.filter(w=>w.certId===id);
-  const linkedAnnuals=annualReports.filter(r=>r.certId===id);
+  // 삭제할 인증 정보
+  const certToDelete=certifications.find(function(c){return c.id===id;});
 
-  let msg='이 인증을 삭제하시겠습니까?';
+  // 연결된 work_items - certId 직접 연결 + 같은 업체/분류 업무 모두 포함
+  const linkedWorks=workItems.filter(function(w){
+    if(w.certId===id)return true;
+    if(certToDelete&&w.clientBizno===certToDelete.bizno&&isCertCategory(w.category)&&!w.certId){
+      const relMasters=getRelatedCertMasters(w.category);
+      return relMasters.some(function(m){return m.id===certToDelete.certMasterId;});
+    }
+    return false;
+  });
+  const linkedAnnuals=annualReports.filter(function(r){return r.certId===id;});
+
+  var msg='이 인증을 삭제하시겠습니까?';
   if(linkedWorks.length||linkedAnnuals.length){
-    msg='이 인증을 삭제하시겠습니까?\n\n';
-    msg+='함께 삭제되는 데이터:\n';
+    msg='이 인증을 삭제하시겠습니까?\n\n함께 삭제되는 데이터:\n';
     if(linkedWorks.length)msg+='• 연결된 업무 항목: '+linkedWorks.length+'건\n';
     if(linkedAnnuals.length)msg+='• 연간 신고 이력: '+linkedAnnuals.length+'건\n';
     msg+='\n이 작업은 되돌릴 수 없습니다.';
   }
-
   if(!confirm(msg))return;
 
   setBadge('삭제 중...');
   try{
-    // 연결된 work_items 삭제
-    for(const w of linkedWorks){
-      await deleteDoc(doc(db,'work_items',w.id));
-    }
-    // 연결된 annual_reports 삭제
-    for(const r of linkedAnnuals){
-      await deleteDoc(doc(db,'annual_reports',r.id));
-    }
-    // 인증 삭제
-    await deleteDoc(doc(db,'certifications',id));
+    const batch=writeBatch(db);
+    for(const w of linkedWorks)batch.delete(doc(db,'work_items',w.id));
+    for(const r of linkedAnnuals)batch.delete(doc(db,'annual_reports',r.id));
+    batch.delete(doc(db,'certifications',id));
+    await batch.commit();
     setBadge('삭제 완료',2000);
     gcalSyncCert({id:id},'delete');
+    if(certToDelete&&certToDelete.cycleType==='complex'){
+      sendToGcal('delete','cert',{id:'phase_'+certToDelete.bizno+'_'+certToDelete.certMasterId+'_'+(certToDelete.phaseIndex||0)});
+    }
     closeModal('cert-modal');
     if(linkedWorks.length||linkedAnnuals.length){
       alert('삭제 완료\n인증 1건, 업무 '+linkedWorks.length+'건, 연간신고 '+linkedAnnuals.length+'건 삭제됨');
