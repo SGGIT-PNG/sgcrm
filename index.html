@@ -1963,6 +1963,23 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
   </div>
 </div>
 
+<!-- MODAL: 통합심사 사이클 단계 완료 (가져갈 규격 선택) -->
+<div class="ov" id="cycle-phase-done-modal">
+  <div class="modal" style="width:480px">
+    <div class="modal-title"><span id="cpd-title">단계 완료 처리</span><button class="modal-close" onclick="closeModal('cycle-phase-done-modal')">×</button></div>
+    <input type="hidden" id="cpd-cycle-id">
+    <input type="hidden" id="cpd-phase-idx">
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--text2)" id="cpd-desc"></div>
+    <div class="fl" style="margin-bottom:6px">계속 진행할 규격을 선택하세요 <span style="font-size:11px;color:var(--text4)">(체크 해제 시 이 사이클에서 빠집니다)</span></div>
+    <div id="cpd-std-list" style="display:flex;flex-direction:column;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:6px"></div>
+    <div style="font-size:11px;color:var(--text4);margin-bottom:12px" id="cpd-note"></div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModal('cycle-phase-done-modal')">취소</button>
+      <button class="btn btn-primary" onclick="submitCyclePhaseDone()">확인</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: 인증·갱신 등록/수정 -->
 <div class="ov" id="cert-modal">
   <div class="modal" style="width:520px">
@@ -4703,6 +4720,7 @@ var expandedCycles = new Set();
 
 // 인증 목록 그룹 렌더 — 같은 (업체, 발급일) 복합주기 인증을 한 사이클로 묶어 헤더 1줄로 표시
 function renderCertGrouped(certs){
+  certs = (certs||[]).filter(function(c){return c.status!=='제외';}); // 제외(드롭) 상태 숨김
   var groupsByKey = {};
   var items = [];
   certs.forEach(function(c){
@@ -4771,7 +4789,8 @@ function renderCycleGroup(key,certs){
   html+='<td style="font-size:12px;color:var(--text3)">3년 (4단계)</td>';
   html+='<td><span style="font-size:11px;padding:1px 5px;border-radius:4px;background:var(--warn-pale);color:var(--warn)">'+phaseLabel+'</span></td>';
   html+='<td>'+(curIdx===0?'<span style="color:var(--text4)">발급</span>':(diff==null?'<span style="color:var(--text4)">—</span>':certDdayBadge(diff)))+'</td>';
-  html+='<td><span style="font-size:11px;color:var(--text4)">'+(expanded?'접기':'펼치기')+'</span></td>';
+  var doneBtn=(curIdx!==null)?'<button onclick="event.stopPropagation();openCyclePhaseDoneModal(\''+key+'\','+curIdx+')" style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:6px;color:var(--ok);font-size:11px;padding:2px 8px;cursor:pointer;margin-right:6px;font-weight:500">✅ 단계 완료</button>':'';
+  html+='<td>'+doneBtn+'<span style="font-size:11px;color:var(--text4)">'+(expanded?'접기':'펼치기')+'</span></td>';
   html+='</tr>';
   if(expanded){certs.forEach(function(c){html+=certRow(c);});}
   return html;
@@ -4783,6 +4802,106 @@ function toggleCycleExpand(key){
   if(certTabCurrent==='alert') renderCertAlert();
   else if(certTabCurrent==='by-cert') renderCertByCert();
   else if(certTabCurrent==='by-comp') renderCertByComp();
+}
+
+// 통합심사 사이클 — 단계 완료 모달 열기 (가져갈 규격을 체크박스로 선택)
+function openCyclePhaseDoneModal(cycleGroupId, phaseIndex){
+  var phaseIdx=+phaseIndex;
+  var certs=certifications.filter(function(c){
+    if(c.cycleType!=='complex')return false;
+    var k=c.cycleGroupId||(c.bizno+'|'+c.acqDate);
+    return k===cycleGroupId;
+  });
+  if(!certs.length){alert('사이클을 찾을 수 없습니다.');return;}
+  var maxPhase=Math.max.apply(null,certs.map(function(c){return c.phaseIndex||0;}));
+  var isRenewal=phaseIdx===maxPhase;
+  // 이 단계에서 활성(=제외 아님) 규격
+  var stdsMap={};
+  certs.forEach(function(c){
+    if((c.phaseIndex||0)===phaseIdx && c.status!=='제외'){
+      var std=c.certMasterId||c.certName;
+      if(!stdsMap[std]){
+        var m=getCertMasterInfo(c.certMasterId);
+        stdsMap[std]={id:c.certMasterId,name:m.certName||std,icon:m.icon||'🏅',cert:c};
+      }
+    }
+  });
+  var stds=Object.keys(stdsMap).map(function(k){return stdsMap[k];});
+  if(!stds.length){alert('이 단계에 진행할 규격이 없습니다.');return;}
+  document.getElementById('cpd-cycle-id').value=cycleGroupId;
+  document.getElementById('cpd-phase-idx').value=phaseIdx;
+  var phaseName=stds[0].cert.currentPhase||((phaseIdx+1)+'단계');
+  document.getElementById('cpd-title').textContent=phaseName+' 완료';
+  var firstCert=stds[0].cert;
+  var comp=companies.find(function(c){return c._id===firstCert.bizno;});
+  var compName=comp?comp.name:(firstCert.companyName||'');
+  document.getElementById('cpd-desc').innerHTML='🏢 <b>'+compName+'</b><br>📅 만료일: <b>'+(firstCert.expDate||'—')+'</b>'
+    +'<br>📋 단계: <b>'+phaseName+'</b>'+(isRenewal?'  <span style="color:var(--accent);font-weight:600">(갱신 = 새 사이클 시작)</span>':'');
+  document.getElementById('cpd-std-list').innerHTML=stds.map(function(s){
+    return '<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:7px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px">'
+      +'<input type="checkbox" class="cpd-std-cb" value="'+s.id+'" checked>'
+      +'<span style="font-size:16px">'+s.icon+'</span>'
+      +'<span>'+s.name+'</span></label>';
+  }).join('');
+  document.getElementById('cpd-note').textContent=isRenewal
+    ?'체크한 규격은 새 3년 사이클로 자동 생성됩니다. 체크 해제한 규격은 이번 사이클로 종료됩니다.'
+    :'체크 해제한 규격은 다음 단계부터 빠집니다 (이 사이클에서 제외, 만료 이력으로만 남음).';
+  openModal('cycle-phase-done-modal');
+}
+
+async function submitCyclePhaseDone(){
+  var cycleGroupId=document.getElementById('cpd-cycle-id').value;
+  var phaseIdx=+document.getElementById('cpd-phase-idx').value;
+  var kept=Array.prototype.slice.call(document.querySelectorAll('.cpd-std-cb:checked')).map(function(cb){return cb.value;});
+  var certs=certifications.filter(function(c){
+    if(c.cycleType!=='complex')return false;
+    var k=c.cycleGroupId||(c.bizno+'|'+c.acqDate);
+    return k===cycleGroupId;
+  });
+  if(!certs.length){alert('사이클을 찾을 수 없습니다.');return;}
+  var maxPhase=Math.max.apply(null,certs.map(function(c){return c.phaseIndex||0;}));
+  var isRenewal=phaseIdx===maxPhase;
+  var activeAtPhase=certs.filter(function(c){return (c.phaseIndex||0)===phaseIdx && c.status!=='제외';});
+  var totalStds={};
+  activeAtPhase.forEach(function(c){totalStds[c.certMasterId||c.certName]=true;});
+  var totalCount=Object.keys(totalStds).length;
+  if(!kept.length){
+    if(!confirm('계속할 규격이 없습니다. 이번 단계에서 모든 규격을 종료하시겠습니까?'))return;
+  }
+  try{
+    var batch=writeBatch(db);
+    var nowTs=Date.now();
+    var renewalAcqDate=null,refComp=null;
+    activeAtPhase.forEach(function(c){
+      batch.update(doc(db,'certifications',c.id),{status:'완료',updatedAt:nowTs});
+      if(!renewalAcqDate)renewalAcqDate=c.expDate;
+      if(!refComp)refComp={bizno:c.bizno,companyName:c.companyName};
+    });
+    if(!isRenewal){
+      certs.forEach(function(c){
+        var std=c.certMasterId||c.certName;
+        if(kept.indexOf(std)===-1 && (c.phaseIndex||0)>phaseIdx && c.status!=='제외'){
+          batch.update(doc(db,'certifications',c.id),{status:'제외',droppedAt:nowTs,droppedAtPhase:phaseIdx,updatedAt:nowTs});
+          sendToGcal('delete','cert',{id:'phase_'+c.bizno+'_'+c.certMasterId+'_'+(c.phaseIndex||0)});
+        }
+      });
+    }
+    await batch.commit();
+    var phaseName=activeAtPhase[0]?activeAtPhase[0].currentPhase:((phaseIdx+1)+'단계');
+    var msg='✅ '+phaseName+' 완료';
+    if(kept.length<totalCount)msg+=' ('+(totalCount-kept.length)+'개 규격 제외)';
+    setBadge(msg,2500);
+    if(isRenewal && kept.length && refComp){
+      if(confirm('🎉 갱신심사 완료!\n\n선택한 '+kept.length+'개 규격으로 새 3년 사이클을 시작합니다.\n시작일(취득일): '+renewalAcqDate+'\n\n계속하시겠습니까?')){
+        var newCycleId='cycle_'+refComp.bizno+'_'+renewalAcqDate+'_'+Date.now();
+        for(var i=0;i<kept.length;i++){
+          await createComplexPhases(kept[i],refComp.bizno,refComp.companyName,renewalAcqDate,null,newCycleId);
+        }
+        setBadge('✅ 새 사이클 시작 ('+kept.length+'개 규격)',3000);
+      }
+    }
+    closeModal('cycle-phase-done-modal');
+  }catch(e){alert('처리 실패: '+e.message);}
 }
 
 function certRow(c){
@@ -7892,7 +8011,7 @@ Object.assign(window,{
   prevMonth,nextMonth,goToday,toggleCat,renderGantt,
   setGanttFilter,setWorkFilter,
   openCatAddModal,saveCatAdd,deleteCatAdd,setCatRequiresCert,
-  setCertTab,renderCertByCert,renderCertByComp,renderCertMaster,toggleCycleExpand,
+  setCertTab,renderCertByCert,renderCertByComp,renderCertMaster,toggleCycleExpand,openCyclePhaseDoneModal,submitCyclePhaseDone,
   openCertMasterModal,saveCertMaster,deleteCertMaster,toggleCmCycleFields,addCmPhase,renderCmPhases,
   openCertModal,onCertTypeChange,saveCert,deleteCert,calcCertExpDate,
   markCertPhaseDone,createComplexPhases,buildIsoConfirmMsg,
