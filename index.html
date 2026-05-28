@@ -4675,6 +4675,93 @@ function certStatusBadge(cert){
   if(diff<=90)return `<span class="badge" style="background:var(--warn-pale);color:var(--warn)">🟡 주의</span>`;
   return `<span class="badge" style="background:var(--ok-pale);color:var(--ok)">✅ 유효</span>`;
 }
+// 통합심사 사이클 펼침 상태 (key: bizno|acqDate)
+var expandedCycles = new Set();
+
+// 인증 목록 그룹 렌더 — 같은 (업체, 발급일) 복합주기 인증을 한 사이클로 묶어 헤더 1줄로 표시
+function renderCertGrouped(certs){
+  var groupsByKey = {};
+  var items = [];
+  certs.forEach(function(c){
+    if(c.cycleType==='complex' && c.acqDate && c.bizno){
+      var key = c.bizno+'|'+c.acqDate;
+      if(!groupsByKey[key]){
+        var g={kind:'group',key:key,certs:[],sortDday:99999};
+        groupsByKey[key]=g;
+        items.push(g);
+      }
+      groupsByKey[key].certs.push(c);
+    } else {
+      var dd=getCertDday(c.expDate);
+      items.push({kind:'single',cert:c,sortDday:(dd==null?99999:dd)});
+    }
+  });
+  Object.keys(groupsByKey).forEach(function(k){
+    var g=groupsByKey[k];
+    var pending=g.certs.filter(function(c){return c.status!=='완료';});
+    var src=pending.length?pending:g.certs;
+    var arr=src.map(function(c){return getCertDday(c.expDate);}).filter(function(d){return d!=null;});
+    g.sortDday=arr.length?Math.min.apply(null,arr):99999;
+  });
+  items.sort(function(a,b){return (a.sortDday||0)-(b.sortDday||0);});
+  return items.map(function(it){
+    if(it.kind==='single') return certRow(it.cert);
+    if(it.certs.length===1) return certRow(it.certs[0]);
+    return renderCycleGroup(it.key,it.certs);
+  }).join('');
+}
+
+// 통합심사 사이클 — 헤더 1줄(접힘) / 펼치면 단계별 인증 상세 (기존 certRow 재사용)
+function renderCycleGroup(key,certs){
+  var first=certs[0];
+  var comp=companies.find(function(x){return x._id===first.bizno;});
+  var compName=comp?comp.name:(first.companyName||'—');
+  certs.sort(function(a,b){
+    if((a.phaseIndex||0)!==(b.phaseIndex||0)) return (a.phaseIndex||0)-(b.phaseIndex||0);
+    return (a.certName||'').localeCompare(b.certName||'');
+  });
+  var stdNames=[];
+  certs.forEach(function(c){var n=c.certName||c.certMasterId;if(n&&stdNames.indexOf(n)===-1)stdNames.push(n);});
+  var stdShort=stdNames.map(function(n){return n.replace(/^ISO\s*/i,'');}).join('+');
+  var stdLabel=stdNames.length>1?'ISO '+stdShort+' 통합심사':(stdNames[0]||'');
+  var pending=certs.filter(function(c){return c.status!=='완료';});
+  var curIdx,phaseLabel,phaseExp;
+  if(pending.length){
+    curIdx=Math.min.apply(null,pending.map(function(c){return c.phaseIndex||0;}));
+    var curItems=pending.filter(function(c){return (c.phaseIndex||0)===curIdx;});
+    phaseLabel=curItems[0].currentPhase||((curIdx+1)+'단계');
+    phaseExp=curItems[0].expDate;
+  } else {
+    curIdx=null;
+    phaseLabel='전 단계 완료';
+    phaseExp=certs[certs.length-1].expDate;
+  }
+  var diff=getCertDday(phaseExp);
+  var expanded=expandedCycles.has(key);
+  var arrow=expanded?'▼':'▶';
+  var headerBg=expanded?'background:var(--accent-pale);':'';
+  var html='<tr style="'+headerBg+'cursor:pointer" onclick="toggleCycleExpand(\''+key+'\')">';
+  html+='<td><span style="font-size:11px;color:var(--text4);margin-right:6px;display:inline-block;width:10px">'+arrow+'</span><span style="font-size:14px;font-weight:500;color:var(--blue-l)">'+compName+'</span></td>';
+  html+='<td><span style="font-size:13px;font-weight:500">🏅 '+stdLabel+'</span><span style="font-size:11px;color:var(--text4);margin-left:6px">규격 '+stdNames.length+'개 · 인증서 '+certs.length+'건</span></td>';
+  html+='<td style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--text4)">'+(first.acqDate||'—')+'</td>';
+  html+='<td style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--text4)">'+(phaseExp||'—')+'</td>';
+  html+='<td style="font-size:12px;color:var(--text3)">3년 (4단계)</td>';
+  html+='<td><span style="font-size:11px;padding:1px 5px;border-radius:4px;background:var(--warn-pale);color:var(--warn)">'+phaseLabel+'</span></td>';
+  html+='<td>'+(curIdx===0?'<span style="color:var(--text4)">발급</span>':(diff==null?'<span style="color:var(--text4)">—</span>':certDdayBadge(diff)))+'</td>';
+  html+='<td><span style="font-size:11px;color:var(--text4)">'+(expanded?'접기':'펼치기')+'</span></td>';
+  html+='</tr>';
+  if(expanded){certs.forEach(function(c){html+=certRow(c);});}
+  return html;
+}
+
+function toggleCycleExpand(key){
+  if(expandedCycles.has(key)) expandedCycles.delete(key);
+  else expandedCycles.add(key);
+  if(certTabCurrent==='alert') renderCertAlert();
+  else if(certTabCurrent==='by-cert') renderCertByCert();
+  else if(certTabCurrent==='by-comp') renderCertByComp();
+}
+
 function certRow(c){
   const comp=companies.find(x=>x._id===c.bizno);
   const diff=getCertDday(c.expDate);
@@ -4776,7 +4863,7 @@ function renderCertAlert(){
 
   // 갱신형 테이블
   const renewalTableHtml=renewalList.length
-    ?'<div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>업체명</th><th>인증 종류</th><th>취득일</th><th>만료·갱신일</th><th>갱신주기</th><th>상태</th><th>D-Day</th><th>관리</th></tr></thead><tbody>'+sortedRenewal.map(certRow).join('')+'</tbody></table></div></div>'
+    ?'<div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>업체명</th><th>인증 종류</th><th>취득일</th><th>만료·갱신일</th><th>갱신주기</th><th>상태</th><th>D-Day</th><th>관리</th></tr></thead><tbody>'+renderCertGrouped(sortedRenewal)+'</tbody></table></div></div>'
     :'<div class="empty"><div class="empty-txt">등록된 갱신형 인증이 없습니다</div></div>';
 
   // 연간신고 테이블
@@ -4810,7 +4897,7 @@ function renderCertByCert(){
   if(q)filtered=filtered.filter(c=>(c.companyName||'').toLowerCase().includes(q));
   const sorted=[...filtered].sort((a,b)=>(getCertDday(a.expDate)??9999)-(getCertDday(b.expDate)??9999));
   const el=document.getElementById('cert-by-cert-body');if(!el)return;
-  el.innerHTML=sorted.length?sorted.map(certRow).join(''):`<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text4)">${q?'검색 결과가 없습니다':'해당 인증이 없습니다'}</td></tr>`;
+  el.innerHTML=sorted.length?renderCertGrouped(sorted):`<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text4)">${q?'검색 결과가 없습니다':'해당 인증이 없습니다'}</td></tr>`;
 }
 
 // 탭3: 업체별 인증 조회
@@ -4860,7 +4947,7 @@ function renderCertByComp(){
     </tr>`;
   }).join('');
 
-  const allRows=sortedCert.map(certRow).join('')+workRows;
+  const allRows=renderCertGrouped(sortedCert)+workRows;
   el.innerHTML=allRows||`<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text4)">해당 업체의 인증이 없습니다</td></tr>`;
 }
 
@@ -7773,7 +7860,7 @@ Object.assign(window,{
   prevMonth,nextMonth,goToday,toggleCat,renderGantt,
   setGanttFilter,setWorkFilter,
   openCatAddModal,saveCatAdd,deleteCatAdd,setCatRequiresCert,
-  setCertTab,renderCertByCert,renderCertByComp,renderCertMaster,
+  setCertTab,renderCertByCert,renderCertByComp,renderCertMaster,toggleCycleExpand,
   openCertMasterModal,saveCertMaster,deleteCertMaster,toggleCmCycleFields,addCmPhase,renderCmPhases,
   openCertModal,onCertTypeChange,saveCert,deleteCert,calcCertExpDate,
   markCertPhaseDone,createComplexPhases,buildIsoConfirmMsg,
