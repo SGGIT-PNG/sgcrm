@@ -1658,6 +1658,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
           <input class="fi" id="cons-start-d" placeholder="DD" maxlength="2" style="width:44px;text-align:center" oninput="consDateCompose()">
         </div>
         <input type="hidden" id="cons-start">
+        <div id="cons-audit1-days-wrap" style="display:none;margin-top:5px;font-size:12px;color:var(--text3)">심사 <input class="fi" id="cons-audit1-days" type="number" min="1" value="1" style="width:52px;display:inline-block;padding:4px 6px;text-align:center"> 일</div>
       </div>
       <div class="fg"><label class="fl" id="cons-end-label">마감일 *</label>
         <div style="display:flex;align-items:center;gap:4px">
@@ -1668,6 +1669,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
           <input class="fi" id="cons-end-d" placeholder="DD" maxlength="2" style="width:44px;text-align:center" oninput="consDateCompose()">
         </div>
         <input type="hidden" id="cons-end">
+        <div id="cons-audit2-days-wrap" style="display:none;margin-top:5px;font-size:12px;color:var(--text3)">심사 <input class="fi" id="cons-audit2-days" type="number" min="1" value="1" style="width:52px;display:inline-block;padding:4px 6px;text-align:center"> 일</div>
       </div>
     </div>
     <!-- ISO 분류 전용: 통합심사 규격 선택 -->
@@ -2811,6 +2813,57 @@ function renderOverviewStats(){
 }
 
 // ── GANTT ──
+// ISO 간트: 1·2차 심사를 독립 막대로 렌더 (각 심사 일수만큼 칸 채움)
+function ganttIsoCells(c,y,m,days,color){
+  var s1=c.startDate||'',n1=Math.max(1,+c.audit1Days||1);
+  var s2=c.endDate||'',n2=Math.max(1,+c.audit2Days||1);
+  var today=new Date();
+  function dayOffset(ds,start,n){
+    if(!start)return -1;
+    var st=new Date(start);
+    for(var k=0;k<n;k++){var dd=new Date(st);dd.setDate(dd.getDate()+k);if(dateStr(dd.getFullYear(),dd.getMonth(),dd.getDate())===ds)return k;}
+    return -1;
+  }
+  var html='';
+  for(var d=1;d<=days;d++){
+    var ds=dateStr(y,m,d);
+    var dw=new Date(y,m,d).getDay();
+    var isT=y===today.getFullYear()&&m===today.getMonth()&&d===today.getDate();
+    var cls=(dw===6?' sat':dw===0?' sun':'')+(isT?' today-cell':'');
+    var k1=dayOffset(ds,s1,n1),k2=dayOffset(ds,s2,n2);
+    if(k1>-1||k2>-1){
+      var label=k1===0?'1차':k2===0?'2차':'';
+      html+='<td class="cat-bar-td'+cls+'" style="position:relative;cursor:pointer" onclick="event.stopPropagation();openConsultingModal(\''+c.id+'\')">'
+        +'<div style="position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:20px;background:'+color+';display:flex;align-items:center;justify-content:center" title="'+(c.title||'')+'">'
+        +(label?'<span style="font-size:9px;font-weight:700;color:#FFF">'+label+'</span>':'')+'</div></td>';
+    } else {
+      html+='<td class="cat-bar-td'+cls+'"></td>';
+    }
+  }
+  return html;
+}
+// 빈 날짜 셀 생성 (주말/오늘 클래스 포함)
+function ganttEmptyCells(y,m,days,tdClass){
+  var today=new Date();var html='';
+  for(var d=1;d<=days;d++){
+    var dw=new Date(y,m,d).getDay();
+    var isT=y===today.getFullYear()&&m===today.getMonth()&&d===today.getDate();
+    var cls=(dw===6?' sat':dw===0?' sun':'')+(isT?' today-cell':'');
+    html+='<td class="'+tdClass+cls+'"></td>';
+  }
+  return html;
+}
+// ISO 대분류 한 줄 요약: 업체 · 1차/2차 심사일(일수) · 규격
+function ganttIsoSubLabel(c,ccs){
+  var comps=(ccs||[]).map(function(cc){return cc.companyName;}).filter(Boolean).join(', ');
+  var stds=(c.isoMasterIds||[]).map(function(id){var mm=getCertMasterInfo(id);return (mm.certName||id).replace(/^ISO\s*/i,'');});
+  var parts=[];
+  if(comps)parts.push(comps);
+  if(c.startDate)parts.push('1차 '+c.startDate+((+c.audit1Days||1)>1?' ('+(+c.audit1Days)+'일)':''));
+  if(c.endDate)parts.push('2차 '+c.endDate+((+c.audit2Days||1)>1?' ('+(+c.audit2Days)+'일)':''));
+  if(stds.length)parts.push('🏅 '+stds.join('+'));
+  return parts.join(' · ');
+}
 function renderGantt(sfx){
   const suf=sfx?'-'+sfx:'';
   const titleEl=document.getElementById('cal-month-title'+suf);
@@ -2876,9 +2929,13 @@ function renderGantt(sfx){
       <div class="cat-name">${cm.icon} ${c.title} ${badge(c.status||'wait')}<span class="cat-arrow${exp?' open':''}">▶</span>
         <button onclick="event.stopPropagation();openConsultingModal('${c.id}')" style="margin-left:6px;padding:2px 8px;background:#F0F0F0;border:1px solid rgba(37,99,235,.4);border-radius:5px;color:var(--blue);font-size:11px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">관리</button>
       </div>
-      <div style="font-size:11px;color:var(--text4);margin-top:2px">${c.org||''} ${c.endDate?'· ~'+c.endDate:''} ${c.amount?'· '+fmtAmt(c.amount):''}</div>
+      <div style="font-size:11px;color:var(--text4);margin-top:2px">${c.category==='iso'?ganttIsoSubLabel(c,ccs):(c.org||'')+' '+(c.endDate?'· ~'+c.endDate:'')+' '+(c.amount?'· '+fmtAmt(c.amount):'')}</div>
       ${getConsResultSummary(c.id)}
     </td>`;
+    // ISO 분류: 1·2차 심사를 독립 막대로 / 그 외: 기간 막대
+    if(c.category==='iso'){
+      body+=ganttIsoCells(c,y,m,days,color);
+    } else {
     // colspan 방식: 기간에 해당하는 셀을 합쳐서 바 배치
     let d=1;
     while(d<=days){
@@ -2929,8 +2986,10 @@ function renderGantt(sfx){
         d++;
       }
     }
+    }
     body+=`</tr>`;
     ccs.forEach(cc=>{
+      if(c.category==='iso')return; // ISO는 심사 정보를 대분류 한 줄에 통합 표시 (업체 하위 줄 생략)
       const cliDone=cc.status==='done';
       const cliExpired=cliDone&&isDoneExpired({status:cc.status,doneAt:cc.doneAt});
       // 결과 배지
@@ -2943,6 +3002,10 @@ function renderGantt(sfx){
         <div class="cli-name-cell">${dot(cc.status||'wait')}${cc.companyName} ${badge(cc.status||'wait')}${resultBadge}</div>
         ${approvedInfo?`<div style="padding-left:16px">${approvedInfo}</div>`:''}
       </td>`;
+      // ISO는 업체행 음영 생략 (심사 막대는 대분류 행에 표시)
+      if(c.category==='iso'){
+        body+=ganttEmptyCells(y,m,days,'cli-bar-td');
+      } else {
       // 업체 행 - 기간 음영 colspan 처리
       let cd=1;
       while(cd<=days){
@@ -2970,6 +3033,7 @@ function renderGantt(sfx){
           body+=`<td class="cli-bar-td${dayCls3}"></td>`;
           cd++;
         }
+      }
       }
       body+=`</tr>`;
     });
@@ -3024,6 +3088,8 @@ function openConsultingModal(id){
     document.getElementById('cons-end').value=c.endDate||'';
     splitDateToFields(c.startDate,'cons-start');
     splitDateToFields(c.endDate,'cons-end');
+    document.getElementById('cons-audit1-days').value=c.audit1Days||1;
+    document.getElementById('cons-audit2-days').value=c.audit2Days||1;
     document.getElementById('cons-status').value=c.status||'wait';
     document.getElementById('cons-amount').value=c.amount||'';
     document.getElementById('cons-approved-amt').value=c.approvedAmt||'';
@@ -3057,6 +3123,8 @@ function openConsultingModal(id){
     ['cons-region','cons-scale','cons-industry','cons-age'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
     document.getElementById('cons-category').value='policy';
     tempIsoMasterIds=[];
+    document.getElementById('cons-audit1-days').value=1;
+    document.getElementById('cons-audit2-days').value=1;
     document.getElementById('cons-status').value='wait';
     document.getElementById('cons-del-btn').style.display='none';
   }
@@ -3109,6 +3177,10 @@ function onConsCategoryChange(){
   var endLabel=document.getElementById('cons-end-label');
   if(startLabel)startLabel.textContent=isIso?'1차 심사일':'시작일';
   if(endLabel)endLabel.innerHTML=isIso?'2차 심사일 *':'마감일 *';
+  var d1w=document.getElementById('cons-audit1-days-wrap');
+  var d2w=document.getElementById('cons-audit2-days-wrap');
+  if(d1w)d1w.style.display=isIso?'':'none';
+  if(d2w)d2w.style.display=isIso?'':'none';
   if(isoWrap){
     isoWrap.style.display=isIso?'':'none';
     if(isIso)renderConsIsoChecks();
@@ -3274,6 +3346,8 @@ async function saveConsulting(){
   const data={
     title,category:catVal,
     isoMasterIds:catVal==='iso'?getConsIsoChecked():[],
+    audit1Days:catVal==='iso'?(+document.getElementById('cons-audit1-days').value||1):null,
+    audit2Days:catVal==='iso'?(+document.getElementById('cons-audit2-days').value||1):null,
     org:document.getElementById('cons-org').value,
     startDate:document.getElementById('cons-start').value,
     endDate,status:newStatus,
@@ -7312,6 +7386,13 @@ function gcalSyncAnnual(report,action){
   });
 }
 
+// 날짜 + 일수 → 올데이 종료일(배타적, = 시작일+일수). 여러 날 심사 일정용
+function addDaysISO(ds,days){
+  if(!ds)return '';
+  var d=new Date(ds);
+  d.setDate(d.getDate()+(days||1));
+  return d.toISOString().slice(0,10);
+}
 // ── 지원사업 저장/삭제 시 자동 동기화 ──
 function gcalSyncCons(cons,action){
   if(action==='delete'){
@@ -7327,9 +7408,9 @@ function gcalSyncCons(cons,action){
   if(cons.category==='iso'){
     var names=(cons.isoMasterIds||[]).map(function(id){var mm=getCertMasterInfo(id);return (mm.certName||id).replace(/^ISO\s*/i,'');});
     var label=names.length?('ISO '+names.join('+')+' 통합심사'):(cons.title||'ISO 심사');
-    if(cons.startDate)sendToGcal('upsert','cert',{id:'consaudit1_'+cons.id,companyName:compNames,certName:label+' [1차 심사]',expDate:cons.startDate});
+    if(cons.startDate)sendToGcal('upsert','cert',{id:'consaudit1_'+cons.id,companyName:compNames,certName:label+' [1차 심사]',expDate:cons.startDate,endDate:addDaysISO(cons.startDate,+cons.audit1Days||1)});
     else sendToGcal('delete','cert',{id:'consaudit1_'+cons.id});
-    if(cons.endDate)sendToGcal('upsert','cert',{id:'consaudit2_'+cons.id,companyName:compNames,certName:label+' [2차 심사]',expDate:cons.endDate});
+    if(cons.endDate)sendToGcal('upsert','cert',{id:'consaudit2_'+cons.id,companyName:compNames,certName:label+' [2차 심사]',expDate:cons.endDate,endDate:addDaysISO(cons.endDate,+cons.audit2Days||1)});
     else sendToGcal('delete','cert',{id:'consaudit2_'+cons.id});
     return;
   }
