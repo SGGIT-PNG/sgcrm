@@ -2327,6 +2327,7 @@ async function loadAll(){
     // certifications 구버전 데이터 자동 보정 (오류나도 계속 진행)
     try{ await migrateCertifications(); }catch(e){console.warn('migrate 스킵:',e);}
     try{ await migrateIsoCycle3yr(); }catch(e){console.warn('ISO 3년 보정 스킵:',e);}
+    try{ await migrateCycleGroupId(); }catch(e){console.warn('cycleGroupId 보정 스킵:',e);}
     renderAll(); updateCounts();
     setBadge('✅ 로드 완료',2000);
     startRealtimeSync();
@@ -3836,6 +3837,10 @@ async function saveCertFromWork(){
     if(m.cycleType==='complex'&&m.phases?.length){
       // ISO 등 complex: 단계별 자동 생성
       if(!confirm(buildIsoConfirmMsg(m,acqDate)))return;
+      // cycleGroupId 부여 (cons면 consId, 아니면 생성)
+      const cycleGroupId = (typeof workItemId==='string'&&workItemId.indexOf('cons:')===0)
+        ? (workItemId.split(':')[1]||('cycle_'+comp._id+'_'+acqDate))
+        : ('cycle_'+comp._id+'_'+acqDate+'_'+Date.now());
       // 첫 번째 단계에 workItemId 연결
       const acq=new Date(acqDate);
       let running=new Date(acq);
@@ -3852,6 +3857,7 @@ async function saveCertFromWork(){
           cycleType:'complex',cycleMonths:phase.months||12,
           currentPhase:phase.name,phaseIndex:i,
           isLastPhase:i===m.phases.length-1,
+          cycleGroupId,
           acqDate,expDate:phaseExpDate,status:'유효',memo:'',
           workItemId:i===0?workItemId:null,
           createdAt:Date.now(),updatedAt:Date.now()
@@ -4463,6 +4469,23 @@ async function migrateIsoCycle3yr(){
     setBadge('ISO 3년 주기 재계산 '+cnt+'건',2500);
   }
 }
+// 통합심사 사이클 ID 보정 — 같은 (업체,발급일) 복합주기 인증에 cycleGroupId 부여 (1회, idempotent)
+async function migrateCycleGroupId(){
+  if(!certifications||!certifications.length)return;
+  var batch=writeBatch(db);
+  var cnt=0;
+  certifications.forEach(function(c){
+    if(c.cycleType!=='complex'||!c.acqDate||!c.bizno)return;
+    if(c.cycleGroupId)return;
+    var id='legacy_'+c.bizno+'_'+c.acqDate;
+    batch.update(doc(db,'certifications',c.id),{cycleGroupId:id,updatedAt:Date.now()});
+    cnt++;
+  });
+  if(cnt>0){
+    await batch.commit();
+    console.log('[CRM] cycleGroupId 부여:',cnt,'건');
+  }
+}
 // 구버전 certifications 데이터 자동 보정 (certMasterId 없는 경우)
 async function migrateCertifications(){
   // certName → certMasterId 매핑 테이블
@@ -4684,7 +4707,7 @@ function renderCertGrouped(certs){
   var items = [];
   certs.forEach(function(c){
     if(c.cycleType==='complex' && c.acqDate && c.bizno){
-      var key = c.bizno+'|'+c.acqDate;
+      var key = c.cycleGroupId || (c.bizno+'|'+c.acqDate);
       if(!groupsByKey[key]){
         var g={kind:'group',key:key,certs:[],sortDday:99999};
         groupsByKey[key]=g;
@@ -5068,9 +5091,17 @@ function buildIsoConfirmMsg(m, acqDate){
   return msg;
 }
 // ISO complex 타입 단계별 자동 생성
-async function createComplexPhases(masterId, bizno, companyName, acqDate, workItemId){
+async function createComplexPhases(masterId, bizno, companyName, acqDate, workItemId, cycleGroupId){
   const m=getCertMasterInfo(masterId);
   if(!m||m.cycleType!=='complex'||!m.phases?.length)return;
+  // cycleGroupId 미지정 시: cons에서 호출이면 consId, 아니면 새로 생성
+  if(!cycleGroupId){
+    if(typeof workItemId==='string'&&workItemId.indexOf('cons:')===0){
+      cycleGroupId=workItemId.split(':')[1]||('cycle_'+bizno+'_'+acqDate);
+    } else {
+      cycleGroupId='cycle_'+bizno+'_'+acqDate+'_'+Date.now();
+    }
+  }
   const batch=writeBatch(db);
   const acq=new Date(acqDate);
   let running=new Date(acq);
@@ -5090,6 +5121,7 @@ async function createComplexPhases(masterId, bizno, companyName, acqDate, workIt
       currentPhase:phase.name,
       phaseIndex:i,
       isLastPhase:isLast,
+      cycleGroupId,
       acqDate,
       expDate:phaseExpDate,
       status:'유효',
