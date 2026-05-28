@@ -1649,7 +1649,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
       <div class="fg"><label class="fl">공고 기관</label><input class="fi" id="cons-org" placeholder="예: 소진공"></div>
     </div>
     <div class="frow">
-      <div class="fg"><label class="fl">시작일</label>
+      <div class="fg"><label class="fl" id="cons-start-label">시작일</label>
         <div style="display:flex;align-items:center;gap:4px">
           <input class="fi" id="cons-start-y" placeholder="YYYY" maxlength="4" style="width:62px;text-align:center" oninput="autoTabDate(this,'cons-start-m',4);consDateCompose()">
           <span style="color:var(--text4)">-</span>
@@ -1659,7 +1659,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
         </div>
         <input type="hidden" id="cons-start">
       </div>
-      <div class="fg"><label class="fl">마감일 *</label>
+      <div class="fg"><label class="fl" id="cons-end-label">마감일 *</label>
         <div style="display:flex;align-items:center;gap:4px">
           <input class="fi" id="cons-end-y" placeholder="YYYY" maxlength="4" style="width:62px;text-align:center" oninput="autoTabDate(this,'cons-end-m',4);consDateCompose()">
           <span style="color:var(--text4)">-</span>
@@ -1669,6 +1669,11 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
         </div>
         <input type="hidden" id="cons-end">
       </div>
+    </div>
+    <!-- ISO 분류 전용: 통합심사 규격 선택 -->
+    <div class="fg" id="cons-iso-wrap" style="display:none">
+      <label class="fl">통합심사 규격 <span style="font-size:11px;color:var(--text4)">(여러 개 선택 = 통합심사)</span></label>
+      <div id="cons-iso-list" style="display:flex;flex-wrap:wrap;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px"></div>
     </div>
     <div class="frow">
       <div class="fg"><label class="fl">상태</label>
@@ -3013,6 +3018,7 @@ function openConsultingModal(id){
     document.getElementById('cons-edit-id').value=id;
     document.getElementById('cons-title').value=c.title||'';
     document.getElementById('cons-category').value=c.category||'policy';
+    tempIsoMasterIds=(c.isoMasterIds||[]).slice();
     document.getElementById('cons-org').value=c.org||'';
     document.getElementById('cons-start').value=c.startDate||'';
     document.getElementById('cons-end').value=c.endDate||'';
@@ -3050,6 +3056,7 @@ function openConsultingModal(id){
     });
     ['cons-region','cons-scale','cons-industry','cons-age'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
     document.getElementById('cons-category').value='policy';
+    tempIsoMasterIds=[];
     document.getElementById('cons-status').value='wait';
     document.getElementById('cons-del-btn').style.display='none';
   }
@@ -3058,9 +3065,54 @@ function openConsultingModal(id){
 // 지원사업 모달 - 조건 입력 시 매칭 업체 실시간 미리보기
 // 분류에 따라 대상 조건 섹션 표시/숨김
 var CATS_WITH_TARGET=['policy','support','etc','finance']; // 대상 조건 표시할 분류
+var tempIsoMasterIds=[]; // ISO 통합심사 선택 규격 임시 저장
+
+// 간트 ISO 항목: 통합심사 규격 체크박스 렌더 (cert_master의 ISO 규격)
+function renderConsIsoChecks(){
+  var el=document.getElementById('cons-iso-list');if(!el)return;
+  var masters=getRelatedCertMasters('iso');
+  if(!masters.length){el.innerHTML='<span style="font-size:12px;color:var(--text4)">인증 종류 관리에 ISO 규격이 없습니다</span>';return;}
+  el.innerHTML=masters.map(function(m){
+    var checked=tempIsoMasterIds.indexOf(m.id)>-1?' checked':'';
+    return '<label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;background:var(--surface);border:1px solid var(--border2);border-radius:7px;padding:5px 10px">'
+      +'<input type="checkbox" class="cons-iso-cb" value="'+m.id+'"'+checked+'>'
+      +(m.icon||'🏅')+' '+(m.certName||m.id)+'</label>';
+  }).join('');
+}
+function getConsIsoChecked(){
+  return Array.prototype.slice.call(document.querySelectorAll('.cons-iso-cb:checked')).map(function(cb){return cb.value;});
+}
+// ISO 통합심사 1·2차 심사일 겹침 검사 (다른 ISO 항목의 심사일과 같은 날이면 안내)
+function findConsAuditConflict(d1,d2,excludeId){
+  var dates=[d1,d2].filter(Boolean);
+  if(!dates.length)return '';
+  for(var i=0;i<consulting.length;i++){
+    var c=consulting[i];
+    if(c.category!=='iso')continue;
+    if(excludeId&&c.id===excludeId)continue;
+    var others=[{label:'1차 심사',date:c.startDate},{label:'2차 심사',date:c.endDate}];
+    for(var j=0;j<others.length;j++){
+      if(others[j].date&&dates.indexOf(others[j].date)>-1){
+        return others[j].date+' — '+(c.title||'')+' '+others[j].label+'와(과) 같은 날입니다.';
+      }
+    }
+  }
+  return '';
+}
 
 function onConsCategoryChange(){
   var cat=document.getElementById('cons-category')?.value||'';
+  // ISO 분류: 시작일/마감일을 1·2차 심사일로 표시 + 통합심사 규격 체크박스
+  var isIso=(cat==='iso');
+  var isoWrap=document.getElementById('cons-iso-wrap');
+  var startLabel=document.getElementById('cons-start-label');
+  var endLabel=document.getElementById('cons-end-label');
+  if(startLabel)startLabel.textContent=isIso?'1차 심사일':'시작일';
+  if(endLabel)endLabel.innerHTML=isIso?'2차 심사일 *':'마감일 *';
+  if(isoWrap){
+    isoWrap.style.display=isIso?'':'none';
+    if(isIso)renderConsIsoChecks();
+  }
   var wrap=document.getElementById('cons-target-wrap');
   if(!wrap)return;
 
@@ -3206,12 +3258,22 @@ function addConsCompany(){
 async function saveConsulting(){
   const title=document.getElementById('cons-title').value.trim();
   const endDate=document.getElementById('cons-end').value;
-  if(!title||!endDate){alert('대분류명과 마감일은 필수입니다.');return;}
+  const catVal=document.getElementById('cons-category').value;
+  if(!title){alert('대분류명은 필수입니다.');return;}
+  if(catVal==='iso'){
+    if(!document.getElementById('cons-start').value&&!endDate){alert('1차 또는 2차 심사일을 입력하세요.');return;}
+  } else if(!endDate){alert('마감일은 필수입니다.');return;}
   const newStatus=document.getElementById('cons-status').value;
   const editId=document.getElementById('cons-edit-id').value;
   const prevCons=editId?consulting.find(x=>x.id===editId):null;
+  // ISO 통합심사: 1·2차 심사일 겹침 경고
+  if(catVal==='iso'){
+    const cf=findConsAuditConflict(document.getElementById('cons-start').value,endDate,editId);
+    if(cf&&!confirm('⚠️ 심사일이 겹칩니다.\n\n'+cf+'\n\n그래도 계속 등록하시겠습니까?'))return;
+  }
   const data={
-    title,category:document.getElementById('cons-category').value,
+    title,category:catVal,
+    isoMasterIds:catVal==='iso'?getConsIsoChecked():[],
     org:document.getElementById('cons-org').value,
     startDate:document.getElementById('cons-start').value,
     endDate,status:newStatus,
@@ -7254,11 +7316,23 @@ function gcalSyncAnnual(report,action){
 function gcalSyncCons(cons,action){
   if(action==='delete'){
     sendToGcal('delete','cons',{id:cons.id});
+    sendToGcal('delete','cert',{id:'consaudit1_'+cons.id});
+    sendToGcal('delete','cert',{id:'consaudit2_'+cons.id});
     return;
   }
   if(!cons.startDate&&!cons.endDate)return;
   var ccs=consCompanies.filter(function(cc){return cc.consId===cons.id;});
   var compNames=ccs.map(function(cc){var comp=companies.find(function(x){return x._id===cc.bizno;});return comp?comp.name:cc.companyName||'';}).join(', ');
+  // ISO 통합심사: 1차 심사(시작일)·2차 심사(마감일)를 각각 별도 일정으로 등록
+  if(cons.category==='iso'){
+    var names=(cons.isoMasterIds||[]).map(function(id){var mm=getCertMasterInfo(id);return (mm.certName||id).replace(/^ISO\s*/i,'');});
+    var label=names.length?('ISO '+names.join('+')+' 통합심사'):(cons.title||'ISO 심사');
+    if(cons.startDate)sendToGcal('upsert','cert',{id:'consaudit1_'+cons.id,companyName:compNames,certName:label+' [1차 심사]',expDate:cons.startDate});
+    else sendToGcal('delete','cert',{id:'consaudit1_'+cons.id});
+    if(cons.endDate)sendToGcal('upsert','cert',{id:'consaudit2_'+cons.id,companyName:compNames,certName:label+' [2차 심사]',expDate:cons.endDate});
+    else sendToGcal('delete','cert',{id:'consaudit2_'+cons.id});
+    return;
+  }
   // 시작~마감을 하나의 기간 이벤트로 전송
   var cm=CAT_META[cons.category]||CAT_META.etc;
   sendToGcal('upsert','cons',{
