@@ -2345,6 +2345,7 @@ async function loadAll(){
     try{ await migrateCertifications(); }catch(e){console.warn('migrate 스킵:',e);}
     try{ await migrateIsoCycle3yr(); }catch(e){console.warn('ISO 3년 보정 스킵:',e);}
     try{ await migrateCycleGroupId(); }catch(e){console.warn('cycleGroupId 보정 스킵:',e);}
+    try{ await cleanupOrphanCerts(); }catch(e){console.warn('고아 정리 스킵:',e);}
     renderAll(); updateCounts();
     setBadge('✅ 로드 완료',2000);
     startRealtimeSync();
@@ -4569,6 +4570,58 @@ async function migrateCycleGroupId(){
     await batch.commit();
     console.log('[CRM] cycleGroupId 부여:',cnt,'건');
   }
+}
+// 고아 인증서 정리 — 연결되어 있던 지원사업/심사(consulting)가 삭제된 인증서를 식별해 일괄 제거
+async function cleanupOrphanCerts(){
+  if(!certifications||!certifications.length)return;
+  if(typeof sessionStorage!=='undefined'&&sessionStorage.getItem('orphanCleanupDismissed')==='1')return;
+  var orphans=certifications.filter(function(c){
+    if(!c.workItemId||typeof c.workItemId!=='string')return false;
+    if(c.workItemId.indexOf('cons:')!==0)return false;
+    var cId=c.workItemId.split(':')[1];
+    if(!cId)return false;
+    return !consulting.find(function(x){return x.id===cId;});
+  });
+  if(!orphans.length)return;
+  var byCycle={};
+  orphans.forEach(function(c){
+    var k=c.cycleGroupId||c.workItemId;
+    if(!byCycle[k]){
+      var comp=companies.find(function(x){return x._id===c.bizno;});
+      byCycle[k]={compName:comp?comp.name:(c.companyName||'?'),certs:[]};
+    }
+    byCycle[k].certs.push(c);
+  });
+  var summary=Object.keys(byCycle).map(function(k){
+    var g=byCycle[k];
+    var stds=[];
+    g.certs.forEach(function(c){var n=c.certName||c.certMasterId;if(n&&stds.indexOf(n)===-1)stds.push(n);});
+    return '• '+g.compName+' / '+stds.join(', ')+' ('+g.certs.length+'건)';
+  }).join('\n');
+  var orphanIds=orphans.map(function(c){return c.id;});
+  var orphanAnnuals=annualReports.filter(function(r){return orphanIds.indexOf(r.certId)>-1;});
+  var msg='🧹 고아 인증서 정리\n\n연결되어 있던 지원사업/심사가 이미 삭제된 인증서가 발견됐습니다.\n함께 정리하시겠습니까?\n\n'
+    +summary
+    +'\n\n총 '+orphans.length+'건 인증서'+(orphanAnnuals.length?' + '+orphanAnnuals.length+'건 연간신고':'')+' 삭제';
+  if(!confirm(msg)){
+    if(typeof sessionStorage!=='undefined')sessionStorage.setItem('orphanCleanupDismissed','1');
+    return;
+  }
+  try{
+    var batch=writeBatch(db);
+    orphans.forEach(function(c){batch.delete(doc(db,'certifications',c.id));});
+    orphanAnnuals.forEach(function(r){batch.delete(doc(db,'annual_reports',r.id));});
+    await batch.commit();
+    orphans.forEach(function(c){
+      if(c.cycleType==='complex'){
+        sendToGcal('delete','cert',{id:'phase_'+c.bizno+'_'+c.certMasterId+'_'+(c.phaseIndex||0)});
+      } else {
+        gcalSyncCert({id:c.id},'delete');
+      }
+    });
+    setBadge('🧹 고아 데이터 '+orphans.length+'건 정리 완료',3000);
+    console.log('[CRM] 고아 인증서 정리:',orphans.length,'건');
+  }catch(e){console.warn('고아 정리 실패:',e);}
 }
 // 구버전 certifications 데이터 자동 보정 (certMasterId 없는 경우)
 async function migrateCertifications(){
