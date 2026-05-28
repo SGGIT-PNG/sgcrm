@@ -1920,7 +1920,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
       <div class="fg"><label class="fl">업체명</label>
         <input class="fi" id="cfw-comp-name" readonly style="opacity:.7">
       </div>
-      <div class="fg"><label class="fl">인증 종류 *</label>
+      <div class="fg" id="cfw-master-fg"><label class="fl">인증 종류 *</label>
         <select class="fs" id="cfw-master-sel" onchange="onCfwTypeChange()"></select>
       </div>
     </div>
@@ -1928,6 +1928,11 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
     <div class="fg" id="cfw-phase-wrap" style="display:none">
       <label class="fl">현재 단계</label>
       <select class="fs" id="cfw-phase-sel"></select>
+    </div>
+    <!-- ISO 통합심사: 규격별 일괄 등록 -->
+    <div class="fg" id="cfw-iso-wrap" style="display:none">
+      <label class="fl">통합심사 규격 <span style="font-size:11px;color:var(--text4)">(체크한 규격마다 인증서가 생성됩니다)</span></label>
+      <div id="cfw-iso-list" style="display:flex;flex-wrap:wrap;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px"></div>
     </div>
     <div class="frow">
       <div class="fg">
@@ -3582,6 +3587,20 @@ var certFromConsQueue = []; // 팝업 대기열 (여러 업체)
 var certFromConsConsId = '';
 var certFromConsCat = '';
 
+var certFromConsIso=null; // ISO 통합심사 모드: 규격 id 배열(아니면 null)
+function renderCfwIsoChecks(masterIds){
+  var el=document.getElementById('cfw-iso-list');if(!el)return;
+  var masters=getRelatedCertMasters('iso');
+  el.innerHTML=masters.map(function(m){
+    var checked=(masterIds||[]).indexOf(m.id)>-1?' checked':'';
+    return '<label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;background:var(--surface);border:1px solid var(--border2);border-radius:7px;padding:5px 10px">'
+      +'<input type="checkbox" class="cfw-iso-cb" value="'+m.id+'"'+checked+'>'
+      +(m.icon||'🏅')+' '+(m.certName||m.id)+'</label>';
+  }).join('');
+}
+function getCfwIsoChecked(){
+  return Array.prototype.slice.call(document.querySelectorAll('.cfw-iso-cb:checked')).map(function(cb){return cb.value;});
+}
 function openCertFromCons(consId, doneCompanies, category){
   const relMasters=getRelatedCertMasters(category);
   // 완료 업체 중 아직 인증이 등록 안 된 업체만 팝업
@@ -3644,6 +3663,21 @@ function processNextCertFromCons(){
     const el=document.getElementById(id);if(el)el.value='';
   });
   onCfwTypeChange();
+  // ISO 통합심사: 선택 규격을 체크리스트로 표시 (규격별 인증서 일괄 생성)
+  var consItem=consulting.find(function(x){return x.id===certFromConsConsId;});
+  var isoMs=(consItem&&consItem.category==='iso'&&consItem.isoMasterIds&&consItem.isoMasterIds.length)?consItem.isoMasterIds:null;
+  certFromConsIso=isoMs;
+  var isoWrapC=document.getElementById('cfw-iso-wrap');
+  var masterFgC=document.getElementById('cfw-master-fg');
+  var phaseWrapC=document.getElementById('cfw-phase-wrap');
+  if(isoMs){
+    if(isoWrapC){isoWrapC.style.display='';renderCfwIsoChecks(isoMs);}
+    if(masterFgC)masterFgC.style.display='none';
+    if(phaseWrapC)phaseWrapC.style.display='none';
+  } else {
+    if(isoWrapC)isoWrapC.style.display='none';
+    if(masterFgC)masterFgC.style.display='';
+  }
   openModal('cert-from-work-modal');
 }
 
@@ -3722,6 +3756,9 @@ function openCertFromWork(workItemId){
     : certMasterOptions();
   // 날짜 초기화
   ['cfw-acq-y','cfw-acq-m','cfw-acq-d','cfw-exp-y','cfw-exp-m','cfw-exp-d'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  certFromConsIso=null;
+  var isoWrap0=document.getElementById('cfw-iso-wrap');if(isoWrap0)isoWrap0.style.display='none';
+  var masterFg0=document.getElementById('cfw-master-fg');if(masterFg0)masterFg0.style.display='';
   onCfwTypeChange();
   openModal('cert-from-work-modal');
 }
@@ -3771,6 +3808,23 @@ async function saveCertFromWork(){
   if(!comp){alert('업체 정보를 확인해주세요.');return;}
   const acqDate=getDateFields('cfw-acq-y','cfw-acq-m','cfw-acq-d');
   if(!acqDate){alert('취득일을 입력해주세요.');return;}
+  // ISO 통합심사: 체크한 규격마다 인증서 일괄 생성
+  if(certFromConsIso){
+    var isoStds=getCfwIsoChecked();
+    if(!isoStds.length){alert('등록할 규격을 1개 이상 선택하세요.');return;}
+    var stdNames=isoStds.map(function(id){return getCertMasterInfo(id).certName;}).join(', ');
+    if(!confirm('[통합심사 인증서 일괄 등록]\n\n'+comp.name+'\n취득일(발급일): '+acqDate+'\n\n다음 '+isoStds.length+'개 규격의 인증서를 생성합니다:\n'+stdNames+'\n\n각 규격마다 사후심사·갱신 일정이 자동 생성됩니다.'))return;
+    try{
+      for(var si=0;si<isoStds.length;si++){
+        await createComplexPhases(isoStds[si],comp._id,comp.name,acqDate,workItemId);
+      }
+      certFromConsIso=null;
+      closeModal('cert-from-work-modal');
+      setBadge('✅ 통합심사 '+isoStds.length+'개 규격 인증서 등록 완료',2500);
+      if(workItemId.startsWith('cons:')){certFromConsQueue.shift();setTimeout(processNextCertFromCons,400);}
+    }catch(e){alert('저장 실패: '+e.message);}
+    return;
+  }
   const masterId=document.getElementById('cfw-master-sel')?.value;
   const m=getCertMasterInfo(masterId);
 
