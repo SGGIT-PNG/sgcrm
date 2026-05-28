@@ -2296,23 +2296,25 @@ async function loadAll(){
         // 2. ISO 4단계 phases 보정 (3단계 → 4단계 자동 업데이트)
         const ISO_IDS=['iso_9001','iso_14001','iso_45001','iso_22000','iso_37001','iso_37301'];
         const NEW_ISO_PHASES=[
-          {name:'최초심사',months:12,isInitial:true},
+          {name:'최초심사',months:0,isInitial:true},
           {name:'1차 사후심사',months:12,isPost:true},
           {name:'2차 사후심사',months:12,isPost:true},
           {name:'갱신심사',months:12,isRenewal:true,isInitial:true},
         ];
         const isoNeedsFix=certMaster.filter(function(m){
-          return ISO_IDS.includes(m.id)&&(!m.phases||m.phases.length!==4);
+          if(!ISO_IDS.includes(m.id))return false;
+          // 4단계 누락 또는 구버전(4년/최초 12개월) → 3년 주기로 보정
+          return !m.phases||m.phases.length!==4||m.cycleMonths!==36||(m.phases[0]&&m.phases[0].months!==0);
         });
         if(isoNeedsFix.length){
           isoNeedsFix.forEach(function(m){
             batch2.update(doc(db,'cert_master',m.id),{
               phases:NEW_ISO_PHASES,
-              cycleMonths:48
+              cycleMonths:36
             });
           });
           needsUpdate=true;
-          console.log('[CRM] ISO 4단계 phases 자동 보정:',isoNeedsFix.map(m=>m.id));
+          console.log('[CRM] ISO 3년 주기 보정:',isoNeedsFix.map(m=>m.id));
         }
 
         if(needsUpdate){
@@ -2324,6 +2326,7 @@ async function loadAll(){
     }catch(e){console.warn('cert_master 초기화 스킵:',e);}
     // certifications 구버전 데이터 자동 보정 (오류나도 계속 진행)
     try{ await migrateCertifications(); }catch(e){console.warn('migrate 스킵:',e);}
+    try{ await migrateIsoCycle3yr(); }catch(e){console.warn('ISO 3년 보정 스킵:',e);}
     renderAll(); updateCounts();
     setBadge('✅ 로드 완료',2000);
     startRealtimeSync();
@@ -4407,7 +4410,7 @@ function setHistPage(page){histPage=page;renderHistoryPage();}
 // cert_master가 없을 때 기본값 자동 등록
 async function initCertMaster(){
   const ISO_PHASES=[
-    {name:'최초심사',months:12,isInitial:true},
+    {name:'최초심사',months:0,isInitial:true},
     {name:'1차 사후심사',months:12,isPost:true},
     {name:'2차 사후심사',months:12,isPost:true},
     {name:'갱신심사',months:12,isRenewal:true,isInitial:true},
@@ -4420,12 +4423,12 @@ async function initCertMaster(){
     {id:'lab',         certName:'기업부설연구소',  icon:'🔬',cycleType:'fixed', reportType:'annual',cycleMonths:12,annualMonth:4,annualDay:30,alertDays:[60,30,7],description:'매년 4월 30일까지 연차보고서 제출 (미신고 시 취소)',sortOrder:4},
     {id:'rnd_dept',    certName:'연구개발전담부서',icon:'🔭',cycleType:'fixed', reportType:'annual',cycleMonths:12,annualMonth:4,annualDay:30,alertDays:[60,30,7],description:'매년 4월 30일까지 연차보고서 제출',sortOrder:5},
     {id:'direct_prod', certName:'직접생산확인',    icon:'📦',cycleType:'fixed', reportType:'renewal',cycleMonths:36,alertDays:[90,30,7],description:'3년마다 갱신',sortOrder:6},
-    {id:'iso_9001',    certName:'ISO 9001',  icon:'🏅',cycleType:'complex',reportType:'renewal',cycleMonths:48,phases:ISO_PHASES,alertDays:[90,30,7],description:'품질경영시스템',sortOrder:10},
-    {id:'iso_14001',   certName:'ISO 14001', icon:'🌿',cycleType:'complex',reportType:'renewal',cycleMonths:48,phases:ISO_PHASES,alertDays:[90,30,7],description:'환경경영시스템',sortOrder:11},
-    {id:'iso_45001',   certName:'ISO 45001', icon:'🦺',cycleType:'complex',reportType:'renewal',cycleMonths:48,phases:ISO_PHASES,alertDays:[90,30,7],description:'안전보건경영시스템',sortOrder:12},
-    {id:'iso_22000',   certName:'ISO 22000', icon:'🍽️',cycleType:'complex',reportType:'renewal',cycleMonths:48,phases:ISO_PHASES,alertDays:[90,30,7],description:'식품안전경영시스템',sortOrder:13},
-    {id:'iso_37001',   certName:'ISO 37001', icon:'⚖️',cycleType:'complex',reportType:'renewal',cycleMonths:48,phases:ISO_PHASES,alertDays:[90,30,7],description:'반부패경영시스템',sortOrder:14},
-    {id:'iso_37301',   certName:'ISO 37301', icon:'📜',cycleType:'complex',reportType:'renewal',cycleMonths:48,phases:ISO_PHASES,alertDays:[90,30,7],description:'컴플라이언스경영시스템',sortOrder:15},
+    {id:'iso_9001',    certName:'ISO 9001',  icon:'🏅',cycleType:'complex',reportType:'renewal',cycleMonths:36,phases:ISO_PHASES,alertDays:[90,30,7],description:'품질경영시스템',sortOrder:10},
+    {id:'iso_14001',   certName:'ISO 14001', icon:'🌿',cycleType:'complex',reportType:'renewal',cycleMonths:36,phases:ISO_PHASES,alertDays:[90,30,7],description:'환경경영시스템',sortOrder:11},
+    {id:'iso_45001',   certName:'ISO 45001', icon:'🦺',cycleType:'complex',reportType:'renewal',cycleMonths:36,phases:ISO_PHASES,alertDays:[90,30,7],description:'안전보건경영시스템',sortOrder:12},
+    {id:'iso_22000',   certName:'ISO 22000', icon:'🍽️',cycleType:'complex',reportType:'renewal',cycleMonths:36,phases:ISO_PHASES,alertDays:[90,30,7],description:'식품안전경영시스템',sortOrder:13},
+    {id:'iso_37001',   certName:'ISO 37001', icon:'⚖️',cycleType:'complex',reportType:'renewal',cycleMonths:36,phases:ISO_PHASES,alertDays:[90,30,7],description:'반부패경영시스템',sortOrder:14},
+    {id:'iso_37301',   certName:'ISO 37301', icon:'📜',cycleType:'complex',reportType:'renewal',cycleMonths:36,phases:ISO_PHASES,alertDays:[90,30,7],description:'컴플라이언스경영시스템',sortOrder:15},
   ];
   const batch=writeBatch(db);
   defaults.forEach(d=>{const {id,...data}=d;batch.set(doc(db,'cert_master',id),{...data,createdAt:Date.now()});});
@@ -4434,6 +4437,32 @@ async function initCertMaster(){
   certMaster=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.sortOrder||99)-(b.sortOrder||99));
 }
 
+// ISO 인증 3년 주기 보정: 구버전(48개월) 단계별 만료일을 [발급,+1년,+2년,+3년]으로 재계산
+// idempotent — 이미 올바른 값이면 건너뜀(중복 쓰기 없음). ISO(복합주기) 인증만 대상, 발급일 보존.
+async function migrateIsoCycle3yr(){
+  if(!certifications||!certifications.length)return;
+  var OFFSET=[0,12,24,36]; // 최초/1차사후/2차사후/갱신 (개월)
+  var batch=writeBatch(db);
+  var cnt=0;
+  certifications.forEach(function(c){
+    if(c.cycleType!=='complex'||!c.acqDate)return;
+    var i=(typeof c.phaseIndex==='number')?c.phaseIndex:null;
+    if(i===null||i<0||i>=OFFSET.length)return;
+    var dd=new Date(c.acqDate);
+    if(isNaN(dd.getTime()))return;
+    dd.setMonth(dd.getMonth()+OFFSET[i]);
+    var expected=dd.toISOString().slice(0,10);
+    if(c.expDate!==expected){
+      batch.update(doc(db,'certifications',c.id),{expDate:expected,updatedAt:Date.now()});
+      cnt++;
+    }
+  });
+  if(cnt>0){
+    await batch.commit();
+    console.log('[CRM] ISO 3년 주기 재계산:',cnt,'건');
+    setBadge('ISO 3년 주기 재계산 '+cnt+'건',2500);
+  }
+}
 // 구버전 certifications 데이터 자동 보정 (certMasterId 없는 경우)
 async function migrateCertifications(){
   // certName → certMasterId 매핑 테이블
@@ -4638,6 +4667,7 @@ function certDdayBadge(diff){
   return `<span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:${color}">${label}</span>`;
 }
 function certStatusBadge(cert){
+  if(cert.cycleType==='complex'&&cert.phaseIndex===0)return `<span class="badge" style="background:var(--ok-pale);color:var(--ok)">✅ 발급</span>`;
   const diff=getCertDday(cert.expDate);
   if(cert.status==='만료'||diff<0)return `<span class="badge" style="background:var(--danger-pale);color:var(--danger)">⚠️ 만료</span>`;
   if(cert.status==='갱신중')return `<span class="badge" style="background:var(--warn-pale);color:var(--warn)">🔄 갱신중</span>`;
@@ -4656,7 +4686,7 @@ function certRow(c){
     :'';
   const linkedWork=c.workItemId?workItems.find(w=>w.id===c.workItemId):null;
   const workLink=linkedWork?`<div style="font-size:11px;color:var(--teal);margin-top:2px">&#128279; ${linkedWork.name} [${ST[linkedWork.status]?.label||linkedWork.status}]</div>`:'';
-  const statusCell=isAnnual?getAnnualStatusDisplay(c.id):certDdayBadge(diff);
+  const statusCell=isAnnual?getAnnualStatusDisplay(c.id):(isComplex&&c.phaseIndex===0?'<span style="color:var(--text4)">발급</span>':certDdayBadge(diff));
   return `<tr${c.status==='완료'?' style="opacity:.6"':''}>
     <td>
       <div style="font-size:14px;font-weight:500;cursor:pointer;color:var(--blue-l)" onclick="openCertModal('${c.id}')">${comp?.name||c.companyName||'&#8212;'}</div>
@@ -5112,7 +5142,7 @@ async function markCertPhaseDone(certIdOrEl){
       var compName=comp?comp.name:(cert.companyName||'');
       var certName=m.certName||'ISO 인증';
       setTimeout(function(){
-        if(confirm('🎉 갱신심사(=최초심사) 완료!\n\n['+compName+'] '+certName+'\n\n새 3년 인증 주기를 시작하시겠습니까?\n\n다음 주기:\n1단계: 최초심사 (12개월)\n2단계: 1차 사후심사 (12개월)\n3단계: 2차 사후심사 (12개월)\n4단계: 갱신심사 (12개월)')){
+        if(confirm('🎉 갱신심사(=최초심사) 완료!\n\n['+compName+'] '+certName+'\n\n새 3년 인증 주기를 시작하시겠습니까?\n\n다음 주기:\n1단계: 최초심사 (발급)\n2단계: 1차 사후심사 (+1년)\n3단계: 2차 사후심사 (+2년)\n4단계: 갱신심사 (+3년)')){
           // 새 사이클 시작 - 인증 등록 모달 열기 (취득일 자동 입력)
           // 갱신심사 만료일이 새 사이클의 취득일 (최초심사 시작일)
           var today=cert.expDate||new Date().toISOString().slice(0,10);
