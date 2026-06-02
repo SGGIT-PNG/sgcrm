@@ -3177,18 +3177,48 @@ function renderConsIsoChecks(){
 function getConsIsoChecked(){
   return Array.prototype.slice.call(document.querySelectorAll('.cons-iso-cb:checked')).map(function(cb){return cb.value;});
 }
-// ISO 통합심사 1·2차 심사일 겹침 검사 (다른 ISO 항목의 심사일과 같은 날이면 안내)
-function findConsAuditConflict(d1,d2,excludeId){
-  var dates=[d1,d2].filter(Boolean);
-  if(!dates.length)return '';
+// ISO 통합심사 1·2차 심사일 범위 겹침 검사 (심사 일수 포함, 본인 1·2차끼리 + 다른 ISO 항목 모두 체크)
+function findConsAuditConflict(d1,days1,d2,days2,excludeId){
+  function range(start,days){
+    if(!start)return null;
+    var d=parseInt(days)||1;
+    return {start:start,end:addDaysISO(start,d-1)}; // 포함 종료일 (1일이면 start=end)
+  }
+  function overlap(a,b){return a.start<=b.end && b.start<=a.end;}
+  function fmtRange(r){return r.start===r.end?r.start:(r.start+' ~ '+r.end);}
+
+  var r1=range(d1,days1), r2=range(d2,days2);
+  var newRanges=[];
+  if(r1)newRanges.push({label:'1차 심사',range:r1});
+  if(r2)newRanges.push({label:'2차 심사',range:r2});
+  if(!newRanges.length)return '';
+
+  // 1) 본인 1차 vs 2차 겹침
+  if(r1&&r2&&overlap(r1,r2)){
+    return '입력한 1차 심사 ('+fmtRange(r1)+')와 2차 심사 ('+fmtRange(r2)+')의 일정이 겹칩니다.';
+  }
+
+  // 2) 다른 ISO 항목들과의 겹침
   for(var i=0;i<consulting.length;i++){
     var c=consulting[i];
     if(c.category!=='iso')continue;
     if(excludeId&&c.id===excludeId)continue;
-    var others=[{label:'1차 심사',date:c.startDate},{label:'2차 심사',date:c.endDate}];
-    for(var j=0;j<others.length;j++){
-      if(others[j].date&&dates.indexOf(others[j].date)>-1){
-        return others[j].date+' — '+(c.title||'')+' '+others[j].label+'와(과) 같은 날입니다.';
+    var er1=range(c.startDate,c.audit1Days), er2=range(c.endDate,c.audit2Days);
+    var existRanges=[];
+    if(er1)existRanges.push({label:'1차 심사',range:er1});
+    if(er2)existRanges.push({label:'2차 심사',range:er2});
+    for(var j=0;j<existRanges.length;j++){
+      for(var k=0;k<newRanges.length;k++){
+        if(overlap(newRanges[k].range,existRanges[j].range)){
+          var ccs=consCompanies.filter(function(cc){return cc.consId===c.id;});
+          var compNames=ccs.map(function(cc){
+            var comp=companies.find(function(x){return x._id===cc.bizno;});
+            return comp?comp.name:cc.companyName;
+          }).filter(Boolean).join(', ');
+          var titleLine=(c.title||'')+(compNames?' ('+compNames+')':'');
+          return '입력한 '+newRanges[k].label+' ('+fmtRange(newRanges[k].range)+')이(가)\n'+
+                 titleLine+'의 '+existRanges[j].label+' ('+fmtRange(existRanges[j].range)+')과(와) 겹칩니다.';
+        }
       }
     }
   }
@@ -3365,10 +3395,16 @@ async function saveConsulting(){
   const newStatus=document.getElementById('cons-status').value;
   const editId=document.getElementById('cons-edit-id').value;
   const prevCons=editId?consulting.find(x=>x.id===editId):null;
-  // ISO 통합심사: 1·2차 심사일 겹침 경고
+  // ISO 통합심사: 1·2차 심사일 + 심사 일수 범위 겹침 → 하드 블록 (저장 불가)
   if(catVal==='iso'){
-    const cf=findConsAuditConflict(document.getElementById('cons-start').value,endDate,editId);
-    if(cf&&!confirm('⚠️ 심사일이 겹칩니다.\n\n'+cf+'\n\n그래도 계속 등록하시겠습니까?'))return;
+    const d1=document.getElementById('cons-start').value;
+    const days1=+document.getElementById('cons-audit1-days').value||1;
+    const days2=+document.getElementById('cons-audit2-days').value||1;
+    const cf=findConsAuditConflict(d1,days1,endDate,days2,editId);
+    if(cf){
+      alert('⚠️ 심사 일정이 겹칩니다 (저장 불가)\n\n'+cf+'\n\n날짜 또는 심사 일수를 조정해 주세요.');
+      return;
+    }
   }
   const data={
     title,category:catVal,
