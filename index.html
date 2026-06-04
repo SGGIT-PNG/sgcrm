@@ -4655,6 +4655,19 @@ async function cleanupOrphanCerts(){
         gcalSyncCert({id:c.id},'delete');
       }
     });
+    // 고아 cons에 묶여있던 1차/2차 심사 캘린더 이벤트도 같이 정리 (consId 단위 dedup)
+    var orphanConsIds={};
+    orphans.forEach(function(c){
+      if(c.workItemId&&typeof c.workItemId==='string'&&c.workItemId.indexOf('cons:')===0){
+        var cid=c.workItemId.split(':')[1];
+        if(cid)orphanConsIds[cid]=true;
+      }
+    });
+    Object.keys(orphanConsIds).forEach(function(cid){
+      sendToGcal('delete','cert',{id:'consaudit1_'+cid});
+      sendToGcal('delete','cert',{id:'consaudit2_'+cid});
+      sendToGcal('delete','cons',{id:cid}); // 옛 cons 기간 이벤트도 함께(있다면)
+    });
     setBadge('🧹 고아 데이터 '+orphans.length+'건 정리 완료',3000);
     console.log('[CRM] 고아 인증서 정리:',orphans.length,'건');
   }catch(e){console.warn('고아 정리 실패:',e);}
