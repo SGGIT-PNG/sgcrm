@@ -37,30 +37,32 @@ git config user.email "sgceo@sgsolutionss.com"
 
 ## 코드 수정 후 검증 (필수)
 
-수정할 때마다 아래 두 가지를 **반드시** 통과시킨 뒤 보고합니다.
-
-```
-node --check <추출한 JS>       # 문법 오류 0
-node ../check.mjs index.html   # 중괄호 균형 0 / 중복 함수 없음
-```
-
-`check.mjs`는 부모 폴더(`Desktop/sgcrm1/check.mjs`)에 있습니다.
-`<script type="module">` 블록을 추출해 검사하며, 기준선(현재값)은:
-
-- 함수: 268개
-- 중괄호 균형: 0
-- 중복 함수: 없음
-- Firebase(sg-crm-f9adc) 참조: true
-- window export(Object.assign): true
-
-`node --check`용 추출은 다음과 같이 수행합니다 (임시 폴더 사용):
+수정할 때마다 저장소 폴더에서 아래 **한 줄**을 실행하고, 전부 ✅ 여야 커밋합니다.
 
 ```bash
-node -e "const fs=require('fs');const c=fs.readFileSync('index.html','utf8');const s='<script type=\"module\">';const i=c.indexOf(s);fs.writeFileSync(process.env.TMP+'/sgcrm_check.mjs',c.slice(i+s.length,c.lastIndexOf('</script>')))"
-node --check "$TMP/sgcrm_check.mjs"
+node verify.mjs
 ```
 
+`verify.mjs`가 검사하는 것:
+
+1. **문법 오류** — `<script type="module">` 블록을 추출해 `node --check`
+2. **중괄호 균형 0 / 중복 함수 없음**
+3. **Firebase(sg-crm-f9adc) 참조 · `Object.assign(window,…)` 존재**
+4. **인라인 핸들러 ↔ window export 대조** ← 이 코드베이스 특유의 사고 유형
+   `onclick="foo()"` 인데 `foo`가 window에 export 안 되면 문법은 통과하지만
+   버튼이 눌리지 않습니다. 새 전역 함수를 만들면 반드시 export 목록에 추가할 것.
+
 검증 실패 시 **커밋하지 말고** 원인을 보고하고 롤백 여부를 확인합니다.
+`verify.mjs`는 실패 시 exit code 1을 반환합니다.
+
+> 부모 폴더의 `check.mjs`는 구버전입니다. `verify.mjs`를 쓰세요.
+
+### 브라우저 실검증 (권장)
+
+문법 검사로는 못 잡는 오류(런타임 참조, 레이아웃 깨짐)가 많습니다.
+가능하면 브라우저로 열어 콘솔 오류 0을 확인하고, 바뀐 화면을 눈으로 봅니다.
+Firestore **읽기는 안전**하지만, 월 이동·뷰 전환은 `app_state`(UI 상태)에
+쓰기가 발생하므로 점검 후 원래 값으로 되돌립니다.
 
 ## 응답 언어
 

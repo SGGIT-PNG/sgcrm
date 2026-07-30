@@ -236,7 +236,11 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
 
 /* ── 캘린더 뷰 (구글 캘린더 스타일 월 그리드) ── */
 .gcal-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;}
-.gcal-top{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface2);}
+.gcal-top{display:flex;align-items:center;gap:8px;row-gap:6px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface2);}
+/* 주 뷰 제목은 길어서 줄바꿈되면 안 됨 (기본 .cal-month-title은 flex:1이라 찌그러짐) */
+.gcal-top .cal-month-title{flex:0 0 auto;white-space:nowrap;text-align:left;font-size:14px;}
+.gcal-top label,.gcal-top #gcal-ext-status{white-space:nowrap;}
+.gcal-legend{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:10px;color:var(--text4);white-space:nowrap;}
 .gcal-dow{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-bottom:1px solid var(--border);background:var(--surface2);}
 .gcal-dow div{padding:7px 0;text-align:center;font-size:11px;font-weight:600;color:var(--text3);}
 .gcal-dow div.sat{color:#2563EB;}
@@ -262,6 +266,42 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
 .gcal-pop-hd{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:7px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
 .gcal-pop-close{background:none;border:none;color:var(--text4);font-size:17px;cursor:pointer;line-height:1;padding:0;}
 .gcal-empty{padding:26px 10px;text-align:center;color:var(--text4);font-size:13px;}
+
+/* ── 주 단위 뷰 (구글 캘린더 Week) ── */
+/* 8열: 시간 눈금 + 7일 */
+.gwk-head,.gwk-allday,.gwk-grid{display:grid;grid-template-columns:52px repeat(7,minmax(0,1fr));}
+.gwk-head{border-bottom:1px solid var(--border);background:var(--surface2);}
+.gwk-dayhd{padding:6px 0 7px;text-align:center;border-left:1px solid var(--border);}
+.gwk-dayhd .dow{display:block;font-size:10px;font-weight:600;color:var(--text3);}
+.gwk-dayhd .dnum{display:block;font-size:17px;font-weight:600;color:var(--text2);font-family:'JetBrains Mono',monospace;line-height:1.35;}
+.gwk-dayhd.sat .dow,.gwk-dayhd.sat .dnum{color:#2563EB;}
+.gwk-dayhd.sun .dow,.gwk-dayhd.sun .dnum{color:#DC2626;}
+.gwk-dayhd.today .dnum{background:#EA580C;color:#FFF;border-radius:50%;width:28px;height:28px;line-height:28px;margin:0 auto;}
+.gwk-gutter{font-size:9px;color:var(--text4);text-align:right;padding:4px 6px 0 0;}
+/* 종일 영역 */
+.gwk-allday{border-bottom:1px solid var(--border2);background:var(--surface);min-height:26px;max-height:104px;overflow-y:auto;}
+.gwk-adcell{border-left:1px solid var(--border);padding:3px 0;min-width:0;}
+.gwk-adcell.sat{background:#F0F4FF;}
+.gwk-adcell.sun{background:#FFF5F5;}
+.gwk-adcell.today{background:#FFF7ED;}
+/* 시간 그리드 */
+.gwk-scroll{max-height:520px;overflow-y:auto;}
+.gwk-hourcol{border-right:1px solid var(--border);}
+.gwk-hour{height:42px;font-size:9px;color:var(--text4);text-align:right;padding-right:6px;
+  font-family:'JetBrains Mono',monospace;transform:translateY(-6px);}
+.gwk-daycol{border-left:1px solid var(--border);position:relative;min-width:0;}
+.gwk-daycol.sat{background:#F7F9FF;}
+.gwk-daycol.sun{background:#FFFAFA;}
+.gwk-daycol.today{background:#FFFCF7;}
+.gwk-slot{height:42px;border-bottom:1px solid var(--border);}
+.gwk-slot.half{border-bottom:1px dotted var(--border);}
+/* 시간 일정 블록 */
+.gwk-ev{position:absolute;border-radius:5px;padding:2px 5px;font-size:10px;font-weight:600;color:#FFF;
+  overflow:hidden;cursor:default;box-shadow:0 1px 3px rgba(0,0,0,.18);z-index:2;line-height:1.3;}
+.gwk-ev .t{display:block;font-size:9px;font-weight:500;opacity:.9;}
+/* 현재 시각 표시선 */
+.gwk-now{position:absolute;left:0;right:0;height:2px;background:#EF4444;z-index:5;pointer-events:none;}
+.gwk-now::before{content:'';position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:#EF4444;}
 
 .todo-wrap{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
 .todo-col{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:14px;}
@@ -356,6 +396,10 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
   .gantt-wrap,.gantt-wrap-sub{overflow-x:auto!important;-webkit-overflow-scrolling:touch;}
 
   /* 캘린더 뷰 셀 축소 */
+  .gcal-legend{display:none!important;}
+  .gwk-head,.gwk-allday,.gwk-grid{grid-template-columns:38px repeat(7,minmax(0,1fr))!important;}
+  .gwk-dayhd .dnum{font-size:14px!important;}
+  .gwk-ev{font-size:9px!important;padding:1px 3px!important;}
   .gcal-cell{min-height:74px!important;}
   .gcal-ev{font-size:9px!important;padding:0 3px!important;}
   .gcal-pop{max-width:88vw!important;}
@@ -752,18 +796,32 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
       <!-- 캘린더 뷰 (월 그리드) -->
       <div class="gcal-wrap" id="gcal-wrap-sub" style="display:none">
         <div class="gcal-top">
-          <button class="cal-nav-btn" onclick="prevMonth()">‹</button>
+          <button class="cal-nav-btn" onclick="gcalPrev()">‹</button>
           <div class="cal-month-title" id="gcal-month-title-sub"></div>
-          <button class="cal-nav-btn" onclick="nextMonth()">›</button>
-          <button class="cal-today-btn" onclick="goToday()">오늘</button>
-          <div style="margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:10px;color:var(--text4)">
-            <span>📅 지원사업</span><span>🏅 인증만료</span><span>📋 연간신고</span><span>✅ ToDo</span>
+          <button class="cal-nav-btn" onclick="gcalNext()">›</button>
+          <button class="cal-today-btn" onclick="gcalToday()">오늘</button>
+          <div class="toggle-btn" id="gcal-mode-toggle" style="margin-left:6px">
+            <button class="toggle-opt" data-mode="month" onclick="setGcalMode('month')">월</button>
+            <button class="toggle-opt active" data-mode="week" onclick="setGcalMode('week')">주</button>
+          </div>
+          <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text3);cursor:pointer;margin-left:4px">
+            <input type="checkbox" id="gcal-ext-chk" onchange="toggleGcalExternal(this.checked)" style="width:14px;height:14px;accent-color:#0D9488">
+            구글 일정
+          </label>
+          <span id="gcal-ext-status" style="font-size:10px"></span>
+          <div class="gcal-legend">
+            <span>📅 지원사업</span><span>🏅 인증만료</span><span>📋 연간신고</span><span>✅ ToDo</span><span>📆 구글</span>
           </div>
         </div>
-        <div class="gcal-dow">
-          <div class="sun">일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div class="sat">토</div>
+        <!-- 월 뷰 -->
+        <div id="gcal-month-sub">
+          <div class="gcal-dow">
+            <div class="sun">일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div class="sat">토</div>
+          </div>
+          <div class="gcal-grid" id="gcal-body-sub"></div>
         </div>
-        <div class="gcal-grid" id="gcal-body-sub"></div>
+        <!-- 주 뷰 -->
+        <div id="gcal-week-sub" style="display:none"></div>
       </div>
     </div>
 
@@ -2292,6 +2350,8 @@ let currentWorkCat = null;
 let tempConsCompanies = [];
 let ganttFilter = 'ing';
 let ganttViewMode = 'gantt';  // 간트 페이지 뷰 모드: 'gantt' | 'calendar'
+let gcalMode = 'week';        // 캘린더 뷰 형식: 'month' | 'week'
+let calWeekAnchor = '';       // 주 뷰가 표시 중인 주(해당 주 아무 날짜, YYYY-MM-DD)
 let workFilter = 'ing';
 let cliPageOv=1, cliPageSub=1;
 const CLI_PER_PAGE_OV=10, CLI_PER_PAGE_SUB=20;
@@ -2334,6 +2394,8 @@ async function loadAll(){
       tempBiznoCounter=d.tempBiznoCounter||1;
       expandedCats=new Set(d.expandedCats||[]);
       ganttViewMode=d.ganttViewMode==='calendar'?'calendar':'gantt';
+      gcalMode=d.gcalMode==='month'?'month':'week';
+      calWeekAnchor=d.calWeekAnchor||'';
     }
     // 8개 컬렉션 병렬 로드
     const [cSnap,conSnap,ccSnap,wiSnap,tSnap,catSnap,certSnap,cmSnap,arSnap]=await Promise.all([
@@ -2765,13 +2827,13 @@ function setDateFields(yId,mId,dId,dateStr){
 function saveAppState(){
   if(_saveTimer)clearTimeout(_saveTimer);
   _saveTimer=setTimeout(async()=>{
-    try{await setDoc(COL.app_state(),{calY,calM,expandedCats:[...expandedCats],tempBiznoCounter,ganttViewMode,updatedAt:Date.now()});}
+    try{await setDoc(COL.app_state(),{calY,calM,expandedCats:[...expandedCats],tempBiznoCounter,ganttViewMode,gcalMode,calWeekAnchor,updatedAt:Date.now()});}
     catch(e){console.error(e);}
   },400);
 }
 async function manualSave(){
   setBadge('🔄 저장 중...');
-  try{await setDoc(COL.app_state(),{calY,calM,expandedCats:[...expandedCats],tempBiznoCounter,ganttViewMode,updatedAt:Date.now()});setBadge('✅ 저장됨',2000);}
+  try{await setDoc(COL.app_state(),{calY,calM,expandedCats:[...expandedCats],tempBiznoCounter,ganttViewMode,gcalMode,calWeekAnchor,updatedAt:Date.now()});setBadge('✅ 저장됨',2000);}
   catch(e){setBadge('⚠️ 실패');}
 }
 
@@ -3159,6 +3221,59 @@ function addDaysStr(ds,n){
   const d=new Date(ds);d.setDate(d.getDate()+n);
   return dateStr(d.getFullYear(),d.getMonth(),d.getDate());
 }
+
+// ── 구글 캘린더 → 앱 (읽기 전용 동기화) ──
+// 폰·PC에서 구글 캘린더에 입력한 개인 일정을 앱 캘린더 뷰에 함께 표시
+var gcalExternal={key:'',events:[],loading:false,error:''};
+
+function gcalExternalOn(){
+  var s=getGcalSettings();
+  return !!(s.webhookUrl&&s.showExternal!==false);
+}
+// 표시 범위(rs~re)의 구글 일정을 조회. 같은 범위는 캐시 사용
+async function loadGcalExternal(rs,re){
+  var s=getGcalSettings();
+  var key=rs+'~'+re;
+  if(!gcalExternalOn()){gcalExternal={key:key,events:[],loading:false,error:''};return;}
+  gcalExternal.loading=true;gcalExternal.error='';
+  updateGcalExtStatus();
+  try{
+    var url=s.webhookUrl+(s.webhookUrl.indexOf('?')>-1?'&':'?')
+      +'action=list&from='+encodeURIComponent(rs)+'&to='+encodeURIComponent(re);
+    var resp=await fetch(url,{method:'GET',redirect:'follow'});
+    if(!resp.ok)throw new Error('HTTP '+resp.status);
+    var j=await resp.json();
+    if(!j.ok)throw new Error(j.error||'응답 오류');
+    gcalExternal.events=j.events||[];
+  }catch(err){
+    gcalExternal.events=[];
+    gcalExternal.error=err.message||'조회 실패';
+  }
+  // 성공/실패 모두 key를 갱신해 재조회 루프 방지
+  gcalExternal.key=key;
+  gcalExternal.loading=false;
+}
+// 캘린더 헤더의 구글 연동 상태 표시 (실패를 조용히 넘기지 않음)
+function updateGcalExtStatus(){
+  var el=document.getElementById('gcal-ext-status');if(!el)return;
+  var s=getGcalSettings();
+  if(!s.webhookUrl){el.innerHTML='<span style="color:var(--text4)">구글 미연동</span>';return;}
+  if(s.showExternal===false){el.innerHTML='<span style="color:var(--text4)">구글 일정 숨김</span>';return;}
+  if(gcalExternal.loading){el.innerHTML='<span style="color:var(--text4)">구글 일정 불러오는 중…</span>';return;}
+  if(gcalExternal.error){
+    el.innerHTML='<span style="color:var(--danger)" title="'+escAttr(gcalExternal.error)+'">⚠️ 구글 조회 실패</span>';
+    return;
+  }
+  el.innerHTML='<span style="color:var(--ok)">📆 구글 '+gcalExternal.events.length+'건</span>';
+}
+// 구글 일정 표시 on/off (설정에 저장)
+function toggleGcalExternal(on){
+  var s=getGcalSettings();
+  s.showExternal=!!on;
+  localStorage.setItem(GCAL_SETTINGS_KEY,JSON.stringify(s));
+  gcalExternal={key:'',events:[],loading:false,error:''};
+  renderGanttView();
+}
 // 표시 범위(rs~re, YYYY-MM-DD)와 겹치는 이벤트 수집
 // 반환: {start,end,label,type,color,click}
 function collectGanttEvents(rs,re){
@@ -3209,6 +3324,20 @@ function collectGanttEvents(rs,re){
     if(ganttFilter!=='all'&&t.status!==ganttFilter)return;
     evs.push({start:t.dueDate,end:t.dueDate,label:'✅ '+(t.text||''),type:'todo',color:(ST[t.status]&&ST[t.status].dot)||'#94A3B8',click:"openTodoModal('"+(t.status||'ing')+"','"+t.id+"')"});
   });
+  // 5) 구글 캘린더 개인 일정 (읽기 전용 — 폰·PC에서 입력한 일정)
+  //    상태 필터 대상 아님(상태 개념이 없음)
+  gcalExternal.events.forEach(function(g){
+    if(!g.start)return;
+    var gEnd=g.end||g.start;
+    if(!overlap(g.start,gEnd))return;
+    evs.push({
+      start:g.start,end:gEnd,
+      label:'📆 '+(g.startTime?g.startTime+' ':'')+(g.title||'(제목 없음)'),
+      type:'gcal',color:'#0D9488',click:'',
+      allDay:g.allDay!==false&&!g.startTime,
+      sTime:g.startTime||'',eTime:g.endTime||''
+    });
+  });
   // 시작일 오름차순 → 기간 긴 순 (긴 막대가 위쪽 레인 차지)
   return evs.sort(function(a,b){
     if(a.start!==b.start)return a.start<b.start?-1:1;
@@ -3232,8 +3361,58 @@ function gcalEvHtml(ev,ds,dow){
     +(ev.click?' onclick="event.stopPropagation();'+ev.click+'"':'')
     +'>'+label+'</div>';
 }
-const GCAL_MAX_LANE=3;  // 셀당 표시 줄 수 (초과분은 "+N개")
+const GCAL_MAX_LANE=3;  // 월 뷰 셀당 표시 줄 수 (초과분은 "+N개")
+const GWK_HOUR_H=42;    // 주 뷰 1시간 높이(px) — CSS .gwk-hour/.gwk-slot과 일치해야 함
+// 레인 배정 — 같은 이벤트가 여러 날에 걸쳐 항상 같은 줄에 오도록
+function assignEventLanes(evs){
+  const lanes=[];
+  evs.forEach(function(ev){
+    let i=0;
+    while(true){
+      if(!lanes[i])lanes[i]=[];
+      if(!lanes[i].some(r=>ev.start<=r.e&&ev.end>=r.s))break;
+      i++;
+    }
+    lanes[i].push({s:ev.start,e:ev.end});
+    ev.lane=i;
+  });
+  return evs;
+}
+function todayStr(){const t=new Date();return dateStr(t.getFullYear(),t.getMonth(),t.getDate());}
+// 'HH:MM' → 분
+function hmToMin(hm){
+  if(!hm)return 0;
+  const p=String(hm).split(':');
+  return (+p[0]||0)*60+(+p[1]||0);
+}
+// 표시 범위의 구글 일정을 필요 시 불러온 뒤 재렌더 (범위가 바뀔 때만 1회)
+function ensureGcalExternal(rs,re,sfx){
+  if(!gcalExternalOn()){
+    if(gcalExternal.events.length){gcalExternal.events=[];}
+    updateGcalExtStatus();return;
+  }
+  if(gcalExternal.key===rs+'~'+re||gcalExternal.loading){updateGcalExtStatus();return;}
+  loadGcalExternal(rs,re).then(function(){
+    updateGcalExtStatus();
+    renderGanttCalendar(sfx);
+  });
+}
+// 캘린더 뷰 진입점 — 월/주 모드 분기
 function renderGanttCalendar(sfx){
+  const chk=document.getElementById('gcal-ext-chk');
+  if(chk)chk.checked=getGcalSettings().showExternal!==false;
+  document.querySelectorAll('#gcal-mode-toggle .toggle-opt').forEach(function(b){
+    b.classList.toggle('active',b.dataset.mode===gcalMode);
+  });
+  const suf=sfx?'-'+sfx:'';
+  const monthEl=document.getElementById('gcal-month'+suf);
+  const weekEl=document.getElementById('gcal-week'+suf);
+  if(monthEl)monthEl.style.display=gcalMode==='week'?'none':'';
+  if(weekEl)weekEl.style.display=gcalMode==='week'?'':'none';
+  if(gcalMode==='week')renderGcalWeek(sfx);else renderGcalMonth(sfx);
+}
+// ── 월 뷰 ──
+function renderGcalMonth(sfx){
   const suf=sfx?'-'+sfx:'';
   const wrap=document.getElementById('gcal-body'+suf);
   if(!wrap)return;
@@ -3248,21 +3427,10 @@ function renderGanttCalendar(sfx){
   for(let d=new Date(gs); d<=ge; d.setDate(d.getDate()+1)){
     cells.push({m:d.getMonth(),d:d.getDate(),ds:dateStr(d.getFullYear(),d.getMonth(),d.getDate()),dow:d.getDay()});
   }
-  const evs=collectGanttEvents(cells[0].ds,cells[cells.length-1].ds);
-  // 레인 배정 — 같은 이벤트가 여러 날에 걸쳐 항상 같은 줄에 오도록
-  const lanes=[];
-  evs.forEach(function(ev){
-    let i=0;
-    while(true){
-      if(!lanes[i])lanes[i]=[];
-      if(!lanes[i].some(r=>ev.start<=r.e&&ev.end>=r.s))break;
-      i++;
-    }
-    lanes[i].push({s:ev.start,e:ev.end});
-    ev.lane=i;
-  });
-  const today=new Date();
-  const tds=dateStr(today.getFullYear(),today.getMonth(),today.getDate());
+  const rs=cells[0].ds, re=cells[cells.length-1].ds;
+  ensureGcalExternal(rs,re,sfx);
+  const evs=assignEventLanes(collectGanttEvents(rs,re));
+  const tds=todayStr();
   let html='';
   cells.forEach(function(c){
     const dayEvs=evs.filter(ev=>ev.start<=c.ds&&ev.end>=c.ds);
@@ -3280,6 +3448,139 @@ function renderGanttCalendar(sfx){
     html+='<div class="gcal-cell'+cls+'"><span class="gcal-daynum">'+c.d+'</span><div>'+inner+'</div></div>';
   });
   wrap.innerHTML=html;
+}
+// ── 주 뷰 (구글 캘린더 Week 형식) ──
+function renderGcalWeek(sfx){
+  const suf=sfx?'-'+sfx:'';
+  const wrap=document.getElementById('gcal-week'+suf);
+  if(!wrap)return;
+  // 표시 주: calWeekAnchor가 속한 주의 일요일 ~ 토요일
+  const a=new Date(calWeekAnchor||todayStr());
+  const ws=new Date(a); ws.setDate(ws.getDate()-ws.getDay());
+  const days=[];
+  for(let i=0;i<7;i++){
+    const d=new Date(ws); d.setDate(d.getDate()+i);
+    days.push({d:d.getDate(),mo:d.getMonth(),ds:dateStr(d.getFullYear(),d.getMonth(),d.getDate()),dow:d.getDay()});
+  }
+  const rs=days[0].ds, re=days[6].ds;
+  const titleEl=document.getElementById('gcal-month-title'+suf);
+  if(titleEl){
+    const s0=days[0], s6=days[6];
+    titleEl.textContent=(new Date(rs)).getFullYear()+'년 '+(s0.mo+1)+'월 '+s0.d+'일 ~ '
+      +(s6.mo!==s0.mo?(s6.mo+1)+'월 ':'')+s6.d+'일';
+  }
+  ensureGcalExternal(rs,re,sfx);
+  const all=collectGanttEvents(rs,re);
+  // 종일 일정 / 시간 일정 분리 (CRM 일정은 모두 종일)
+  const timed=all.filter(e=>e.type==='gcal'&&e.allDay===false&&e.sTime);
+  const allDay=assignEventLanes(all.filter(e=>timed.indexOf(e)===-1));
+  const tds=todayStr();
+
+  // 1) 요일 헤더
+  const DOW=['일','월','화','수','목','금','토'];
+  let head='<div class="gwk-head"><div class="gwk-gutter"></div>';
+  days.forEach(function(c){
+    const cls=(c.dow===6?' sat':c.dow===0?' sun':'')+(c.ds===tds?' today':'');
+    head+='<div class="gwk-dayhd'+cls+'"><span class="dow">'+DOW[c.dow]+'</span><span class="dnum">'+c.d+'</span></div>';
+  });
+  head+='</div>';
+
+  // 2) 종일 영역 (월 뷰와 동일한 레인 정렬)
+  let ad='<div class="gwk-allday"><div class="gwk-gutter" style="padding-top:7px">종일</div>';
+  days.forEach(function(c){
+    const dayEvs=allDay.filter(ev=>ev.start<=c.ds&&ev.end>=c.ds);
+    const top=dayEvs.length?Math.max.apply(null,dayEvs.map(ev=>ev.lane)):-1;
+    let inner='';
+    for(let L=0;L<=top;L++){
+      const ev=dayEvs.find(x=>x.lane===L);
+      inner+=ev?gcalEvHtml(ev,c.ds,c.dow):'<div class="gcal-spacer"></div>';
+    }
+    const cls=(c.dow===6?' sat':c.dow===0?' sun':'')+(c.ds===tds?' today':'');
+    ad+='<div class="gwk-adcell'+cls+'">'+inner+'</div>';
+  });
+  ad+='</div>';
+
+  // 3) 시간 그리드
+  let hours='<div class="gwk-hourcol">';
+  for(let h=0;h<24;h++){
+    hours+='<div class="gwk-hour">'+(h===0?'':p2(h)+':00')+'</div>';
+  }
+  hours+='</div>';
+  let cols='';
+  days.forEach(function(c){
+    const cls=(c.dow===6?' sat':c.dow===0?' sun':'')+(c.ds===tds?' today':'');
+    let slots='';
+    for(let h=0;h<24;h++)slots+='<div class="gwk-slot"></div>';
+    // 해당 날짜의 시간 일정 (겹치면 가로 분할)
+    const dayTimed=timed.filter(e=>e.start<=c.ds&&e.end>=c.ds)
+      .sort((x,y)=>hmToMin(x.sTime)-hmToMin(y.sTime));
+    const used=[];
+    dayTimed.forEach(function(ev){
+      const sMin=hmToMin(ev.sTime);
+      let eMin=ev.eTime?hmToMin(ev.eTime):sMin+60;
+      if(ev.end!==c.ds)eMin=24*60;          // 여러 날에 걸친 일정은 자정까지
+      if(ev.start!==c.ds)ev._sMinToday=0;   // 이어지는 날은 0시부터
+      if(eMin<=sMin)eMin=sMin+30;
+      ev._s=(ev.start===c.ds)?sMin:0;
+      ev._e=Math.min(24*60,eMin);
+      // 겹치는 것끼리 열 배정
+      let col=0;
+      while(used.some(u=>u.col===col&&ev._s<u.e&&ev._e>u.s))col++;
+      used.push({col:col,s:ev._s,e:ev._e});
+      ev._col=col;
+    });
+    const nCol=used.length?Math.max.apply(null,used.map(u=>u.col))+1:1;
+    let blocks='';
+    dayTimed.forEach(function(ev){
+      const top=ev._s/60*GWK_HOUR_H;
+      const hgt=Math.max(18,(ev._e-ev._s)/60*GWK_HOUR_H-2);
+      const w=100/nCol;
+      const title=(ev.label||'').replace(/^📆\s*/,'').replace(/^\d{2}:\d{2}\s*/,'');
+      blocks+='<div class="gwk-ev" style="top:'+top.toFixed(1)+'px;height:'+hgt.toFixed(1)+'px;'
+        +'left:calc('+(ev._col*w).toFixed(2)+'% + 2px);width:calc('+w.toFixed(2)+'% - 4px);'
+        +'background:'+ev.color+'" title="'+escAttr(ev.sTime+(ev.eTime?'~'+ev.eTime:'')+' '+title)+'">'
+        +'<span class="t">'+escAttr(ev.sTime)+'</span>'+escAttr(title)+'</div>';
+    });
+    // 오늘 열에는 현재 시각 선 표시
+    let nowLine='';
+    if(c.ds===tds){
+      const n=new Date();
+      nowLine='<div class="gwk-now" style="top:'+((n.getHours()*60+n.getMinutes())/60*GWK_HOUR_H).toFixed(1)+'px"></div>';
+    }
+    cols+='<div class="gwk-daycol'+cls+'">'+slots+blocks+nowLine+'</div>';
+  });
+  wrap.innerHTML=head+ad+'<div class="gwk-scroll" id="gwk-scroll'+suf+'"><div class="gwk-grid">'+hours+cols+'</div></div>';
+  const sc=document.getElementById('gwk-scroll'+suf);
+  if(sc){
+    // 업무 시간대(오전 7시)가 먼저 보이도록 스크롤
+    sc.scrollTop=7*GWK_HOUR_H;
+    // 세로 스크롤바 너비만큼 헤더·종일 영역을 좁혀 요일 열과 시간 열을 정확히 정렬
+    const sbw=sc.offsetWidth-sc.clientWidth;
+    if(sbw>0){
+      const hd=wrap.querySelector('.gwk-head'), adEl=wrap.querySelector('.gwk-allday');
+      if(hd)hd.style.paddingRight=sbw+'px';
+      if(adEl)adEl.style.paddingRight=sbw+'px';
+    }
+  }
+}
+// ── 캘린더 월/주 모드 · 이동 ──
+function setGcalMode(mode){
+  gcalMode=(mode==='week')?'week':'month';
+  if(gcalMode==='week'&&!calWeekAnchor)calWeekAnchor=todayStr();
+  saveAppState();closeGcalDay();renderGanttCalendar('sub');
+}
+function gcalPrev(){
+  if(gcalMode==='week'){calWeekAnchor=addDaysStr(calWeekAnchor||todayStr(),-7);saveAppState();closeGcalDay();renderGanttCalendar('sub');}
+  else prevMonth();
+}
+function gcalNext(){
+  if(gcalMode==='week'){calWeekAnchor=addDaysStr(calWeekAnchor||todayStr(),7);saveAppState();closeGcalDay();renderGanttCalendar('sub');}
+  else nextMonth();
+}
+function gcalToday(){
+  calWeekAnchor=todayStr();
+  if(gcalMode==='week'){saveAppState();closeGcalDay();renderGanttCalendar('sub');}
+  else goToday();
 }
 // 날짜 클릭 → 해당 날짜 전체 일정 팝오버
 function openGcalDay(ds,el){
@@ -8226,45 +8527,130 @@ async function syncGcalType(type,logFn){
   log('  → '+count+'건 전송 완료');
 }
 
-// ── Apps Script 코드 (가이드용) ──
+// ── Apps Script 코드 (가이드용) — SG_CRM_Calendar_v8_Code.gs 와 동일하게 유지할 것 ──
 function getAppsScriptCode(){
-  return 'var CALENDAR_ID="primary";\n'
-    +'var COLOR_CERT=CalendarApp.EventColor.RED;\n'
-    +'var COLOR_ANNUAL=CalendarApp.EventColor.YELLOW;\n'
-    +'var COLOR_CONS=CalendarApp.EventColor.BLUE;\n'
-    +'var COLOR_TODO=CalendarApp.EventColor.GREEN;\n\n'
-    +'function doPost(e){\n'
-    +'  try{\n'
-    +'    var data=JSON.parse(e.postData.contents);\n'
-    +'    if(data.action==="upsert")upsertEvent(data.type,data.payload);\n'
-    +'    else if(data.action==="delete")deleteEvent(data.type,data.payload.id);\n'
-    +'    return ContentService.createTextOutput(JSON.stringify({ok:true})).setMimeType(ContentService.MimeType.JSON);\n'
-    +'  }catch(err){\n'
-    +'    return ContentService.createTextOutput(JSON.stringify({ok:false,error:err.message})).setMimeType(ContentService.MimeType.JSON);\n'
-    +'  }\n'
-    +'}\n\n'
-    +'function doGet(e){\n'
-    +'  return ContentService.createTextOutput(JSON.stringify({ok:true,message:"SG솔루션 CRM 캘린더 연동 정상"})).setMimeType(ContentService.MimeType.JSON);\n'
-    +'}\n\n'
-    +'function upsertEvent(type,p){\n'
-    +'  var cal=CalendarApp.getCalendarById(CALENDAR_ID)||CalendarApp.getDefaultCalendar();\n'
-    +'  var existId=findEventByTag(type,p.id);\n'
-    +'  var title="",date,desc="",color,alarms=[];\n'
-    +'  if(type==="cert"){title="[인증만료] "+p.companyName+" - "+p.certName;date=new Date(p.expDate);desc="업체: "+p.companyName+"\\n인증: "+p.certName+"\\n만료일: "+p.expDate;color=COLOR_CERT;alarms=[90*24*60,30*24*60,7*24*60,1*24*60];}\n'
-    +'  else if(type==="annual"){title="[연간신고] "+p.companyName+" - "+p.certName+" "+p.year+"년";date=new Date(p.dueDate);desc="업체: "+p.companyName+"\\n신고기한: "+p.dueDate;color=COLOR_ANNUAL;alarms=[30*24*60,7*24*60,1*24*60];}\n'
-    +'  else if(type==="cons"){title="[지원사업] "+p.title+(p.isStart?" 시작":" 마감");date=new Date(p.date);desc="사업명: "+p.title+"\\n업체: "+p.companies;color=COLOR_CONS;alarms=[30*24*60,7*24*60];}\n'
-    +'  else if(type==="todo"){title="[ToDo] "+p.title;date=new Date(p.dueDate);desc=p.title;color=COLOR_TODO;alarms=[1*24*60];}\n'
-    +'  if(!date||isNaN(date.getTime()))return;\n'
-    +'  var event;\n'
-    +'  if(existId){event=cal.getEventById(existId);if(event){event.setTitle(title);event.setAllDayDate(date);event.setDescription(desc);event.setColor(color);event.removeAllReminders();}else existId=null;}\n'
-    +'  if(!existId){event=cal.createAllDayEvent(title,date,{description:desc});event.setColor(color);saveEventTag(type,p.id,event.getId());}\n'
-    +'  if(event&&alarms.length)alarms.forEach(function(m){event.addPopupReminder(m);});\n'
-    +'}\n\n'
-    +'function deleteEvent(type,id){var eid=findEventByTag(type,id);if(!eid)return;var cal=CalendarApp.getCalendarById(CALENDAR_ID)||CalendarApp.getDefaultCalendar();var e=cal.getEventById(eid);if(e)e.deleteEvent();removeEventTag(type,id);}\n\n'
-    +'function tagKey(t,id){return"sgcrm_"+t+"_"+id;}\n'
-    +'function saveEventTag(t,id,eid){PropertiesService.getScriptProperties().setProperty(tagKey(t,id),eid);}\n'
-    +'function findEventByTag(t,id){return PropertiesService.getScriptProperties().getProperty(tagKey(t,id));}\n'
-    +'function removeEventTag(t,id){PropertiesService.getScriptProperties().deleteProperty(tagKey(t,id));}';
+  return `var CALENDAR_ID="primary";
+var COLOR_CERT=CalendarApp.EventColor.RED;
+var COLOR_ANNUAL=CalendarApp.EventColor.YELLOW;
+var COLOR_CONS=CalendarApp.EventColor.BLUE;
+var COLOR_TODO=CalendarApp.EventColor.GREEN;
+var CRM_TITLE_RE=/^\\[(인증만료|연간신고|지원사업|ToDo)\\]/;
+
+function jsonOut(obj){
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e){
+  try{
+    var raw='';
+    if(e&&e.parameter&&e.parameter.data)raw=e.parameter.data;
+    else if(e&&e.postData&&e.postData.contents)raw=e.postData.contents;
+    if(!raw)return jsonOut({ok:false,error:"빈 요청"});
+    var data=JSON.parse(raw);
+    if(data.action==="upsert")upsertEvent(data.type,data.payload);
+    else if(data.action==="delete")deleteEvent(data.type,data.payload.id);
+    return jsonOut({ok:true});
+  }catch(err){ return jsonOut({ok:false,error:err.message}); }
+}
+
+function doGet(e){
+  try{
+    var p=(e&&e.parameter)||{};
+    if(p.action==="list")return jsonOut({ok:true,events:listEvents(p.from,p.to)});
+    return jsonOut({ok:true,message:"SG솔루션 CRM 캘린더 연동 정상 v8"});
+  }catch(err){ return jsonOut({ok:false,error:err.message}); }
+}
+
+function listEvents(from,to){
+  var cal=CalendarApp.getCalendarById(CALENDAR_ID)||CalendarApp.getDefaultCalendar();
+  var s=from?new Date(from):new Date();
+  var t=to?new Date(to):new Date(s.getTime()+62*24*60*60*1000);
+  if(isNaN(s.getTime())||isNaN(t.getTime()))throw new Error("날짜 형식 오류 (YYYY-MM-DD)");
+  t.setDate(t.getDate()+1);
+  var mine=crmEventIdSet();
+  var tz=Session.getScriptTimeZone();
+  return cal.getEvents(s,t).filter(function(ev){
+    if(mine[ev.getId()])return false;
+    if(CRM_TITLE_RE.test(ev.getTitle()||""))return false;
+    return true;
+  }).map(function(ev){
+    var allDay=ev.isAllDayEvent();
+    var st=ev.getStartTime(),en=ev.getEndTime();
+    var endIncl=allDay?new Date(en.getTime()-86400000):en;
+    if(endIncl.getTime()<st.getTime())endIncl=st;
+    return {
+      id:ev.getId(), title:ev.getTitle()||"(제목 없음)", allDay:allDay,
+      start:Utilities.formatDate(st,tz,"yyyy-MM-dd"),
+      end:Utilities.formatDate(endIncl,tz,"yyyy-MM-dd"),
+      startTime:allDay?"":Utilities.formatDate(st,tz,"HH:mm"),
+      endTime:allDay?"":Utilities.formatDate(en,tz,"HH:mm"),
+      location:ev.getLocation()||""
+    };
+  });
+}
+
+function crmEventIdSet(){
+  var props=PropertiesService.getScriptProperties().getProperties();
+  var set={};
+  Object.keys(props).forEach(function(k){ if(k.indexOf("sgcrm_")===0)set[props[k]]=true; });
+  return set;
+}
+
+function upsertEvent(type,p){
+  var cal=CalendarApp.getCalendarById(CALENDAR_ID)||CalendarApp.getDefaultCalendar();
+  var existId=findEventByTag(type,p.id);
+  var title="",date,endDate=null,desc="",color,alarms=[];
+  if(type==="cert"){
+    title="[인증만료] "+p.companyName+" - "+p.certName;
+    date=new Date(p.expDate);
+    if(p.endDate)endDate=new Date(p.endDate);
+    desc="업체: "+p.companyName+"\\n인증: "+p.certName+"\\n만료일: "+p.expDate;
+    color=COLOR_CERT; alarms=[90*24*60,30*24*60,7*24*60,1*24*60];
+  } else if(type==="annual"){
+    title="[연간신고] "+p.companyName+" - "+p.certName+" "+p.year;
+    date=new Date(p.dueDate);
+    desc="업체: "+p.companyName+"\\n신고기한: "+p.dueDate;
+    color=COLOR_ANNUAL; alarms=[30*24*60,7*24*60,1*24*60];
+  } else if(type==="cons"){
+    title="[지원사업] "+p.title;
+    date=new Date(p.startDate||p.endDate);
+    if(p.endDate){endDate=new Date(p.endDate);endDate.setDate(endDate.getDate()+1);}
+    desc="사업명: "+p.title+"\\n업체: "+(p.companies||"");
+    color=COLOR_CONS; alarms=[30*24*60,7*24*60];
+  } else if(type==="todo"){
+    title="[ToDo] "+p.title; date=new Date(p.dueDate); desc=p.title;
+    color=COLOR_TODO; alarms=[1*24*60];
+  }
+  if(!date||isNaN(date.getTime()))return;
+  if(endDate&&(isNaN(endDate.getTime())||endDate.getTime()<=date.getTime()))endDate=null;
+  var event;
+  if(existId){
+    event=cal.getEventById(existId);
+    if(event){
+      event.setTitle(title);
+      if(endDate)event.setAllDayDates(date,endDate); else event.setAllDayDate(date);
+      event.setDescription(desc); event.setColor(color); event.removeAllReminders();
+    } else existId=null;
+  }
+  if(!existId){
+    if(endDate)event=cal.createAllDayEvent(title,date,endDate,{description:desc});
+    else event=cal.createAllDayEvent(title,date,{description:desc});
+    event.setColor(color); saveEventTag(type,p.id,event.getId());
+  }
+  if(event&&alarms.length)alarms.forEach(function(m){event.addPopupReminder(m);});
+}
+
+function deleteEvent(type,id){
+  var eid=findEventByTag(type,id);if(!eid)return;
+  var cal=CalendarApp.getCalendarById(CALENDAR_ID)||CalendarApp.getDefaultCalendar();
+  var e=cal.getEventById(eid);if(e)e.deleteEvent();
+  removeEventTag(type,id);
+}
+
+function tagKey(t,id){return"sgcrm_"+t+"_"+id;}
+function saveEventTag(t,id,eid){PropertiesService.getScriptProperties().setProperty(tagKey(t,id),eid);}
+function findEventByTag(t,id){return PropertiesService.getScriptProperties().getProperty(tagKey(t,id));}
+function removeEventTag(t,id){PropertiesService.getScriptProperties().deleteProperty(tagKey(t,id));}`;
 }
 
 // ── MOBILE ──
@@ -8458,8 +8844,9 @@ Object.assign(window,{
   prevMonth,nextMonth,goToday,toggleCat,renderGantt,
   setGanttFilter,setWorkFilter,
   setGanttView,renderGanttView,renderGanttCalendar,openGcalDay,closeGcalDay,
+  setGcalMode,gcalPrev,gcalNext,gcalToday,toggleGcalExternal,
   openCatAddModal,saveCatAdd,deleteCatAdd,setCatRequiresCert,
-  setCertTab,renderCertByCert,renderCertByComp,renderCertMaster,toggleCycleExpand,openCyclePhaseDoneModal,submitCyclePhaseDone,
+  setCertTab,renderCertByCert,renderCertByComp,renderCertMaster,renderCertAlert,toggleCycleExpand,openCyclePhaseDoneModal,submitCyclePhaseDone,
   openCertMasterModal,saveCertMaster,deleteCertMaster,toggleCmCycleFields,addCmPhase,renderCmPhases,
   openCertModal,onCertTypeChange,saveCert,deleteCert,calcCertExpDate,
   markCertPhaseDone,createComplexPhases,buildIsoConfirmMsg,
