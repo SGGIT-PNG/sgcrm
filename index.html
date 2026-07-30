@@ -234,6 +234,35 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
   border-radius:6px;font-size:11px;white-space:nowrap;z-index:100;pointer-events:none;
 }
 
+/* ── 캘린더 뷰 (구글 캘린더 스타일 월 그리드) ── */
+.gcal-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;}
+.gcal-top{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface2);}
+.gcal-dow{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-bottom:1px solid var(--border);background:var(--surface2);}
+.gcal-dow div{padding:7px 0;text-align:center;font-size:11px;font-weight:600;color:var(--text3);}
+.gcal-dow div.sat{color:#2563EB;}
+.gcal-dow div.sun{color:#DC2626;}
+/* minmax(0,1fr): 긴 이벤트 라벨의 min-content가 열 너비를 밀어내지 않도록 */
+.gcal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));}
+.gcal-cell{border-right:1px solid var(--border);border-bottom:1px solid var(--border);min-height:106px;padding-bottom:4px;background:var(--surface);min-width:0;overflow:hidden;}
+.gcal-cell:nth-child(7n){border-right:none;}
+.gcal-cell.out{background:var(--surface2);}
+.gcal-cell.sat .gcal-daynum{color:#2563EB;}
+.gcal-cell.sun .gcal-daynum{color:#DC2626;}
+.gcal-cell.today{background:#FFF7ED;}
+.gcal-daynum{display:block;font-size:11px;font-weight:600;color:var(--text2);padding:5px 7px 3px;font-family:'JetBrains Mono',monospace;}
+.gcal-cell.out .gcal-daynum{opacity:.45;}
+.gcal-cell.today .gcal-daynum{color:#EA580C;font-weight:700;}
+.gcal-ev{height:18px;line-height:18px;margin-bottom:2px;padding:0 6px;font-size:10px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;transition:opacity .12s;}
+.gcal-ev:hover{opacity:.8;}
+.gcal-spacer{height:20px;}
+.gcal-more{margin:0 3px;padding:0 5px;font-size:10px;color:var(--text4);cursor:pointer;line-height:16px;}
+.gcal-more:hover{color:var(--accent);text-decoration:underline;}
+/* 날짜별 상세 팝오버 */
+.gcal-pop{position:fixed;z-index:400;background:var(--surface);border:1px solid var(--border2);border-radius:10px;box-shadow:var(--shadow-md);padding:10px;min-width:230px;max-width:330px;max-height:340px;overflow-y:auto;}
+.gcal-pop-hd{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:7px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.gcal-pop-close{background:none;border:none;color:var(--text4);font-size:17px;cursor:pointer;line-height:1;padding:0;}
+.gcal-empty{padding:26px 10px;text-align:center;color:var(--text4);font-size:13px;}
+
 .todo-wrap{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
 .todo-col{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:14px;}
 .todo-col-hd{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px;}
@@ -325,6 +354,11 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
 
   /* 간트 차트 가로 스크롤 */
   .gantt-wrap,.gantt-wrap-sub{overflow-x:auto!important;-webkit-overflow-scrolling:touch;}
+
+  /* 캘린더 뷰 셀 축소 */
+  .gcal-cell{min-height:74px!important;}
+  .gcal-ev{font-size:9px!important;padding:0 3px!important;}
+  .gcal-pop{max-width:88vw!important;}
 
   /* 서치 인풋 풀 너비 */
   .search-wrap{max-width:100%!important;width:100%!important;}
@@ -670,13 +704,17 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
     <div class="page-section" id="page-gantt">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div class="toggle-btn" id="gantt-view-toggle">
+              <button class="toggle-opt active" data-view="gantt" onclick="setGanttView('gantt')">간트</button>
+              <button class="toggle-opt" data-view="calendar" onclick="setGanttView('calendar')">캘린더</button>
+          </div>
           <div class="toggle-btn" id="gantt-filter-toggle-sub">
               <button class="toggle-opt" onclick="setGanttFilter('wait')">대기</button>
               <button class="toggle-opt active" onclick="setGanttFilter('ing')">진행</button>
               <button class="toggle-opt" onclick="setGanttFilter('done')">완료</button>
               <button class="toggle-opt" onclick="setGanttFilter('all')">전체</button>
           </div>
-          <select class="fs" id="gantt-region-filter" onchange="renderGantt('');renderGantt('sub')" style="width:100px">
+          <select class="fs" id="gantt-region-filter" onchange="renderGantt('');renderGanttView()" style="width:100px">
             <option value="">전체 지역</option>
             <option value="서울">서울</option><option value="경기">경기</option>
             <option value="인천">인천</option><option value="부산">부산</option>
@@ -688,7 +726,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
             <option value="경북">경북</option><option value="경남">경남</option>
             <option value="제주">제주</option>
           </select>
-          <select class="fs" id="gantt-industry-filter" onchange="renderGantt('');renderGantt('sub')" style="width:120px">
+          <select class="fs" id="gantt-industry-filter" onchange="renderGantt('');renderGanttView()" style="width:120px">
             <option value="">전체 업종</option>
             <option value="제조">제조업</option>
             <option value="IT">IT·소프트웨어</option>
@@ -702,7 +740,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
         </div>
         <button class="btn btn-primary" onclick="openConsultingModal()">+ 대분류 추가</button>
       </div>
-      <div class="gantt-wrap">
+      <div class="gantt-wrap" id="gantt-wrap-sub">
         <div class="gantt-top">
           <button class="cal-nav-btn" onclick="prevMonth()">‹</button>
           <div class="cal-month-title" id="cal-month-title-sub"></div>
@@ -710,6 +748,22 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
           <button class="cal-today-btn" onclick="goToday()">오늘</button>
         </div>
         <div class="gantt-scroll"><table class="gantt-table" id="gantt-table-sub"></table></div>
+      </div>
+      <!-- 캘린더 뷰 (월 그리드) -->
+      <div class="gcal-wrap" id="gcal-wrap-sub" style="display:none">
+        <div class="gcal-top">
+          <button class="cal-nav-btn" onclick="prevMonth()">‹</button>
+          <div class="cal-month-title" id="gcal-month-title-sub"></div>
+          <button class="cal-nav-btn" onclick="nextMonth()">›</button>
+          <button class="cal-today-btn" onclick="goToday()">오늘</button>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:10px;color:var(--text4)">
+            <span>📅 지원사업</span><span>🏅 인증만료</span><span>📋 연간신고</span><span>✅ ToDo</span>
+          </div>
+        </div>
+        <div class="gcal-dow">
+          <div class="sun">일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div class="sat">토</div>
+        </div>
+        <div class="gcal-grid" id="gcal-body-sub"></div>
       </div>
     </div>
 
@@ -2140,7 +2194,8 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
 <!-- MODAL: Todo -->
 <div class="ov" id="todo-modal">
   <div class="modal" style="width:420px">
-    <div class="modal-title">✅ 할일 추가<button class="modal-close" onclick="closeModal('todo-modal')">×</button></div>
+    <div class="modal-title" id="td-modal-title">✅ 할일 추가<button class="modal-close" onclick="closeModal('todo-modal')">×</button></div>
+    <input type="hidden" id="td-edit-id">
     <div class="fg"><label class="fl">내용 *</label><input class="fi" id="td-text" placeholder="할일 내용"></div>
     <div class="frow">
       <div class="fg"><label class="fl">상태</label>
@@ -2149,6 +2204,9 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
         </select>
       </div>
       <div class="fg"><label class="fl">태그</label><input class="fi" id="td-tag" placeholder="예: 긴급, 미팅"></div>
+    </div>
+    <div class="fg"><label class="fl">마감일</label><input class="fi" type="date" id="td-due">
+      <div style="font-size:11px;color:var(--text4);margin-top:3px">입력하면 간트 페이지 캘린더 뷰에 표시됩니다</div>
     </div>
     <div class="modal-btns">
       <button class="btn btn-ghost" onclick="closeModal('todo-modal')">취소</button>
@@ -2233,6 +2291,7 @@ let tempBiznoCounter = 1;
 let currentWorkCat = null;
 let tempConsCompanies = [];
 let ganttFilter = 'ing';
+let ganttViewMode = 'gantt';  // 간트 페이지 뷰 모드: 'gantt' | 'calendar'
 let workFilter = 'ing';
 let cliPageOv=1, cliPageSub=1;
 const CLI_PER_PAGE_OV=10, CLI_PER_PAGE_SUB=20;
@@ -2274,6 +2333,7 @@ async function loadAll(){
       calY=d.calY||calY; calM=d.calM||calM;
       tempBiznoCounter=d.tempBiznoCounter||1;
       expandedCats=new Set(d.expandedCats||[]);
+      ganttViewMode=d.ganttViewMode==='calendar'?'calendar':'gantt';
     }
     // 8개 컬렉션 병렬 로드
     const [cSnap,conSnap,ccSnap,wiSnap,tSnap,catSnap,certSnap,cmSnap,arSnap]=await Promise.all([
@@ -2705,13 +2765,13 @@ function setDateFields(yId,mId,dId,dateStr){
 function saveAppState(){
   if(_saveTimer)clearTimeout(_saveTimer);
   _saveTimer=setTimeout(async()=>{
-    try{await setDoc(COL.app_state(),{calY,calM,expandedCats:[...expandedCats],tempBiznoCounter,updatedAt:Date.now()});}
+    try{await setDoc(COL.app_state(),{calY,calM,expandedCats:[...expandedCats],tempBiznoCounter,ganttViewMode,updatedAt:Date.now()});}
     catch(e){console.error(e);}
   },400);
 }
 async function manualSave(){
   setBadge('🔄 저장 중...');
-  try{await setDoc(COL.app_state(),{calY,calM,expandedCats:[...expandedCats],tempBiznoCounter,updatedAt:Date.now()});setBadge('✅ 저장됨',2000);}
+  try{await setDoc(COL.app_state(),{calY,calM,expandedCats:[...expandedCats],tempBiznoCounter,ganttViewMode,updatedAt:Date.now()});setBadge('✅ 저장됨',2000);}
   catch(e){setBadge('⚠️ 실패');}
 }
 
@@ -2727,7 +2787,7 @@ function navTo(page){
 }
 function renderPage(p){
   if(p==='overview'){renderOverview();}
-  else if(p==='gantt'){renderGantt('sub');}
+  else if(p==='gantt'){renderGanttView();}
   else if(p==='todo'){renderTodo('sub');}
   else if(p==='work'){renderWork('work-grid-sub');}
   else if(p==='clients'){renderClientsPage();}
@@ -2891,6 +2951,40 @@ function ganttIsoSubLabel(c,ccs){
   if(stds.length)parts.push('🏅 '+stds.join('+'));
   return parts.join(' · ');
 }
+// 대분류 표시 여부 판정 — 상태·활성업체·지역·업종 필터
+// 간트 뷰와 캘린더 뷰가 동일 로직을 공유하도록 추출
+function consPassesGanttFilter(c,ccs){
+  // 상태 필터
+  if(ganttFilter==='wait'&&c.status!=='wait')return false;
+  if(ganttFilter==='ing'&&c.status!=='ing')return false;
+  if(ganttFilter==='done'&&c.status!=='done')return false;
+  // 참여업체가 있는데 활성 업체가 0개면 대분류도 숨김
+  if(consCompanies.filter(cc=>cc.consId===c.id).length>0&&ccs.length===0)return false;
+  const regionF=document.getElementById('gantt-region-filter')?.value||'';
+  const industryF=document.getElementById('gantt-industry-filter')?.value||'';
+  // 지역 필터: 지원사업 대상지역 또는 참여업체 지역으로 필터
+  if(regionF){
+    const consRegion=c.targetRegion||'';
+    const compRegions=ccs.map(cc=>{const comp=companies.find(x=>x._id===cc.bizno);return comp?comp.region:'';});
+    const regionMatch=
+      consRegion===regionF ||           // 대상지역 정확히 일치
+      consRegion==='전국' ||             // 전국 사업은 모든 지역에 표시
+      consRegion==='' ||                 // 대상지역 미입력은 모든 지역
+      compRegions.some(r=>r===regionF); // 참여업체 중 해당 지역
+    if(!regionMatch)return false;
+  }
+  // 업종 필터: 지원사업 대상업종 또는 참여업체 업종으로 필터
+  if(industryF){
+    const consIndustry=c.targetIndustry||'';
+    const compIndustries=ccs.map(cc=>{const comp=companies.find(x=>x._id===cc.bizno);return comp?comp.industry:'';});
+    const industryMatch=
+      consIndustry===industryF ||
+      consIndustry==='전체 업종'||consIndustry==='전체'||consIndustry===''||
+      compIndustries.some(i=>i===industryF);
+    if(!industryMatch)return false;
+  }
+  return true;
+}
 function renderGantt(sfx){
   const suf=sfx?'-'+sfx:'';
   const titleEl=document.getElementById('cal-month-title'+suf);
@@ -2910,48 +3004,16 @@ function renderGantt(sfx){
   }
   head+=`</tr>`;
   let body='';
-  // 지역/업종 필터 (간트 페이지에서만)
-  const ganttRegionF=document.getElementById('gantt-region-filter')?.value||'';
-  const ganttIndustryF=document.getElementById('gantt-industry-filter')?.value||'';
-
   consulting.forEach((c,ci)=>{
     const isDone=c.status==='done';
     const isExpired=isDone&&isDoneExpired({status:c.status,doneAt:c.doneAt});
-    // 상태 필터 적용
-    if(ganttFilter==='wait'&&c.status!=='wait')return;
-    if(ganttFilter==='ing'&&c.status!=='ing')return;
-    if(ganttFilter==='done'&&c.status!=='done')return;
+    // consulting_company JOIN으로 참여업체 조회 (비활성 업체 자동 제외)
+    const ccs=getConsCompanies(c.id);
+    // 상태·지역·업종 필터 (캘린더 뷰와 공유)
+    if(!consPassesGanttFilter(c,ccs))return;
     const exp=expandedCats.has(c.id);
     const color=CAT_COLORS[ci%CAT_COLORS.length];
     const cm=CAT_META[c.category]||CAT_META.etc;
-    // consulting_company JOIN으로 참여업체 조회 (비활성 업체 자동 제외)
-    const ccs=getConsCompanies(c.id);
-    // 참여업체가 있는데 활성 업체가 0개면 대분류도 숨김
-    const allCompaniesInactive=consCompanies.filter(cc=>cc.consId===c.id).length>0&&ccs.length===0;
-    if(allCompaniesInactive)return;
-    // 지역 필터: 지원사업 대상지역 또는 참여업체 지역으로 필터
-    if(ganttRegionF){
-      const consRegion=c.targetRegion||'';
-      const compRegions=ccs.map(cc=>{const comp=companies.find(x=>x._id===cc.bizno);return comp?comp.region:'';});
-      // 전국이면 모든 지역 통과, 특정 지역이면 대상지역 또는 업체 지역 일치 확인
-      const regionMatch=
-        consRegion===ganttRegionF ||            // 대상지역 정확히 일치
-        consRegion==='전국' ||                   // 전국 사업은 모든 지역에 표시
-        consRegion==='' ||                       // 대상지역 미입력은 모든 지역
-        compRegions.some(r=>r===ganttRegionF);  // 참여업체 중 해당 지역
-      if(!regionMatch)return;
-    }
-    // 업종 필터: 지원사업 대상업종 또는 참여업체 업종으로 필터
-    if(ganttIndustryF){
-      const consIndustry=c.targetIndustry||'';
-      const compIndustries=ccs.map(cc=>{const comp=companies.find(x=>x._id===cc.bizno);return comp?comp.industry:'';});
-      // 전체업종이면 모든 업종 통과
-      const industryMatch=
-        consIndustry===ganttIndustryF ||
-        consIndustry==='전체 업종'||consIndustry==='전체'||consIndustry===''||
-        compIndustries.some(i=>i===ganttIndustryF);
-      if(!industryMatch)return;
-    }
     body+=`<tr class="cat-row${isDone?' gantt-row-done':''}${isExpired?' gantt-row-expired':''}" onclick="toggleCat('${c.id}')"><td class="cat-label-td">
       <div class="cat-name">${cm.icon} ${c.title} ${badge(c.status||'wait')}<span class="cat-arrow${exp?' open':''}">▶</span>
         <button onclick="event.stopPropagation();openConsultingModal('${c.id}')" style="margin-left:6px;padding:2px 8px;background:#F0F0F0;border:1px solid rgba(37,99,235,.4);border-radius:5px;color:var(--blue);font-size:11px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">관리</button>
@@ -3070,9 +3132,9 @@ function renderGantt(sfx){
   applyGanttFilterCSS();
 }
 function toggleCat(id){if(expandedCats.has(id))expandedCats.delete(id);else expandedCats.add(id);saveAppState();renderGantt('');renderGantt('sub');}
-function prevMonth(){calM--;if(calM<0){calM=11;calY--}saveAppState();renderGantt('');renderGantt('sub');}
-function nextMonth(){calM++;if(calM>11){calM=0;calY++}saveAppState();renderGantt('');renderGantt('sub');}
-function goToday(){const t=new Date();calY=t.getFullYear();calM=t.getMonth();saveAppState();renderGantt('');renderGantt('sub');}
+function prevMonth(){calM--;if(calM<0){calM=11;calY--}saveAppState();closeGcalDay();renderGantt('');renderGanttView();}
+function nextMonth(){calM++;if(calM>11){calM=0;calY++}saveAppState();closeGcalDay();renderGantt('');renderGanttView();}
+function goToday(){const t=new Date();calY=t.getFullYear();calM=t.getMonth();saveAppState();closeGcalDay();renderGantt('');renderGanttView();}
 function setGanttFilter(val){
   ganttFilter=val;
   ['gantt-filter-toggle','gantt-filter-toggle-sub'].forEach(id=>{
@@ -3080,10 +3142,189 @@ function setGanttFilter(val){
       btn.classList.toggle('active',btn.textContent.trim()===({'wait':'대기','ing':'진행','done':'완료','all':'전체'}[val]||''));
     });
   });
-  renderGantt('');renderGantt('sub');
+  closeGcalDay();renderGantt('');renderGanttView();
 }
 function applyGanttFilterCSS(){
   // 간트는 renderGantt에서 직접 필터링하므로 재렌더
+}
+
+// ── GANTT 캘린더 뷰 (구글 캘린더 스타일 월 그리드) ──
+function escAttr(s){
+  return String(s==null?'':s)
+    .split('&').join('&amp;').split('<').join('&lt;')
+    .split('>').join('&gt;').split('"').join('&quot;');
+}
+// YYYY-MM-DD 에 n일 더한 YYYY-MM-DD
+function addDaysStr(ds,n){
+  const d=new Date(ds);d.setDate(d.getDate()+n);
+  return dateStr(d.getFullYear(),d.getMonth(),d.getDate());
+}
+// 표시 범위(rs~re, YYYY-MM-DD)와 겹치는 이벤트 수집
+// 반환: {start,end,label,type,color,click}
+function collectGanttEvents(rs,re){
+  const evs=[];
+  const overlap=(s,e)=>!!s&&!!e&&s<=re&&e>=rs;
+  // 1) 지원사업 대분류 / ISO 1·2차 심사 (간트와 동일 필터 적용)
+  consulting.forEach((c,ci)=>{
+    const ccs=getConsCompanies(c.id);
+    if(!consPassesGanttFilter(c,ccs))return;
+    const color=CAT_COLORS[ci%CAT_COLORS.length];
+    const cm=CAT_META[c.category]||CAT_META.etc;
+    const click="openConsultingModal('"+c.id+"')";
+    if(c.category==='iso'){
+      // 1차·2차 심사를 각각 별도 막대로 (심사일수만큼 기간 확장)
+      if(c.startDate){
+        const e1=addDaysStr(c.startDate,Math.max(1,+c.audit1Days||1)-1);
+        if(overlap(c.startDate,e1))evs.push({start:c.startDate,end:e1,label:'🏅 1차심사 '+(c.title||''),type:'iso1',color,click});
+      }
+      if(c.endDate){
+        const e2=addDaysStr(c.endDate,Math.max(1,+c.audit2Days||1)-1);
+        if(overlap(c.endDate,e2))evs.push({start:c.endDate,end:e2,label:'🏅 2차심사 '+(c.title||''),type:'iso2',color,click});
+      }
+    } else if(overlap(c.startDate,c.endDate)){
+      evs.push({start:c.startDate,end:c.endDate,label:(cm.icon||'📅')+' '+(c.title||''),type:'cons',color,click});
+    }
+  });
+  // 2) 인증 만료일 (연간신고형 제외)
+  certifications.forEach(c=>{
+    if(!c.expDate||!overlap(c.expDate,c.expDate))return;
+    const m=getCertMasterInfo(c.certMasterId);
+    if(m.reportType==='annual')return;
+    const comp=companies.find(x=>x._id===c.bizno);
+    const nm=comp?comp.name:(c.companyName||'미상');
+    evs.push({start:c.expDate,end:c.expDate,label:'🏅 '+nm+' '+(m.certName||'')+' 만료',type:'cert',color:'#DC2626',click:"openCertModal('"+c.id+"')"});
+  });
+  // 3) 연간신고 기한 (미완료만)
+  annualReports.forEach(r=>{
+    if(r.status==='done'||!r.dueDate||!overlap(r.dueDate,r.dueDate))return;
+    const cert=certifications.find(c=>c.id===r.certId);
+    const m=cert?getCertMasterInfo(cert.certMasterId):{certName:'연간신고'};
+    const comp=companies.find(x=>x._id===r.bizno);
+    const nm=comp?comp.name:(r.companyName||'미상');
+    evs.push({start:r.dueDate,end:r.dueDate,label:'📋 '+nm+' '+(m.certName||'')+' '+r.year+'년 신고',type:'annual',color:'#D97706',click:cert?"openCertModal('"+cert.id+"')":''});
+  });
+  // 4) ToDo (마감일 있는 건만, 상태 필터 공유)
+  todos.forEach(t=>{
+    if(!t.dueDate||!overlap(t.dueDate,t.dueDate))return;
+    if(ganttFilter!=='all'&&t.status!==ganttFilter)return;
+    evs.push({start:t.dueDate,end:t.dueDate,label:'✅ '+(t.text||''),type:'todo',color:(ST[t.status]&&ST[t.status].dot)||'#94A3B8',click:"openTodoModal('"+(t.status||'ing')+"','"+t.id+"')"});
+  });
+  // 시작일 오름차순 → 기간 긴 순 (긴 막대가 위쪽 레인 차지)
+  return evs.sort(function(a,b){
+    if(a.start!==b.start)return a.start<b.start?-1:1;
+    const da=new Date(a.end)-new Date(a.start), db=new Date(b.end)-new Date(b.start);
+    return db-da;
+  });
+}
+// 이벤트 조각 HTML (기간 막대는 시작/끝에서만 라운딩)
+function gcalEvHtml(ev,ds,dow){
+  const isS=ev.start===ds, isE=ev.end===ds;
+  const isBar=ev.type==='cons'||ev.type==='iso1'||ev.type==='iso2';
+  const style=isBar
+    ? 'background:'+ev.color+';color:#FFF;'
+    : 'background:'+ev.color+'1F;color:'+ev.color+';border:1px solid '+ev.color+'55;font-weight:500;';
+  const radius=(isS?'4px':'0')+' '+(isE?'4px':'0')+' '+(isE?'4px':'0')+' '+(isS?'4px':'0');
+  // 주 시작(일요일)에서도 라벨 재표시 → 주를 넘어가는 막대 식별 가능
+  const label=(isS||dow===0)?escAttr(ev.label):'&nbsp;';
+  return '<div class="gcal-ev" style="'+style+'border-radius:'+radius
+    +';margin-left:'+(isS?'3px':'0')+';margin-right:'+(isE?'3px':'0')+'"'
+    +' title="'+escAttr(ev.label)+'"'
+    +(ev.click?' onclick="event.stopPropagation();'+ev.click+'"':'')
+    +'>'+label+'</div>';
+}
+const GCAL_MAX_LANE=3;  // 셀당 표시 줄 수 (초과분은 "+N개")
+function renderGanttCalendar(sfx){
+  const suf=sfx?'-'+sfx:'';
+  const wrap=document.getElementById('gcal-body'+suf);
+  if(!wrap)return;
+  const titleEl=document.getElementById('gcal-month-title'+suf);
+  const y=calY,m=calM;
+  if(titleEl)titleEl.textContent=y+'년 '+(m+1)+'월';
+  // 그리드 범위: 1일이 속한 주의 일요일 ~ 말일이 속한 주의 토요일
+  const first=new Date(y,m,1), last=new Date(y,m+1,0);
+  const gs=new Date(first); gs.setDate(gs.getDate()-first.getDay());
+  const ge=new Date(last);  ge.setDate(ge.getDate()+(6-last.getDay()));
+  const cells=[];
+  for(let d=new Date(gs); d<=ge; d.setDate(d.getDate()+1)){
+    cells.push({m:d.getMonth(),d:d.getDate(),ds:dateStr(d.getFullYear(),d.getMonth(),d.getDate()),dow:d.getDay()});
+  }
+  const evs=collectGanttEvents(cells[0].ds,cells[cells.length-1].ds);
+  // 레인 배정 — 같은 이벤트가 여러 날에 걸쳐 항상 같은 줄에 오도록
+  const lanes=[];
+  evs.forEach(function(ev){
+    let i=0;
+    while(true){
+      if(!lanes[i])lanes[i]=[];
+      if(!lanes[i].some(r=>ev.start<=r.e&&ev.end>=r.s))break;
+      i++;
+    }
+    lanes[i].push({s:ev.start,e:ev.end});
+    ev.lane=i;
+  });
+  const today=new Date();
+  const tds=dateStr(today.getFullYear(),today.getMonth(),today.getDate());
+  let html='';
+  cells.forEach(function(c){
+    const dayEvs=evs.filter(ev=>ev.start<=c.ds&&ev.end>=c.ds);
+    const vis=dayEvs.filter(ev=>ev.lane<GCAL_MAX_LANE);
+    const hidden=dayEvs.length-vis.length;
+    const cls=(c.m!==m?' out':'')+(c.dow===6?' sat':c.dow===0?' sun':'')+(c.ds===tds?' today':'');
+    // 빈 레인은 스페이서로 채워 상하 정렬 유지
+    const top=vis.length?Math.max.apply(null,vis.map(ev=>ev.lane)):-1;
+    let inner='';
+    for(let L=0;L<=top;L++){
+      const ev=vis.find(x=>x.lane===L);
+      inner+=ev?gcalEvHtml(ev,c.ds,c.dow):'<div class="gcal-spacer"></div>';
+    }
+    if(hidden>0)inner+='<div class="gcal-more" onclick="event.stopPropagation();openGcalDay(\''+c.ds+'\',this)">+'+hidden+'개</div>';
+    html+='<div class="gcal-cell'+cls+'"><span class="gcal-daynum">'+c.d+'</span><div>'+inner+'</div></div>';
+  });
+  wrap.innerHTML=html;
+}
+// 날짜 클릭 → 해당 날짜 전체 일정 팝오버
+function openGcalDay(ds,el){
+  closeGcalDay();
+  const evs=collectGanttEvents(ds,ds);
+  const pop=document.createElement('div');
+  pop.className='gcal-pop';pop.id='gcal-pop';
+  pop.innerHTML='<div class="gcal-pop-hd"><span>'+ds+' 일정 '+evs.length+'건</span>'
+    +'<button class="gcal-pop-close" onclick="closeGcalDay()">&times;</button></div>'
+    +(evs.length
+      ? evs.map(function(ev){
+          return '<div class="gcal-ev" style="background:'+ev.color+';color:#FFF;border-radius:5px;height:auto;line-height:1.45;'
+            +'white-space:normal;padding:5px 8px;margin-bottom:4px"'
+            +(ev.click?' onclick="closeGcalDay();'+ev.click+'"':'')
+            +'>'+escAttr(ev.label)+'</div>';
+        }).join('')
+      : '<div style="font-size:12px;color:var(--text4);padding:6px 2px">일정 없음</div>');
+  document.body.appendChild(pop);
+  // 클릭 지점 아래에 배치하되 화면 밖으로 넘어가지 않도록 보정
+  const r=el?el.getBoundingClientRect():null;
+  const pr=pop.getBoundingClientRect();
+  let left=r?r.left:16, top=r?r.bottom+4:60;
+  if(left+pr.width>window.innerWidth-8)left=window.innerWidth-pr.width-8;
+  if(top+pr.height>window.innerHeight-8)top=window.innerHeight-pr.height-8;
+  pop.style.left=Math.max(8,left)+'px';
+  pop.style.top=Math.max(8,top)+'px';
+}
+function closeGcalDay(){
+  const p=document.getElementById('gcal-pop');if(p)p.remove();
+}
+// 간트 페이지 현재 뷰 렌더 (간트 ↔ 캘린더 전환 포함)
+function renderGanttView(){
+  const g=document.getElementById('gantt-wrap-sub');
+  const cw=document.getElementById('gcal-wrap-sub');
+  const isCal=ganttViewMode==='calendar';
+  if(g)g.style.display=isCal?'none':'';
+  if(cw)cw.style.display=isCal?'':'none';
+  document.querySelectorAll('#gantt-view-toggle .toggle-opt').forEach(function(b){
+    b.classList.toggle('active',b.dataset.view===ganttViewMode);
+  });
+  if(isCal)renderGanttCalendar('sub');else renderGantt('sub');
+}
+function setGanttView(mode){
+  ganttViewMode=(mode==='calendar')?'calendar':'gantt';
+  saveAppState();closeGcalDay();renderGanttView();
 }
 function setWorkFilter(val){
   workFilter=val;
@@ -3520,16 +3761,47 @@ function renderTodo(sfx){
           <div style="flex:1;cursor:pointer" onclick="cycleTodo('${t.id}')">
             <div class="ti-text">${t.text}</div>
             ${t.tag?`<div class="ti-tag">${t.tag}</div>`:''}
+            ${t.dueDate?`<div style="font-size:10px;color:${todoDueColor(t)};font-family:'JetBrains Mono',monospace;margin-top:2px">📅 ${t.dueDate}</div>`:''}
           </div>
+          <button onclick="event.stopPropagation();openTodoModal('${t.status}','${t.id}')" title="수정" style="background:none;border:none;color:var(--text4);font-size:12px;cursor:pointer;padding:0 2px;flex-shrink:0">✏️</button>
           <button onclick="deleteTodoItem('${t.id}')" style="background:none;border:none;color:var(--text4);font-size:16px;cursor:pointer;padding:0 2px;flex-shrink:0">×</button>
         </div>`).join('')||`<div style="font-size:13px;color:var(--text4);padding:8px 6px">없음</div>`}</div>
       <button onclick="openTodoModal('${st}')" style="width:100%;padding:6px;background:none;border:1px dashed var(--border2);border-radius:7px;color:var(--text4);font-size:13px;cursor:pointer;margin-top:6px;font-family:'Noto Sans KR',sans-serif">+ 추가</button>
     </div>`).join('');
 }
-function openTodoModal(st){document.getElementById('td-text').value='';document.getElementById('td-status').value=st||'ing';document.getElementById('td-tag').value='';openModal('todo-modal');}
+// 마감일 색상: 기한 초과 빨강 / 7일 이내 주황 / 그 외 회색 (완료는 항상 회색)
+function todoDueColor(t){
+  if(!t.dueDate||t.status==='done')return 'var(--text4)';
+  const today=new Date();const tds=dateStr(today.getFullYear(),today.getMonth(),today.getDate());
+  if(t.dueDate<tds)return 'var(--danger)';
+  const diff=Math.round((new Date(t.dueDate)-new Date(tds))/86400000);
+  return diff<=7?'var(--warn)':'var(--text4)';
+}
+// id 전달 시 수정 모드
+function openTodoModal(st,id){
+  const t=id?todos.find(x=>x.id===id):null;
+  document.getElementById('td-edit-id').value=t?t.id:'';
+  document.getElementById('td-modal-title').innerHTML=(t?'✏️ 할일 수정':'✅ 할일 추가')+'<button class="modal-close" onclick="closeModal(\'todo-modal\')">×</button>';
+  document.getElementById('td-text').value=t?(t.text||''):'';
+  document.getElementById('td-status').value=t?(t.status||'ing'):(st||'ing');
+  document.getElementById('td-tag').value=t?(t.tag||''):'';
+  document.getElementById('td-due').value=t?(t.dueDate||''):'';
+  openModal('todo-modal');
+}
 async function saveTodo(){
   const text=document.getElementById('td-text').value.trim();if(!text){alert('내용을 입력하세요');return;}
-  try{await addDoc(COL.todos(),{text,status:document.getElementById('td-status').value,tag:document.getElementById('td-tag').value,createdAt:Date.now()});closeModal('todo-modal');}
+  const editId=document.getElementById('td-edit-id').value;
+  const data={
+    text,
+    status:document.getElementById('td-status').value,
+    tag:document.getElementById('td-tag').value,
+    dueDate:document.getElementById('td-due').value||'',
+  };
+  try{
+    if(editId)await updateDoc(doc(db,'todos',editId),data);
+    else await addDoc(COL.todos(),Object.assign({},data,{createdAt:Date.now()}));
+    closeModal('todo-modal');
+  }
   catch(e){alert('저장 실패');}
 }
 async function cycleTodo(id){
@@ -8161,6 +8433,12 @@ function showCorpDrop(inputId){
 function hideCorpDrop(id){document.getElementById('dd-'+id)?.classList.remove('open');}
 function selectCorpDrop(inputId,name){const inp=document.getElementById(inputId);if(inp)inp.value=name;hideCorpDrop(inputId);}
 document.addEventListener('click',(e)=>{document.querySelectorAll('.corp-dropdown.open').forEach(dd=>{if(!dd.parentElement.contains(e.target))dd.classList.remove('open');});},{passive:true});
+// 캘린더 날짜 팝오버: 바깥 클릭 시 닫기 ("+N개" 클릭 자체는 제외)
+document.addEventListener('click',(e)=>{
+  if(!document.getElementById('gcal-pop'))return;
+  if(e.target.closest('.gcal-pop')||e.target.closest('.gcal-more'))return;
+  closeGcalDay();
+},{passive:true});
 
 // ── INIT ──
 loadAll();
@@ -8179,6 +8457,7 @@ Object.assign(window,{
   searchFinanceComp,selectFinanceComp,clearFinanceComp,
   prevMonth,nextMonth,goToday,toggleCat,renderGantt,
   setGanttFilter,setWorkFilter,
+  setGanttView,renderGanttView,renderGanttCalendar,openGcalDay,closeGcalDay,
   openCatAddModal,saveCatAdd,deleteCatAdd,setCatRequiresCert,
   setCertTab,renderCertByCert,renderCertByComp,renderCertMaster,toggleCycleExpand,openCyclePhaseDoneModal,submitCyclePhaseDone,
   openCertMasterModal,saveCertMaster,deleteCertMaster,toggleCmCycleFields,addCmPhase,renderCmPhases,
