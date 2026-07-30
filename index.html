@@ -801,8 +801,8 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
           <button class="cal-nav-btn" onclick="gcalNext()">›</button>
           <button class="cal-today-btn" onclick="gcalToday()">오늘</button>
           <div class="toggle-btn" id="gcal-mode-toggle" style="margin-left:6px">
-            <button class="toggle-opt" data-mode="month" onclick="setGcalMode('month')">월</button>
-            <button class="toggle-opt active" data-mode="week" onclick="setGcalMode('week')">주</button>
+            <button class="toggle-opt active" data-mode="month" onclick="setGcalMode('month')">월</button>
+            <button class="toggle-opt" data-mode="week" onclick="setGcalMode('week')">주</button>
           </div>
           <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text3);cursor:pointer;margin-left:4px">
             <input type="checkbox" id="gcal-ext-chk" onchange="toggleGcalExternal(this.checked)" style="width:14px;height:14px;accent-color:#0D9488">
@@ -2350,7 +2350,7 @@ let currentWorkCat = null;
 let tempConsCompanies = [];
 let ganttFilter = 'ing';
 let ganttViewMode = 'gantt';  // 간트 페이지 뷰 모드: 'gantt' | 'calendar'
-let gcalMode = 'week';        // 캘린더 뷰 형식: 'month' | 'week'
+let gcalMode = 'month';       // 캘린더 뷰 형식: 'month'(한 달 전체) | 'week'
 let calWeekAnchor = '';       // 주 뷰가 표시 중인 주(해당 주 아무 날짜, YYYY-MM-DD)
 let workFilter = 'ing';
 let cliPageOv=1, cliPageSub=1;
@@ -2394,7 +2394,8 @@ async function loadAll(){
       tempBiznoCounter=d.tempBiznoCounter||1;
       expandedCats=new Set(d.expandedCats||[]);
       ganttViewMode=d.ganttViewMode==='calendar'?'calendar':'gantt';
-      gcalMode=d.gcalMode==='month'?'month':'week';
+      // calFormat: 'month'가 기본. (구 gcalMode 키는 무시 — 기본값이 week였던 시절의 잔여값)
+      gcalMode=d.calFormat==='week'?'week':'month';
       calWeekAnchor=d.calWeekAnchor||'';
     }
     // 8개 컬렉션 병렬 로드
@@ -2827,13 +2828,13 @@ function setDateFields(yId,mId,dId,dateStr){
 function saveAppState(){
   if(_saveTimer)clearTimeout(_saveTimer);
   _saveTimer=setTimeout(async()=>{
-    try{await setDoc(COL.app_state(),{calY,calM,expandedCats:[...expandedCats],tempBiznoCounter,ganttViewMode,gcalMode,calWeekAnchor,updatedAt:Date.now()});}
+    try{await setDoc(COL.app_state(),{calY,calM,expandedCats:[...expandedCats],tempBiznoCounter,ganttViewMode,calFormat:gcalMode,calWeekAnchor,updatedAt:Date.now()});}
     catch(e){console.error(e);}
   },400);
 }
 async function manualSave(){
   setBadge('🔄 저장 중...');
-  try{await setDoc(COL.app_state(),{calY,calM,expandedCats:[...expandedCats],tempBiznoCounter,ganttViewMode,gcalMode,calWeekAnchor,updatedAt:Date.now()});setBadge('✅ 저장됨',2000);}
+  try{await setDoc(COL.app_state(),{calY,calM,expandedCats:[...expandedCats],tempBiznoCounter,ganttViewMode,calFormat:gcalMode,calWeekAnchor,updatedAt:Date.now()});setBadge('✅ 저장됨',2000);}
   catch(e){setBadge('⚠️ 실패');}
 }
 
