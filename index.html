@@ -3589,12 +3589,17 @@ function renderGcalWeek(sfx){
   if(sc){
     // 업무 시간대(오전 7시)가 먼저 보이도록 스크롤
     sc.scrollTop=7*GWK_HOUR_H;
-    // 세로 스크롤바 너비만큼 헤더·종일 영역을 좁혀 요일 열과 시간 열을 정확히 정렬
-    const sbw=sc.offsetWidth-sc.clientWidth;
+    // 세로 스크롤바 너비만큼 헤더·종일 영역을 좁혀 요일 열과 시간 열을 정확히 정렬.
+    // offsetWidth-clientWidth는 정수로 반올림돼(배율 화면에서 4.67px→4px) 열이 조금씩 밀리므로
+    // 실제 소수점 폭(스크롤 컨테이너 폭 - 내부 그리드 폭)으로 잰다.
+    const gridEl=sc.querySelector('.gwk-grid');
+    const sbw=gridEl?sc.getBoundingClientRect().width-gridEl.getBoundingClientRect().width:0;
     if(sbw>0){
       const hd=wrap.querySelector('.gwk-head'), adEl=wrap.querySelector('.gwk-allday');
       if(hd)hd.style.paddingRight=sbw+'px';
-      if(adEl)adEl.style.paddingRight=sbw+'px';
+      // 종일 영역(max-height 초과 시 자체 스크롤)은 그 스크롤바가 이미 같은 폭을 차지하므로
+      // 보정을 넣으면 이중으로 좁아진다. 스크롤 중이면 보정하지 않음
+      if(adEl)adEl.style.paddingRight=(adEl.scrollHeight>adEl.clientHeight?0:sbw)+'px';
     }
   }
 }
@@ -4134,8 +4139,10 @@ async function saveTodo(){
     dueDate:document.getElementById('td-due').value||'',
   };
   try{
+    let todoId=editId;
     if(editId)await updateDoc(doc(db,'todos',editId),data);
-    else await addDoc(COL.todos(),Object.assign({},data,{createdAt:Date.now()}));
+    else{const ref=await addDoc(COL.todos(),Object.assign({},data,{createdAt:Date.now()}));todoId=ref.id;}
+    gcalSyncTodo(Object.assign({},data,{id:todoId}),'upsert');
     closeModal('todo-modal');
   }
   catch(e){alert('저장 실패');}
@@ -4143,9 +4150,13 @@ async function saveTodo(){
 async function cycleTodo(id){
   const t=todos.find(x=>x.id===id);if(!t)return;
   const cy={wait:'ing',ing:'done',done:'wait'};
-  try{await updateDoc(doc(db,'todos',id),{status:cy[t.status]||'wait'});}catch(e){console.error(e);}
+  const next=cy[t.status]||'wait';
+  try{
+    await updateDoc(doc(db,'todos',id),{status:next});
+    gcalSyncTodo(Object.assign({},t,{status:next}),'upsert'); // 완료로 바뀌면 캘린더에서 제거됨
+  }catch(e){console.error(e);}
 }
-async function deleteTodoItem(id){if(!confirm('삭제하시겠습니까?'))return;try{await deleteDoc(doc(db,'todos',id));}catch(e){alert('삭제 실패');}}
+async function deleteTodoItem(id){if(!confirm('삭제하시겠습니까?'))return;try{await deleteDoc(doc(db,'todos',id));gcalSyncTodo({id:id},'delete');}catch(e){alert('삭제 실패');}}
 
 // ── WORK ITEMS ──
 function renderWork(gridId){
@@ -8507,6 +8518,18 @@ function gcalSyncAnnual(report,action){
   });
 }
 
+// ── ToDo 저장/삭제 시 자동 동기화 ──
+function gcalSyncTodo(todo,action){
+  if(action==='delete'){sendToGcal('delete','todo',{id:todo.id});return;}
+  // 마감일이 없거나(마감일을 지운 경우 포함) 완료된 할일은 캘린더에서 제거
+  if(!todo.dueDate||todo.status==='done'){sendToGcal('delete','todo',{id:todo.id});return;}
+  sendToGcal('upsert','todo',{
+    id:todo.id,
+    title:todo.text||'할일',
+    dueDate:todo.dueDate,
+  });
+}
+
 // 날짜 + 일수 → 올데이 종료일(배타적, = 시작일+일수). 여러 날 심사 일정용
 function addDaysISO(ds,days){
   if(!ds)return '';
@@ -8560,6 +8583,7 @@ async function syncGcalAll(){
   if(s.syncCert){await syncGcalType('cert',addLog);}
   if(s.syncAnnual){await syncGcalType('annual',addLog);}
   if(s.syncCons){await syncGcalType('cons',addLog);}
+  if(s.syncTodo){await syncGcalType('todo',addLog);}
   addLog('✅ 전체 동기화 완료!');
   setBadge('✅ 캘린더 동기화 완료',3000);
 }
@@ -8580,6 +8604,10 @@ async function syncGcalType(type,logFn){
   } else if(type==='cons'){
     log('🔵 지원사업 '+consulting.length+'건 동기화 중...');
     for(var i=0;i<consulting.length;i++){gcalSyncCons(consulting[i],'upsert');count++;}
+  } else if(type==='todo'){
+    var targets3=todos.filter(function(t){return t.dueDate&&t.status!=='done';});
+    log('🟢 ToDo '+targets3.length+'건 동기화 중...');
+    for(var i=0;i<targets3.length;i++){gcalSyncTodo(targets3[i],'upsert');count++;}
   }
   log('  → '+count+'건 전송 완료');
 }
