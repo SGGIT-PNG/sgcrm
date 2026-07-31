@@ -810,7 +810,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
           </label>
           <span id="gcal-ext-status" style="font-size:10px"></span>
           <div class="gcal-legend">
-            <span>📅 지원사업</span><span>🏅 인증만료</span><span>📋 연간신고</span><span>✅ ToDo</span><span>📆 구글</span>
+            <span>📅 지원사업</span><span>🏅 인증만료</span><span>📋 연간신고</span><span>✅ ToDo</span><span style="color:#0D9488">● 구글 일정</span>
           </div>
         </div>
         <!-- 월 뷰 -->
@@ -3365,7 +3365,9 @@ function collectGanttEvents(rs,re){
     if(!overlap(g.start,gEnd))return;
     evs.push({
       start:g.start,end:gEnd,
-      label:'📆 '+(g.startTime?g.startTime+' ':'')+(g.title||'(제목 없음)'),
+      // 좁은 월 뷰 칸에서 제목이 최대한 보이도록 아이콘은 붙이지 않음
+      // (구글 일정은 청록색으로 구분되고, CRM 일정만 분류 아이콘을 가짐)
+      label:(g.startTime?g.startTime+' ':'')+(g.title||'(제목 없음)'),
       type:'gcal',color:'#0D9488',click:'',
       allDay:g.allDay!==false&&!g.startTime,
       sTime:g.startTime||'',eTime:g.endTime||''
@@ -3568,7 +3570,7 @@ function renderGcalWeek(sfx){
       const top=ev._s/60*GWK_HOUR_H;
       const hgt=Math.max(18,(ev._e-ev._s)/60*GWK_HOUR_H-2);
       const w=100/nCol;
-      const title=(ev.label||'').replace(/^📆\s*/,'').replace(/^\d{2}:\d{2}\s*/,'');
+      const title=(ev.label||'').replace(/^\d{2}:\d{2}\s*/,'');
       blocks+='<div class="gwk-ev" style="top:'+top.toFixed(1)+'px;height:'+hgt.toFixed(1)+'px;'
         +'left:calc('+(ev._col*w).toFixed(2)+'% + 2px);width:calc('+w.toFixed(2)+'% - 4px);'
         +'background:'+ev.color+'" title="'+escAttr(ev.sTime+(ev.eTime?'~'+ev.eTime:'')+' '+title)+'">'
