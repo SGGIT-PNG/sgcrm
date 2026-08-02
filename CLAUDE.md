@@ -13,7 +13,7 @@
 | 저장소 | https://github.com/SGGIT-PNG/sgcrm (branch `main`) |
 | 배포 | **GitHub Pages** — `main`에 push하면 즉시 배포됨 |
 | Firebase | 프로젝트 **`sg-crm-f9adc`** (Firestore, Seoul) |
-| Apps Script | 구글 캘린더 연동용. 프로젝트명 **`SG CRM 동기화`** (별도 재배포 필요) |
+| Apps Script | 구글 캘린더 연동용. 프로젝트명 **`SG솔루션 CRM`** ⚠️ (별도 재배포 필요) |
 | 검증 스크립트 | `verify.mjs` (저장소 안) |
 
 빌드 도구·번들러·패키지 매니저 없음. HTML 파일 하나에 CSS·JS가 전부 들어 있고,
