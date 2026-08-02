@@ -8465,31 +8465,68 @@ function copyGcalScript(){
 }
 
 // ── 캘린더 동기화 핵심 함수 ──
-async function sendToGcal(action,type,payload){
+//
+// ⚠️ 2026-08-02 수정 — 전송 유실 문제
+// 예전에는 전체 동기화 시 70여 건을 await 없이 한꺼번에 쐈다.
+// Apps Script는 동시 실행 수에 제한이 있어 상당수가 실패했고,
+// mode:'no-cors' 라 응답을 읽을 수 없어 **실패가 전혀 보이지 않았다.**
+// (인증 53건을 보냈는데 구글 캘린더엔 14건, ISO 심사는 0건이었음)
+//
+// 해결: ① 동시 전송 수 제한  ② no-cors 제거해 응답을 실제로 확인
+//
+// 완전 순차(1건씩)는 안전하지만 너무 느리다 — Apps Script가 일정 1건마다
+// 기존 일정 조회 + 알림 4개 재설정을 하느라 응답에 5~10초가 걸린다(53건 = 약 7분).
+// 동시 5건이면 Apps Script 한도(사용자당 30)보다 훨씬 낮아 안전하면서 5배 빠르다.
+var GCAL_MAX_CONCURRENT = 5;
+var _gcalActive = 0;
+var _gcalWaiting = [];
+
+function _gcalAcquire(){
+  if(_gcalActive < GCAL_MAX_CONCURRENT){ _gcalActive++; return Promise.resolve(); }
+  return new Promise(function(res){ _gcalWaiting.push(res); });
+}
+function _gcalRelease(){
+  var next=_gcalWaiting.shift();
+  if(next) next();            // 대기 중이던 요청이 슬롯을 그대로 물려받음
+  else _gcalActive--;
+}
+
+// 성공 시 {ok:true}, 실패 시 {ok:false,err:'...'} 로 resolve (reject 하지 않음)
+function sendToGcal(action,type,payload){
   var s=getGcalSettings();
-  if(!s.enabled||!s.webhookUrl)return;
+  if(!s.enabled||!s.webhookUrl)return Promise.resolve({ok:false,err:'연동 미설정',skipped:true});
   var typeMap={cert:'syncCert',annual:'syncAnnual',cons:'syncCons',todo:'syncTodo'};
-  if(!s[typeMap[type]])return;
-  try{
-    // Apps Script는 no-cors + form data 방식으로 전송
-    // Content-Type 헤더 없이 plain text로 전송
-    var jsonStr=JSON.stringify({action:action,type:type,payload:payload});
+  if(!s[typeMap[type]])return Promise.resolve({ok:false,err:'해당 항목 동기화 꺼짐',skipped:true});
+
+  return _gcalAcquire().then(function(){
     var formData=new FormData();
-    formData.append('data',jsonStr);
-    await fetch(s.webhookUrl,{
-      method:'POST',
-      mode:'no-cors',
-      body:formData
-    });
-  }catch(e){
-    console.warn('캘린더 동기화 실패:',e.message);
-  }
+    formData.append('data',JSON.stringify({action:action,type:type,payload:payload}));
+    // mode 미지정(cors) — Apps Script는 CORS를 허용하므로 응답을 읽을 수 있다.
+    // 예전 no-cors 방식은 실패해도 성공처럼 보여 유실을 숨겼다.
+    return fetch(s.webhookUrl,{method:'POST',body:formData})
+      .then(function(resp){
+        if(!resp.ok)return {ok:false,err:'HTTP '+resp.status};
+        return resp.text().then(function(txt){
+          try{
+            var j=JSON.parse(txt);
+            if(j&&j.ok===false)return {ok:false,err:j.error||'응답 오류'};
+          }catch(e){ /* 응답을 못 읽어도 전송 자체는 됐을 수 있으므로 실패로 보지 않음 */ }
+          return {ok:true};
+        });
+      })
+      .catch(function(e){return {ok:false,err:e.message||'네트워크 오류'};})
+      .then(function(r){
+        _gcalRelease();
+        if(!r.ok)console.warn('캘린더 동기화 실패:',type,r.err);
+        return r;
+      });
+  });
 }
 
 // ── 인증 저장/삭제 시 자동 동기화 ──
 function gcalSyncCert(cert,action){
-  if(action==='delete'){sendToGcal('delete','cert',{id:cert.id});return;}
-  if(!cert.expDate)return;
+  if(action==='delete')return sendToGcal('delete','cert',{id:cert.id});
+  if(!cert.expDate)return Promise.resolve({ok:true,skipped:true});
   var m=getCertMasterInfo(cert.certMasterId);
   var certName=cert.certName||m.certName||'인증';
   var companyName=cert.companyName||'';
@@ -8497,7 +8534,7 @@ function gcalSyncCert(cert,action){
     var comp=companies.find(function(c){return c._id===cert.bizno;});
     if(comp)companyName=comp.name;
   }
-  sendToGcal('upsert','cert',{
+  return sendToGcal('upsert','cert',{
     id:cert.id,
     companyName:companyName,
     certName:certName,
@@ -8508,11 +8545,11 @@ function gcalSyncCert(cert,action){
 
 // ── 연간신고 저장/삭제 시 자동 동기화 ──
 function gcalSyncAnnual(report,action){
-  if(action==='delete'){sendToGcal('delete','annual',{id:report.id});return;}
+  if(action==='delete')return sendToGcal('delete','annual',{id:report.id});
   var cert=certifications.find(function(c){return c.id===report.certId;});
   var m=cert?getCertMasterInfo(cert.certMasterId):{certName:'연간신고'};
-  if(!report.dueDate)return;
-  sendToGcal('upsert','annual',{
+  if(!report.dueDate)return Promise.resolve({ok:true,skipped:true});
+  return sendToGcal('upsert','annual',{
     id:report.id,companyName:report.companyName||'',
     certName:m.certName,dueDate:report.dueDate,year:report.year,
   });
@@ -8520,10 +8557,10 @@ function gcalSyncAnnual(report,action){
 
 // ── ToDo 저장/삭제 시 자동 동기화 ──
 function gcalSyncTodo(todo,action){
-  if(action==='delete'){sendToGcal('delete','todo',{id:todo.id});return;}
+  if(action==='delete')return sendToGcal('delete','todo',{id:todo.id});
   // 마감일이 없거나(마감일을 지운 경우 포함) 완료된 할일은 캘린더에서 제거
-  if(!todo.dueDate||todo.status==='done'){sendToGcal('delete','todo',{id:todo.id});return;}
-  sendToGcal('upsert','todo',{
+  if(!todo.dueDate||todo.status==='done')return sendToGcal('delete','todo',{id:todo.id});
+  return sendToGcal('upsert','todo',{
     id:todo.id,
     title:todo.text||'할일',
     dueDate:todo.dueDate,
@@ -8540,27 +8577,30 @@ function addDaysISO(ds,days){
 // ── 지원사업 저장/삭제 시 자동 동기화 ──
 function gcalSyncCons(cons,action){
   if(action==='delete'){
-    sendToGcal('delete','cons',{id:cons.id});
-    sendToGcal('delete','cert',{id:'consaudit1_'+cons.id});
-    sendToGcal('delete','cert',{id:'consaudit2_'+cons.id});
-    return;
+    return Promise.all([
+      sendToGcal('delete','cons',{id:cons.id}),
+      sendToGcal('delete','cert',{id:'consaudit1_'+cons.id}),
+      sendToGcal('delete','cert',{id:'consaudit2_'+cons.id}),
+    ]).then(function(rs){return rs.find(function(r){return !r.ok&&!r.skipped;})||{ok:true};});
   }
-  if(!cons.startDate&&!cons.endDate)return;
+  if(!cons.startDate&&!cons.endDate)return Promise.resolve({ok:true,skipped:true});
   var ccs=consCompanies.filter(function(cc){return cc.consId===cons.id;});
   var compNames=ccs.map(function(cc){var comp=companies.find(function(x){return x._id===cc.bizno;});return comp?comp.name:cc.companyName||'';}).join(', ');
   // ISO 통합심사: 1차 심사(시작일)·2차 심사(마감일)를 각각 별도 일정으로 등록
   if(cons.category==='iso'){
     var names=(cons.isoMasterIds||[]).map(function(id){var mm=getCertMasterInfo(id);return (mm.certName||id).replace(/^ISO\s*/i,'');});
     var label=names.length?('ISO '+names.join('+')+' 통합심사'):(cons.title||'ISO 심사');
-    if(cons.startDate)sendToGcal('upsert','cert',{id:'consaudit1_'+cons.id,companyName:compNames,certName:label+' [1차 심사]',expDate:cons.startDate,endDate:addDaysISO(cons.startDate,+cons.audit1Days||1)});
-    else sendToGcal('delete','cert',{id:'consaudit1_'+cons.id});
-    if(cons.endDate)sendToGcal('upsert','cert',{id:'consaudit2_'+cons.id,companyName:compNames,certName:label+' [2차 심사]',expDate:cons.endDate,endDate:addDaysISO(cons.endDate,+cons.audit2Days||1)});
-    else sendToGcal('delete','cert',{id:'consaudit2_'+cons.id});
-    return;
+    var p1=cons.startDate
+      ? sendToGcal('upsert','cert',{id:'consaudit1_'+cons.id,companyName:compNames,certName:label+' [1차 심사]',expDate:cons.startDate,endDate:addDaysISO(cons.startDate,+cons.audit1Days||1)})
+      : sendToGcal('delete','cert',{id:'consaudit1_'+cons.id});
+    var p2=cons.endDate
+      ? sendToGcal('upsert','cert',{id:'consaudit2_'+cons.id,companyName:compNames,certName:label+' [2차 심사]',expDate:cons.endDate,endDate:addDaysISO(cons.endDate,+cons.audit2Days||1)})
+      : sendToGcal('delete','cert',{id:'consaudit2_'+cons.id});
+    return Promise.all([p1,p2]).then(function(rs){return rs.find(function(r){return !r.ok&&!r.skipped;})||{ok:true};});
   }
   // 시작~마감을 하나의 기간 이벤트로 전송
   var cm=CAT_META[cons.category]||CAT_META.etc;
-  sendToGcal('upsert','cons',{
+  return sendToGcal('upsert','cons',{
     id:cons.id,
     title:cons.title,
     categoryName:cm.name||'지원사업',
@@ -8579,37 +8619,67 @@ async function syncGcalAll(){
   var log=document.getElementById('gcal-sync-log');
   if(log)log.style.display='block';
   function addLog(msg){if(log)log.innerHTML+=msg+'<br>';log.scrollTop=log.scrollHeight;}
-  addLog('🔄 전체 동기화 시작...');
-  if(s.syncCert){await syncGcalType('cert',addLog);}
-  if(s.syncAnnual){await syncGcalType('annual',addLog);}
-  if(s.syncCons){await syncGcalType('cons',addLog);}
-  if(s.syncTodo){await syncGcalType('todo',addLog);}
-  addLog('✅ 전체 동기화 완료!');
-  setBadge('✅ 캘린더 동기화 완료',3000);
+  addLog('🔄 전체 동기화 시작... (동시 '+GCAL_MAX_CONCURRENT+'건씩 전송, 수십 건이면 몇 분 걸립니다)');
+  var totalSent=0,totalFailed=0;
+  function tally(r){totalSent+=r.sent;totalFailed+=r.failed;}
+  setBadge('🔄 캘린더 동기화 중...');
+  if(s.syncCert){tally(await syncGcalType('cert',addLog));}
+  if(s.syncAnnual){tally(await syncGcalType('annual',addLog));}
+  if(s.syncCons){tally(await syncGcalType('cons',addLog));}
+  if(s.syncTodo){tally(await syncGcalType('todo',addLog));}
+  if(totalFailed>0){
+    addLog('<b style="color:#EF4444">⚠️ 완료 — 성공 '+totalSent+'건 / 실패 '+totalFailed+'건</b>');
+    addLog('실패한 건은 다시 동기화하면 재시도됩니다.');
+    setBadge('⚠️ 동기화 '+totalFailed+'건 실패',5000);
+  } else {
+    addLog('✅ 전체 동기화 완료! (총 '+totalSent+'건)');
+    setBadge('✅ 캘린더 동기화 완료',3000);
+  }
 }
 
+// 한 종류를 순차 전송한다. 반환: {sent, failed}
+// ⚠️ 반드시 await로 하나씩 보낼 것. 한꺼번에 쏘면 Apps Script 동시 실행 제한에 걸려 유실된다.
 async function syncGcalType(type,logFn){
   var log=logFn||function(){};
   var s=getGcalSettings();
-  if(!s.webhookUrl)return;
-  var count=0;
+  if(!s.webhookUrl)return {sent:0,failed:0};
+
+  var targets=[],label='',fn=null;
   if(type==='cert'){
-    var targets=certifications.filter(function(c){return c.expDate;});
-    log('🔴 인증 '+targets.length+'건 동기화 중...');
-    for(var i=0;i<targets.length;i++){gcalSyncCert(targets[i],'upsert');count++;}
+    targets=certifications.filter(function(c){return c.expDate;});
+    label='🔴 인증'; fn=gcalSyncCert;
   } else if(type==='annual'){
-    var targets2=annualReports.filter(function(r){return r.status!=='done'&&r.dueDate;});
-    log('🟡 연간신고 '+targets2.length+'건 동기화 중...');
-    for(var i=0;i<targets2.length;i++){gcalSyncAnnual(targets2[i],'upsert');count++;}
+    targets=annualReports.filter(function(r){return r.status!=='done'&&r.dueDate;});
+    label='🟡 연간신고'; fn=gcalSyncAnnual;
   } else if(type==='cons'){
-    log('🔵 지원사업 '+consulting.length+'건 동기화 중...');
-    for(var i=0;i<consulting.length;i++){gcalSyncCons(consulting[i],'upsert');count++;}
+    targets=consulting.slice();
+    label='🔵 지원사업'; fn=gcalSyncCons;
   } else if(type==='todo'){
-    var targets3=todos.filter(function(t){return t.dueDate&&t.status!=='done';});
-    log('🟢 ToDo '+targets3.length+'건 동기화 중...');
-    for(var i=0;i<targets3.length;i++){gcalSyncTodo(targets3[i],'upsert');count++;}
+    targets=todos.filter(function(t){return t.dueDate&&t.status!=='done';});
+    label='🟢 ToDo'; fn=gcalSyncTodo;
+  } else {
+    return {sent:0,failed:0};
   }
-  log('  → '+count+'건 전송 완료');
+
+  log(label+' '+targets.length+'건 동기화 중...');
+  // 전부 한 번에 걸어두고, 동시 실행 수는 sendToGcal의 슬롯(GCAL_MAX_CONCURRENT)이 제어한다.
+  // (여기서 await로 하나씩 돌리면 동시 전송이 무력화되어 매우 느려진다)
+  var done=0;
+  var results=await Promise.all(targets.map(function(t){
+    return fn(t,'upsert').then(function(r){
+      done++;
+      if(done%10===0&&done<targets.length)log('　　… '+done+'/'+targets.length);
+      return r;
+    });
+  }));
+  var sent=0,failed=0,firstErr='';
+  results.forEach(function(r){
+    if(r&&r.ok===false&&!r.skipped){failed++;if(!firstErr)firstErr=r.err||'';}
+    else sent++;
+  });
+  if(failed>0)log('　　→ '+sent+'건 성공, <b style="color:#EF4444">'+failed+'건 실패</b>'+(firstErr?' ('+firstErr+')':''));
+  else log('　　→ '+sent+'건 완료');
+  return {sent:sent,failed:failed};
 }
 
 // ── Apps Script 코드 (가이드용) — SG_CRM_Calendar_v8_Code.gs 와 동일하게 유지할 것 ──
