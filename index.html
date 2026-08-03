@@ -548,18 +548,18 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
 
     <!-- 메인 메뉴 -->
     <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,.35);padding:10px 8px 4px;letter-spacing:.08em;text-transform:uppercase">메인 메뉴</div>
-    <div class="mob-drawer-item" onclick="mobileNavTo('overview')">🏠 전체 현황</div>
-    <div class="mob-drawer-item" onclick="mobileNavTo('gantt')">📅 지원사업·정책자금</div>
+    <div class="mob-drawer-item" onclick="mobileNavTo('gantt')">📅 일정관리</div>
+    <div class="mob-drawer-item" onclick="mobileNavTo('overview')">🏠 현재 진행 업무</div>
     <div class="mob-drawer-item" onclick="mobileNavTo('todo')">✅ 수시처리 To Do List</div>
+    <div class="mob-drawer-item" onclick="mobileNavTo('clients')">🏢 기업별 진행현황</div>
     <div class="mob-drawer-item" onclick="mobileNavTo('work')">📋 업무 영역별</div>
-    <div class="mob-drawer-item" onclick="mobileNavTo('clients')">🏢 업체별 진행현황</div>
 
     <!-- 관리 -->
     <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,.35);padding:14px 8px 4px;letter-spacing:.08em;text-transform:uppercase">관리</div>
+    <div class="mob-drawer-item" onclick="mobileNavTo('matching')">🎯 지원사업매칭</div>
     <div class="mob-drawer-item" onclick="mobileNavTo('cert')">🏅 인증·갱신관리</div>
     <div class="mob-drawer-item" onclick="mobileNavTo('stats')">📊 누적통계</div>
     <div class="mob-drawer-item" onclick="mobileNavTo('history')">📁 완료업무이력</div>
-    <div class="mob-drawer-item" onclick="mobileNavTo('matching')">🎯 지원사업매칭</div>
     <div class="mob-drawer-item" onclick="mobileNavTo('companies')">🏛️ 기업관리</div>
 
     <!-- 도구 -->
@@ -583,11 +583,11 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
 
 <!-- 하단 탭바 -->
 <div id="mobile-tabbar">
-  <button class="mob-tab active" id="mobtab-overview" onclick="mobileNavTo('overview')">
-    <span class="mob-ico">🏠</span><span class="mob-lbl">현황</span>
-  </button>
   <button class="mob-tab" id="mobtab-gantt" onclick="mobileNavTo('gantt')">
-    <span class="mob-ico">📅</span><span class="mob-lbl">지원사업</span>
+    <span class="mob-ico">📅</span><span class="mob-lbl">일정</span>
+  </button>
+  <button class="mob-tab active" id="mobtab-overview" onclick="mobileNavTo('overview')">
+    <span class="mob-ico">🏠</span><span class="mob-lbl">진행업무</span>
   </button>
   <button class="mob-tab" id="mobtab-todo" onclick="mobileNavTo('todo')">
     <span class="mob-ico">✅</span><span class="mob-lbl">ToDo</span>
@@ -607,16 +607,16 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
     <div class="sb-logo-sub">Business CRM v3</div>
   </div>
   <div class="sb-section">메인 메뉴</div>
-  <div class="sb-menu active" id="nav-overview" onclick="navTo('overview')"><span class="sb-ico">🏠</span><span>전체 현황</span></div>
-  <div class="sb-menu" id="nav-gantt" onclick="navTo('gantt')"><span class="sb-ico">📅</span><span>지원사업·정책자금</span><span class="sb-cnt" id="sb-gantt-cnt">0</span></div>
+  <div class="sb-menu" id="nav-gantt" onclick="navTo('gantt')"><span class="sb-ico">📅</span><span>일정관리</span><span class="sb-cnt" id="sb-gantt-cnt">0</span></div>
+  <div class="sb-menu active" id="nav-overview" onclick="navTo('overview')"><span class="sb-ico">🏠</span><span>현재 진행 업무</span></div>
   <div class="sb-menu" id="nav-todo" onclick="navTo('todo')"><span class="sb-ico">✅</span><span>수시처리 To Do List</span><span class="sb-cnt" id="sb-todo-cnt">0</span></div>
+  <div class="sb-menu" id="nav-clients" onclick="navTo('clients')"><span class="sb-ico">🏢</span><span>기업별 진행현황</span><span class="sb-cnt" id="sb-cli-cnt">0</span></div>
   <div class="sb-menu" id="nav-work" onclick="navTo('work')"><span class="sb-ico">📊</span><span>업무 영역별 현황</span></div>
-  <div class="sb-menu" id="nav-clients" onclick="navTo('clients')"><span class="sb-ico">🏢</span><span>업체별 진행현황</span><span class="sb-cnt" id="sb-cli-cnt">0</span></div>
   <div class="sb-section">관리</div>
+  <div class="sb-menu" id="nav-matching" onclick="navTo('matching')"><span class="sb-ico">🎯</span><span>지원사업 매칭</span></div>
   <div class="sb-menu" id="nav-cert" onclick="navTo('cert')"><span class="sb-ico">📋</span><span>인증·갱신 관리</span><span class="sb-cnt" id="sb-cert-cnt">0</span></div>
   <div class="sb-menu" id="nav-stats" onclick="navTo('stats')"><span class="sb-ico">📈</span><span>누적 통계 데이터</span></div>
   <div class="sb-menu" id="nav-history" onclick="navTo('history')"><span class="sb-ico">📁</span><span>완료 업무 이력</span><span class="sb-cnt" id="sb-history-cnt">0</span></div>
-  <div class="sb-menu" id="nav-matching" onclick="navTo('matching')"><span class="sb-ico">🎯</span><span>지원사업 매칭</span></div>
   <div class="sb-menu" id="nav-companies" onclick="navTo('companies')"><span class="sb-ico">🏛️</span><span>기업 관리</span><span class="sb-cnt" id="sb-corp-cnt">0</span></div>
   <div class="sb-bottom">
     <div onclick="openGcalModal()" id="gcal-sidebar-btn" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:7px;padding:7px 12px;text-align:center;cursor:pointer;font-size:12px;font-weight:500;color:rgba(255,255,255,.7);margin-bottom:6px;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.15)'" onmouseout="this.style.background='rgba(255,255,255,.08)'">🗓️ 구글 캘린더 연동</div>
@@ -631,7 +631,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
 <div id="main">
   <div id="topbar">
     <div>
-      <div class="tb-title" id="topbar-title">전체 현황</div>
+      <div class="tb-title" id="topbar-title">현재 진행 업무</div>
       <div class="tb-sub">SG솔루션 Business Control Tower</div>
     </div>
     <div id="live-time"></div>
@@ -704,12 +704,12 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
         </div>
         <div class="grid3" id="work-grid"></div>
       </div>
-      <!-- 7. 업체별 진행 분야 현황 -->
+      <!-- 7. 기업별 진행 분야 현황 -->
       <div style="margin-bottom:24px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
           <div style="display:flex;align-items:center;gap:8px">
             <div style="width:28px;height:28px;border-radius:8px;background:var(--teal-pale);display:flex;align-items:center;justify-content:center">🏢</div>
-            <span style="font-size:16px;font-weight:500">업체별 진행 분야 현황</span>
+            <span style="font-size:16px;font-weight:500">기업별 진행 분야 현황</span>
             <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text3);background:var(--surface2);padding:2px 8px;border-radius:10px" id="ov-cli-cnt">0개</span>
           </div>
           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
@@ -724,7 +724,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
             </div>
             <div class="search-wrap" style="margin-bottom:0;width:150px">
               <span class="search-ico">🔍</span>
-              <input class="search-inp" id="cli-search-ov" placeholder="업체명..." oninput="cliPageOv=1;setCliPageOv(1)">
+              <input class="search-inp" id="cli-search-ov" placeholder="기업명..." oninput="cliPageOv=1;setCliPageOv(1)">
             </div>
             <button class="btn btn-primary btn-sm" onclick="openCompanyModal()">+ 기업 등록</button>
           </div>
@@ -862,7 +862,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
         </div>
       </div>
       <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center">
-        <div class="search-wrap" style="flex:1;margin-bottom:0"><span class="search-ico">🔍</span><input class="search-inp" id="cli-search" placeholder="업체명 검색..." oninput="cliPageSub=1;renderClientsPage()"></div>
+        <div class="search-wrap" style="flex:1;margin-bottom:0"><span class="search-ico">🔍</span><input class="search-inp" id="cli-search" placeholder="기업명 검색..." oninput="cliPageSub=1;renderClientsPage()"></div>
         <button class="btn btn-primary" onclick="openCompanyModal()">+ 기업 등록</button>
       </div>
       <div class="card">
@@ -879,8 +879,8 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
       <!-- 탭 -->
       <div style="display:flex;gap:2px;margin-bottom:18px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:4px;width:fit-content">
         <button class="toggle-opt active" id="cert-tab-alert" onclick="setCertTab('alert')">⚠️ 갱신 알림</button>
-        <button class="toggle-opt" id="cert-tab-by-cert" onclick="setCertTab('by-cert')">📋 인증별 업체</button>
-        <button class="toggle-opt" id="cert-tab-by-comp" onclick="setCertTab('by-comp')">🏢 업체별 인증</button>
+        <button class="toggle-opt" id="cert-tab-by-cert" onclick="setCertTab('by-cert')">📋 인증별 기업</button>
+        <button class="toggle-opt" id="cert-tab-by-comp" onclick="setCertTab('by-comp')">🏢 기업별 인증</button>
         <button class="toggle-opt" id="cert-tab-master" onclick="setCertTab('master')">⚙️ 인증 종류 관리</button>
       </div>
 
@@ -889,14 +889,14 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px">
           <div class="search-wrap" style="flex:1;max-width:300px">
             <span class="search-ico">🔍</span>
-            <input class="search-inp" id="cert-alert-search" placeholder="업체명 또는 인증 종류 검색" oninput="renderCertAlert()">
+            <input class="search-inp" id="cert-alert-search" placeholder="기업명 또는 인증 종류 검색" oninput="renderCertAlert()">
           </div>
           <button class="btn btn-primary" onclick="openCertModal()">+ 인증 등록</button>
         </div>
         <div id="cert-alert-list"></div>
       </div>
 
-      <!-- 탭2: 인증별 업체 조회 -->
+      <!-- 탭2: 인증별 기업 조회 -->
       <div id="cert-pane-by-cert" style="display:none">
         <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap">
           <select class="fs" id="cert-type-filter" onchange="renderCertByCert()" style="width:180px">
@@ -904,30 +904,30 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
           </select>
           <div class="search-wrap" style="flex:1;max-width:280px">
             <span class="search-ico">🔍</span>
-            <input class="search-inp" id="cert-by-cert-search" placeholder="업체명 검색" oninput="renderCertByCert()">
+            <input class="search-inp" id="cert-by-cert-search" placeholder="기업명 검색" oninput="renderCertByCert()">
           </div>
           <button class="btn btn-primary" onclick="openCertModal()">+ 인증 등록</button>
         </div>
         <div class="card"><div class="tbl-wrap"><table class="tbl">
-          <thead><tr><th>업체명</th><th>인증 종류</th><th>취득일</th><th>만료·갱신일</th><th>갱신주기</th><th>상태</th><th>D-Day</th><th>관리</th></tr></thead>
+          <thead><tr><th>기업명</th><th>인증 종류</th><th>취득일</th><th>만료·갱신일</th><th>갱신주기</th><th>상태</th><th>D-Day</th><th>관리</th></tr></thead>
           <tbody id="cert-by-cert-body"></tbody>
         </table></div></div>
       </div>
 
-      <!-- 탭3: 업체별 인증 조회 -->
+      <!-- 탭3: 기업별 인증 조회 -->
       <div id="cert-pane-by-comp" style="display:none">
         <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap">
           <select class="fs" id="cert-comp-filter" onchange="renderCertByComp()" style="width:200px">
-            <option value="">전체 업체</option>
+            <option value="">전체 기업</option>
           </select>
           <div class="search-wrap" style="flex:1;max-width:280px">
             <span class="search-ico">🔍</span>
-            <input class="search-inp" id="cert-by-comp-search" placeholder="업체명 또는 인증 종류 검색" oninput="renderCertByComp()">
+            <input class="search-inp" id="cert-by-comp-search" placeholder="기업명 또는 인증 종류 검색" oninput="renderCertByComp()">
           </div>
           <button class="btn btn-primary" onclick="openCertModal()">+ 인증 등록</button>
         </div>
         <div class="card"><div class="tbl-wrap"><table class="tbl">
-          <thead><tr><th>업체명</th><th>인증 종류</th><th>취득일</th><th>만료·갱신일</th><th>갱신주기</th><th>상태</th><th>D-Day</th><th>관리</th></tr></thead>
+          <thead><tr><th>기업명</th><th>인증 종류</th><th>취득일</th><th>만료·갱신일</th><th>갱신주기</th><th>상태</th><th>D-Day</th><th>관리</th></tr></thead>
           <tbody id="cert-by-comp-body"></tbody>
         </table></div></div>
       </div>
@@ -954,7 +954,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
       <div style="display:flex;gap:10px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
         <div class="search-wrap" style="flex:1;margin-bottom:0;min-width:180px">
           <span class="search-ico">🔍</span>
-          <input class="search-inp" id="hist-search" placeholder="업체명, 업무명 검색..." oninput="histPage=1;renderHistoryPage()">
+          <input class="search-inp" id="hist-search" placeholder="기업명, 업무명 검색..." oninput="histPage=1;renderHistoryPage()">
         </div>
         <select class="fs" id="hist-cat-filter" onchange="histPage=1;renderHistoryPage()" style="width:130px"><option value="">전체 분야</option></select>
       </div>
@@ -993,11 +993,11 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
     <div class="page-section" id="page-matching">
       <!-- 모드 탭 -->
       <div style="display:flex;gap:8px;margin-bottom:20px;border-bottom:2px solid var(--border);padding-bottom:0">
-        <button id="match-tab-comp" onclick="setMatchTab('comp')" style="padding:10px 20px;border:none;background:none;font-size:14px;font-weight:600;color:var(--accent);border-bottom:2px solid var(--accent);margin-bottom:-2px;cursor:pointer;font-family:Pretendard,sans-serif">🏢 업체 → 맞는 지원사업</button>
-        <button id="match-tab-cons" onclick="setMatchTab('cons')" style="padding:10px 20px;border:none;background:none;font-size:14px;font-weight:600;color:var(--text3);border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer;font-family:Pretendard,sans-serif">📋 지원사업 → 맞는 업체</button>
+        <button id="match-tab-comp" onclick="setMatchTab('comp')" style="padding:10px 20px;border:none;background:none;font-size:14px;font-weight:600;color:var(--accent);border-bottom:2px solid var(--accent);margin-bottom:-2px;cursor:pointer;font-family:Pretendard,sans-serif">🏢 기업 → 맞는 지원사업</button>
+        <button id="match-tab-cons" onclick="setMatchTab('cons')" style="padding:10px 20px;border:none;background:none;font-size:14px;font-weight:600;color:var(--text3);border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer;font-family:Pretendard,sans-serif">📋 지원사업 → 맞는 기업</button>
       </div>
 
-      <!-- 탭1: 업체 → 지원사업 -->
+      <!-- 탭1: 기업 → 지원사업 -->
       <div id="match-pane-comp">
         <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap">
           <!-- 진행중/완료 토글 -->
@@ -1008,7 +1008,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
             <button class="toggle-opt" onclick="setMatchCompStatus('all')">전체</button>
           </div>
           <div class="search-wrap" style="flex:1;max-width:260px"><span class="search-ico">🔍</span>
-            <input class="search-inp" id="match-comp-search" placeholder="업체명 검색..." oninput="renderMatchingPage()">
+            <input class="search-inp" id="match-comp-search" placeholder="기업명 검색..." oninput="renderMatchingPage()">
           </div>
           <select class="fs" id="match-comp-region" onchange="renderMatchingPage()" style="width:100px">
             <option value="">전체 지역</option>
@@ -1039,14 +1039,14 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:8px 12px;background:var(--surface2);border-radius:8px">
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text2)">
             <input type="checkbox" id="match-show-all-comp" onchange="renderMatchingPage()" style="accent-color:var(--accent)">
-            매칭 없는 업체도 표시
+            매칭 없는 기업도 표시
           </label>
           <span id="match-comp-summary" style="font-size:12px;color:var(--text4);margin-left:auto"></span>
         </div>
         <div id="match-comp-list"></div>
       </div>
 
-      <!-- 탭2: 지원사업 → 업체 -->
+      <!-- 탭2: 지원사업 → 기업 -->
       <div id="match-pane-cons" style="display:none">
         <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap">
           <div class="search-wrap" style="flex:1;max-width:300px"><span class="search-ico">🔍</span>
@@ -1190,7 +1190,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
       <div class="fg"><label class="fl">이메일</label><input class="fi" id="comp-email" placeholder="example@company.com"></div>
     </div>
     <div class="frow">
-      <div class="fg"><label class="fl">업체 구분</label>
+      <div class="fg"><label class="fl">기업 구분</label>
         <select class="fs" id="comp-bizclass" onchange="toggleBizDateFields()">
           <option value="법인">🏛️ 법인사업자</option>
           <option value="개인">👤 개인사업자</option>
@@ -1340,7 +1340,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
         </label>
         <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px;background:#FFFFFF;border:1px solid var(--border);border-radius:8px">
           <input type="checkbox" id="xl-sheet-company" checked style="width:16px;height:16px;accent-color:var(--accent)">
-          <div><div style="font-size:13px;font-weight:500">🏢 기업 현황</div><div style="font-size:11px;color:var(--text4)">등록 업체 전체 정보 · 업무/인증 건수 포함</div></div>
+          <div><div style="font-size:13px;font-weight:500">🏢 기업 현황</div><div style="font-size:11px;color:var(--text4)">등록 기업 전체 정보 · 업무/인증 건수 포함</div></div>
         </label>
         <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px;background:#FFFFFF;border:1px solid var(--border);border-radius:8px">
           <input type="checkbox" id="xl-sheet-work" checked style="width:16px;height:16px;accent-color:var(--accent)">
@@ -1411,18 +1411,18 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
         </div>
       </div>
 
-      <!-- 2. 업체별 진행 현황 -->
+      <!-- 2. 기업별 진행 현황 -->
       <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
           <div>
-            <div style="font-size:14px;font-weight:600;color:var(--text)">🏢 업체별 진행 현황 보고서</div>
-            <div style="font-size:12px;color:var(--text4);margin-top:3px">업체별 업무·인증·지원사업 상세 현황</div>
+            <div style="font-size:14px;font-weight:600;color:var(--text)">🏢 기업별 진행 현황 보고서</div>
+            <div style="font-size:12px;color:var(--text4);margin-top:3px">기업별 업무·인증·지원사업 상세 현황</div>
           </div>
           <button class="btn btn-primary btn-sm" onclick="printReport('company')">출력</button>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
           <select class="fs" id="report-comp-filter" style="flex:1">
-            <option value="">전체 업체</option>
+            <option value="">전체 기업</option>
           </select>
         </div>
       </div>
@@ -1494,11 +1494,11 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
       <button class="modal-close" onclick="closeModal('finance-modal')">×</button>
     </div>
 
-    <!-- 업체 연동 -->
+    <!-- 기업 연동 -->
     <div class="fg">
-      <label class="fl">CRM 등록 업체 연동 <span style="color:var(--text4);font-weight:400">(선택)</span></label>
+      <label class="fl">CRM 등록 기업 연동 <span style="color:var(--text4);font-weight:400">(선택)</span></label>
       <div class="corp-dd-wrap">
-        <input class="fi" id="finance-comp-search-inp" placeholder="업체명 검색..." autocomplete="off"
+        <input class="fi" id="finance-comp-search-inp" placeholder="기업명 검색..." autocomplete="off"
           oninput="searchFinanceComp()" onfocus="searchFinanceComp()">
         <div class="corp-dropdown" id="finance-comp-dd"></div>
       </div>
@@ -1865,17 +1865,17 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
       </div>
       <!-- 매칭 미리보기 -->
       <div id="cons-match-preview" style="display:none;margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
-        <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">✅ 조건 맞는 업체 <span id="cons-match-preview-count"></span></div>
+        <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">✅ 조건 맞는 기업 <span id="cons-match-preview-count"></span></div>
         <div id="cons-match-preview-list" style="display:flex;flex-wrap:wrap;gap:6px"></div>
       </div>
     </div>
 
     <div style="border-top:1px solid #E5E7EB;padding-top:12px;margin-top:4px">
-      <div style="font-size:13px;font-weight:500;color:var(--text3);margin-bottom:8px">참여 업체</div>
+      <div style="font-size:13px;font-weight:500;color:var(--text3);margin-bottom:8px">참여 기업</div>
       <div id="cons-companies-list"></div>
       <div style="display:flex;gap:6px;margin-top:6px">
         <div class="corp-dd-wrap" style="flex:1">
-          <input class="fi" id="cons-comp-inp" placeholder="업체명 입력 (자동완성)" onkeydown="if(event.key==='Enter')addConsCompany()" autocomplete="off" oninput="showCorpDrop('cons-comp-inp')">
+          <input class="fi" id="cons-comp-inp" placeholder="기업명 입력 (자동완성)" onkeydown="if(event.key==='Enter')addConsCompany()" autocomplete="off" oninput="showCorpDrop('cons-comp-inp')">
           <div class="corp-dropdown" id="dd-cons-comp-inp"></div>
         </div>
         <select class="fs" id="cons-comp-status" style="width:70px">
@@ -1903,9 +1903,9 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
     </div>
     <input type="hidden" id="cr-comp-idx">
 
-    <!-- 업체/사업 정보 -->
+    <!-- 기업/사업 정보 -->
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px">
-      <div style="font-size:13px;font-weight:600;color:var(--text)" id="cr-comp-name">업체명</div>
+      <div style="font-size:13px;font-weight:600;color:var(--text)" id="cr-comp-name">기업명</div>
       <div style="font-size:12px;color:var(--text4);margin-top:2px" id="cr-cons-title">지원사업명</div>
     </div>
 
@@ -2031,7 +2031,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
     </div>
     <input type="hidden" id="cfw-work-id">
     <div class="frow">
-      <div class="fg"><label class="fl">업체명</label>
+      <div class="fg"><label class="fl">기업명</label>
         <input class="fi" id="cfw-comp-name" readonly style="opacity:.7">
       </div>
       <div class="fg" id="cfw-master-fg"><label class="fl">인증 종류 *</label>
@@ -2100,9 +2100,9 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
     <div class="modal-title"><span id="cert-modal-title">📋 인증 등록</span><button class="modal-close" onclick="closeModal('cert-modal')">×</button></div>
     <input type="hidden" id="cert-edit-id">
     <div class="frow">
-      <div class="fg"><label class="fl">업체명 *</label>
+      <div class="fg"><label class="fl">기업명 *</label>
         <div class="corp-dd-wrap">
-          <input class="fi" id="cert-comp-inp" placeholder="업체명 입력" autocomplete="off" oninput="showCorpDrop('cert-comp-inp')">
+          <input class="fi" id="cert-comp-inp" placeholder="기업명 입력" autocomplete="off" oninput="showCorpDrop('cert-comp-inp')">
           <div class="corp-dropdown" id="dd-cert-comp-inp"></div>
         </div>
       </div>
@@ -2229,9 +2229,9 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
     <div class="modal-title"><span id="wm-title">항목 추가</span><button class="modal-close" onclick="closeModal('work-modal')">×</button></div>
     <div class="fg"><label class="fl">업무 내용 *</label><input class="fi" id="wm-name" placeholder="업무 내용 입력"></div>
     <div class="frow">
-      <div class="fg"><label class="fl">업체명</label>
+      <div class="fg"><label class="fl">기업명</label>
         <div class="corp-dd-wrap">
-          <input class="fi" id="wm-client" placeholder="업체명" autocomplete="off" oninput="showCorpDrop('wm-client')">
+          <input class="fi" id="wm-client" placeholder="기업명" autocomplete="off" oninput="showCorpDrop('wm-client')">
           <div class="corp-dropdown" id="dd-wm-client"></div>
         </div>
       </div>
@@ -2326,9 +2326,9 @@ const ST = {
   done:{label:'완료',bg:'#ECFDF5',tx:'#059669',dot:'#10B981'},
 };
 const PAGE_TITLES={
-  overview:'전체 현황',gantt:'지원사업·정책자금 일정 관리',
+  overview:'현재 진행 업무',gantt:'일정관리',
   todo:'수시처리 To Do List',work:'업무 영역별 진행 현황',
-  clients:'업체별 진행 분야 현황',cert:'📋 인증·갱신 관리',
+  clients:'기업별 진행 분야 현황',cert:'📋 인증·갱신 관리',
   stats:'누적 통계 데이터',history:'📁 완료 업무 이력',companies:'기업 관리',matching:'🎯 지원사업 매칭'
 };
 const DONE_HIDE_MS = 7*24*60*60*1000;
@@ -2656,7 +2656,7 @@ async function deleteCatAdd(){
   }catch(e){alert('삭제 실패: '+e.message);}
 }
 let _saveTimer=null;
-// 업체구분에 따라 날짜 필드 동적 전환
+// 기업구분에 따라 날짜 필드 동적 전환
 function toggleBizDateFields(){
   const bizclass=document.getElementById('comp-bizclass')?.value||'법인';
   const regWrap=document.getElementById('comp-reg-date-wrap');
@@ -2914,23 +2914,23 @@ function updateCounts(){
   }
 }
 
-// ── HELPER: 컨설팅-업체 JOIN (오라클 JOIN과 동일 개념) ──
+// ── HELPER: 컨설팅-기업 JOIN (오라클 JOIN과 동일 개념) ──
 
-// 비활성 업체 bizno Set (렌더링 시 필터용)
+// 비활성 기업 bizno Set (렌더링 시 필터용)
 function getInactiveBiznos(){
   return new Set(companies.filter(c=>c.active==='N').map(c=>c._id));
 }
 
-// consulting_company 테이블에서 특정 consId의 업체 목록 가져오기
+// consulting_company 테이블에서 특정 consId의 기업 목록 가져오기
 function getConsCompanies(consId){
   const inactive=getInactiveBiznos();
-  // 비활성 업체 제외
+  // 비활성 기업 제외
   return consCompanies.filter(cc=>cc.consId===consId&&!inactive.has(cc.bizno));
 }
 // work_items 테이블에서 특정 카테고리의 업무 가져오기
 function getWorkItemsByCategory(cat){
   const inactive=getInactiveBiznos();
-  // 비활성 업체 업무 제외 (업체 없는 업무는 표시)
+  // 비활성 기업 업무 제외 (기업 없는 업무는 표시)
   return workItems.filter(w=>w.category===cat&&(!w.clientBizno||!inactive.has(w.clientBizno)));
 }
 // 간트 연동 업무 항목 생성 (consulting + consulting_company JOIN)
@@ -2938,8 +2938,8 @@ function getConsWorkItems(cat){
   const inactive=getInactiveBiznos();
   const items=[];
   consulting.filter(c=>c.category===cat).forEach(c=>{
-    const ccs=getConsCompanies(c.id); // 이미 비활성 업체 제외됨
-    // 원래 참여업체가 있는데 활성 업체가 0개면 → 업무 영역에도 표시 안 함
+    const ccs=getConsCompanies(c.id); // 이미 비활성 기업 제외됨
+    // 원래 참여기업가 있는데 활성 기업가 0개면 → 업무 영역에도 표시 안 함
     const allCompaniesInactive=consCompanies.filter(cc=>cc.consId===c.id).length>0&&ccs.length===0;
     if(allCompaniesInactive)return;
     if(!ccs.length){
@@ -2955,7 +2955,7 @@ function getConsWorkItems(cat){
   });
   return items;
 }
-// 업체 도메인 상태 조회
+// 기업 도메인 상태 조회
 function getCompanyDomains(bizno){
   const result={};CAT_IDS.forEach(c=>result[c]='');
   consCompanies.filter(cc=>cc.bizno===bizno).forEach(cc=>{
@@ -2988,7 +2988,7 @@ function renderOverviewStats(){
   const el=document.getElementById('ov-stats');
   if(!el)return;
   el.innerHTML=`
-    <div class="stat-mini"><div class="stat-mini-val" style="color:var(--blue-l)">${companies.length}</div><div class="stat-mini-label">등록 기업</div><div class="stat-mini-sub">관리중인 업체</div></div>
+    <div class="stat-mini"><div class="stat-mini-val" style="color:var(--blue-l)">${companies.length}</div><div class="stat-mini-label">등록 기업</div><div class="stat-mini-sub">관리중인 기업</div></div>
     <div class="stat-mini"><div class="stat-mini-val" style="color:var(--text3)">${waitW}</div><div class="stat-mini-label">대기중 업무</div><div class="stat-mini-sub">전체 ${totalW}건 중</div></div>
     <div class="stat-mini"><div class="stat-mini-val" style="color:var(--warn)">${ingW}</div><div class="stat-mini-label">진행중 업무</div><div class="stat-mini-sub">전체 ${totalW}건 중</div></div>
     <div class="stat-mini"><div class="stat-mini-val" style="color:var(--ok)">${doneW}</div><div class="stat-mini-label">완료 업무</div><div class="stat-mini-sub">누적 완료건</div></div>
@@ -3036,7 +3036,7 @@ function ganttEmptyCells(y,m,days,tdClass){
   }
   return html;
 }
-// ISO 대분류 한 줄 요약: 업체 · 1차/2차 심사일(일수) · 규격
+// ISO 대분류 한 줄 요약: 기업 · 1차/2차 심사일(일수) · 규격
 function ganttIsoSubLabel(c,ccs){
   var comps=(ccs||[]).map(function(cc){return cc.companyName;}).filter(Boolean).join(', ');
   var stds=(c.isoMasterIds||[]).map(function(id){var mm=getCertMasterInfo(id);return (mm.certName||id).replace(/^ISO\s*/i,'');});
@@ -3047,18 +3047,18 @@ function ganttIsoSubLabel(c,ccs){
   if(stds.length)parts.push('🏅 '+stds.join('+'));
   return parts.join(' · ');
 }
-// 대분류 표시 여부 판정 — 상태·활성업체·지역·업종 필터
+// 대분류 표시 여부 판정 — 상태·활성기업·지역·업종 필터
 // 간트 뷰와 캘린더 뷰가 동일 로직을 공유하도록 추출
 function consPassesGanttFilter(c,ccs){
   // 상태 필터
   if(ganttFilter==='wait'&&c.status!=='wait')return false;
   if(ganttFilter==='ing'&&c.status!=='ing')return false;
   if(ganttFilter==='done'&&c.status!=='done')return false;
-  // 참여업체가 있는데 활성 업체가 0개면 대분류도 숨김
+  // 참여기업가 있는데 활성 기업가 0개면 대분류도 숨김
   if(consCompanies.filter(cc=>cc.consId===c.id).length>0&&ccs.length===0)return false;
   const regionF=document.getElementById('gantt-region-filter')?.value||'';
   const industryF=document.getElementById('gantt-industry-filter')?.value||'';
-  // 지역 필터: 지원사업 대상지역 또는 참여업체 지역으로 필터
+  // 지역 필터: 지원사업 대상지역 또는 참여기업 지역으로 필터
   if(regionF){
     const consRegion=c.targetRegion||'';
     const compRegions=ccs.map(cc=>{const comp=companies.find(x=>x._id===cc.bizno);return comp?comp.region:'';});
@@ -3066,10 +3066,10 @@ function consPassesGanttFilter(c,ccs){
       consRegion===regionF ||           // 대상지역 정확히 일치
       consRegion==='전국' ||             // 전국 사업은 모든 지역에 표시
       consRegion==='' ||                 // 대상지역 미입력은 모든 지역
-      compRegions.some(r=>r===regionF); // 참여업체 중 해당 지역
+      compRegions.some(r=>r===regionF); // 참여기업 중 해당 지역
     if(!regionMatch)return false;
   }
-  // 업종 필터: 지원사업 대상업종 또는 참여업체 업종으로 필터
+  // 업종 필터: 지원사업 대상업종 또는 참여기업 업종으로 필터
   if(industryF){
     const consIndustry=c.targetIndustry||'';
     const compIndustries=ccs.map(cc=>{const comp=companies.find(x=>x._id===cc.bizno);return comp?comp.industry:'';});
@@ -3089,7 +3089,7 @@ function renderGantt(sfx){
   const y=calY,m=calM,days=daysInMonth(y,m),today=new Date();
   titleEl.textContent=`${y}년 ${m+1}월`;
   const DOW=['일','월','화','수','목','금','토'];
-  let head=`<tr><th class="gantt-label-th">업무 / 업체</th>`;
+  let head=`<tr><th class="gantt-label-th">업무 / 기업</th>`;
   for(let d=1;d<=days;d++){
     const dw=new Date(y,m,d).getDay();
     const isT=y===today.getFullYear()&&m===today.getMonth()&&d===today.getDate();
@@ -3103,7 +3103,7 @@ function renderGantt(sfx){
   consulting.forEach((c,ci)=>{
     const isDone=c.status==='done';
     const isExpired=isDone&&isDoneExpired({status:c.status,doneAt:c.doneAt});
-    // consulting_company JOIN으로 참여업체 조회 (비활성 업체 자동 제외)
+    // consulting_company JOIN으로 참여기업 조회 (비활성 기업 자동 제외)
     const ccs=getConsCompanies(c.id);
     // 상태·지역·업종 필터 (캘린더 뷰와 공유)
     if(!consPassesGanttFilter(c,ccs))return;
@@ -3174,7 +3174,7 @@ function renderGantt(sfx){
     }
     body+=`</tr>`;
     ccs.forEach(cc=>{
-      if(c.category==='iso')return; // ISO는 심사 정보를 대분류 한 줄에 통합 표시 (업체 하위 줄 생략)
+      if(c.category==='iso')return; // ISO는 심사 정보를 대분류 한 줄에 통합 표시 (기업 하위 줄 생략)
       const cliDone=cc.status==='done';
       const cliExpired=cliDone&&isDoneExpired({status:cc.status,doneAt:cc.doneAt});
       // 결과 배지
@@ -3187,11 +3187,11 @@ function renderGantt(sfx){
         <div class="cli-name-cell">${dot(cc.status||'wait')}${cc.companyName} ${badge(cc.status||'wait')}${resultBadge}</div>
         ${approvedInfo?`<div style="padding-left:16px">${approvedInfo}</div>`:''}
       </td>`;
-      // ISO는 업체행 음영 생략 (심사 막대는 대분류 행에 표시)
+      // ISO는 기업행 음영 생략 (심사 막대는 대분류 행에 표시)
       if(c.category==='iso'){
         body+=ganttEmptyCells(y,m,days,'cli-bar-td');
       } else {
-      // 업체 행 - 기간 음영 colspan 처리
+      // 기업 행 - 기간 음영 colspan 처리
       let cd=1;
       while(cd<=days){
         const cds=dateStr(y,m,cd);
@@ -3712,7 +3712,7 @@ function openConsultingModal(id){
     if(consScaleEl)consScaleEl.value=c.targetScale||'';
     if(consIndustryEl)consIndustryEl.value=c.targetIndustry||'';
     if(consAgeEl)consAgeEl.value=c.targetAge||'';
-    // consulting_company 테이블에서 참여업체 로드
+    // consulting_company 테이블에서 참여기업 로드
     tempConsCompanies=getConsCompanies(id).map(cc=>({
     ...cc,
     result:cc.result||'wait',
@@ -3739,7 +3739,7 @@ function openConsultingModal(id){
   }
   renderConsCompaniesList();previewConsMatch();onConsCategoryChange();openModal('consulting-modal');
 }
-// 지원사업 모달 - 조건 입력 시 매칭 업체 실시간 미리보기
+// 지원사업 모달 - 조건 입력 시 매칭 기업 실시간 미리보기
 // 분류에 따라 대상 조건 섹션 표시/숨김
 var CATS_WITH_TARGET=['policy','support','etc','finance']; // 대상 조건 표시할 분류
 var tempIsoMasterIds=[]; // ISO 통합심사 선택 규격 임시 저장
@@ -3894,11 +3894,11 @@ function previewConsMatch(){
   }).join('');
 }
 
-// 매칭 미리보기에서 바로 업체 추가
+// 매칭 미리보기에서 바로 기업 추가
 function addConsCompanyDirect(bizno){
   var comp=companies.find(function(c){return c._id===bizno;});
   if(!comp)return;
-  if(tempConsCompanies.find(function(cc){return cc.bizno===bizno;})){alert('이미 추가된 업체입니다.');return;}
+  if(tempConsCompanies.find(function(cc){return cc.bizno===bizno;})){alert('이미 추가된 기업입니다.');return;}
   var st=document.getElementById('cons-comp-status')?.value||'wait';
   tempConsCompanies.push({consId:'',bizno:comp._id,companyName:comp.name,status:st,createdAt:Date.now()});
   renderConsCompaniesList();
@@ -3953,7 +3953,7 @@ function renderConsCompaniesList(){
         ${cc.memo?'<span style="font-size:10px;color:var(--text4);font-style:italic">'+cc.memo+'</span>':''}
       </div>
     </div>`;
-  }).join('')||`<div style="font-size:13px;color:var(--text4);padding:4px">참여 업체 없음</div>`;
+  }).join('')||`<div style="font-size:13px;color:var(--text4);padding:4px">참여 기업 없음</div>`;
 }
 function updateConsCompanyStatus(select){const idx=+select.getAttribute('data-idx');if(tempConsCompanies[idx])tempConsCompanies[idx].status=select.value;}
 function removeConsCompany(btn){const idx=+btn.getAttribute('data-idx');tempConsCompanies.splice(idx,1);renderConsCompaniesList();}
@@ -3961,7 +3961,7 @@ function addConsCompany(){
   const inp=document.getElementById('cons-comp-inp');const name=inp.value.trim();if(!name)return;
   const comp=companies.find(c=>c.name===name);
   if(!comp){alert('등록된 기업을 선택해주세요.');return;}
-  if(tempConsCompanies.find(cc=>cc.bizno===comp._id)){alert('이미 추가된 업체입니다.');return;}
+  if(tempConsCompanies.find(cc=>cc.bizno===comp._id)){alert('이미 추가된 기업입니다.');return;}
   const st=document.getElementById('cons-comp-status').value;
   tempConsCompanies.push({consId:'',bizno:comp._id,companyName:comp.name,status:st,createdAt:Date.now()});
   inp.value='';hideCorpDrop('cons-comp-inp');renderConsCompaniesList();
@@ -4036,7 +4036,7 @@ async function saveConsulting(){
     setTimeout(function(){gcalSyncCons(syncData,'upsert');},500);
     closeModal('consulting-modal');
 
-    // 인증 관련 카테고리이고, 완료된 업체 중 인증 미등록 업체가 있으면 팝업
+    // 인증 관련 카테고리이고, 완료된 기업 중 인증 미등록 기업가 있으면 팝업
     if(isCertCategory(data.category)){
       const doneCcs=tempConsCompanies.filter(function(cc){return cc.status==='done';});
       if(doneCcs.length>0){
@@ -4061,7 +4061,7 @@ async function deleteConsulting(){
   let msg='이 지원사업/심사를 삭제하시겠습니까?';
   if(linkedCerts.length||linkedAnnuals.length||linkedCcs.length){
     msg='이 지원사업/심사를 삭제하시겠습니까?\n\n함께 삭제되는 데이터:';
-    if(linkedCcs.length)msg+='\n• 참여업체: '+linkedCcs.length+'건';
+    if(linkedCcs.length)msg+='\n• 참여기업: '+linkedCcs.length+'건';
     if(linkedCerts.length)msg+='\n• 연결된 인증서: '+linkedCerts.length+'건';
     if(linkedAnnuals.length)msg+='\n• 연간신고 이력: '+linkedAnnuals.length+'건';
     msg+='\n\n이 작업은 되돌릴 수 없습니다.';
@@ -4269,7 +4269,7 @@ async function saveWork(){
     if(newStatus==='done'&&prevItem?.status!=='done'&&isCertCategory(cat)&&!data.certId){
       setTimeout(()=>openCertFromWork(savedId),300);
     }
-    // 업무 완료 시 → 연결된 간트차트 업체 상태도 완료 연동
+    // 업무 완료 시 → 연결된 간트차트 기업 상태도 완료 연동
     if(newStatus==='done'&&prevItem?.status!=='done'){
       const workItem=workItems.find(w=>w.id===savedId)||data;
       if(workItem.consId){
@@ -4326,8 +4326,8 @@ async function confirmDeleteWork(){
     closeModal('work-modal');
   }catch(e){alert('삭제 실패: '+e.message);}
 }
-// 간트차트(consulting) 업체 완료 → 인증 등록 팝업
-var certFromConsQueue = []; // 팝업 대기열 (여러 업체)
+// 간트차트(consulting) 기업 완료 → 인증 등록 팝업
+var certFromConsQueue = []; // 팝업 대기열 (여러 기업)
 var certFromConsConsId = '';
 var certFromConsCat = '';
 
@@ -4347,9 +4347,9 @@ function getCfwIsoChecked(){
 }
 function openCertFromCons(consId, doneCompanies, category){
   const relMasters=getRelatedCertMasters(category);
-  // 완료 업체 중 아직 인증이 등록 안 된 업체만 팝업
+  // 완료 기업 중 아직 인증이 등록 안 된 기업만 팝업
   const toRegister=doneCompanies.filter(function(cc){
-    // 이미 해당 카테고리 인증이 하나라도 등록된 업체는 제외
+    // 이미 해당 카테고리 인증이 하나라도 등록된 기업는 제외
     const hasCert=certifications.some(function(c){
       if(c.bizno!==cc.bizno)return false;
       if(!relMasters.length)return false;
@@ -4361,7 +4361,7 @@ function openCertFromCons(consId, doneCompanies, category){
     // 이미 모두 등록됨 → 갱신 여부 확인
     if(doneCompanies.length>0){
       var names=doneCompanies.map(function(cc){return cc.companyName;}).join(', ');
-      if(confirm('[인증 갱신 확인]\n\n'+names+'\n\n해당 업체는 이미 인증이 등록되어 있습니다.\n갱신 등록을 하시겠습니까?')){
+      if(confirm('[인증 갱신 확인]\n\n'+names+'\n\n해당 기업는 이미 인증이 등록되어 있습니다.\n갱신 등록을 하시겠습니까?')){
         // 강제로 팝업
         certFromConsQueue=[...doneCompanies];
         certFromConsConsId=consId;
@@ -4549,7 +4549,7 @@ async function saveCertFromWork(){
   const comp=companies.find(c=>c.name===compName)||
     (compBizno?companies.find(c=>c._id===compBizno):null)||
     (it?companies.find(c=>c._id===it.clientBizno):null);
-  if(!comp){alert('업체 정보를 확인해주세요.');return;}
+  if(!comp){alert('기업 정보를 확인해주세요.');return;}
   const acqDate=getDateFields('cfw-acq-y','cfw-acq-m','cfw-acq-d');
   if(!acqDate){alert('취득일을 입력해주세요.');return;}
   // ISO 통합심사: 체크한 규격마다 인증서 일괄 생성
@@ -4633,7 +4633,7 @@ async function saveCertFromWork(){
 }
 async function skipCertFromWork(){
   closeModal('cert-from-work-modal');
-  // cons: 케이스면 다음 업체 처리
+  // cons: 케이스면 다음 기업 처리
   if(document.getElementById('cfw-work-id')?.value?.startsWith('cons:')){
     certFromConsQueue.shift();
     setTimeout(processNextCertFromCons,300);
@@ -4653,7 +4653,7 @@ function makePagination(currentPage,totalPages,onClickFn){
 }
 function renderClientsTable(headId,bodyId,searchVal,page,perPage,paginationId,groupFilter){
   const headEl=document.getElementById(headId);const bodyEl=document.getElementById(bodyId);if(!headEl||!bodyEl)return;
-  headEl.innerHTML='<th>업체명</th><th>그룹</th>'+CAT_IDS.map(c=>'<th title="'+CAT_META[c].name+'">'+CAT_META[c].icon+' '+(CAT_META[c].name.length>4?CAT_META[c].name.slice(0,4)+'…':CAT_META[c].name)+'</th>').join('')+'<th>관리</th>';
+  headEl.innerHTML='<th>기업명</th><th>그룹</th>'+CAT_IDS.map(c=>'<th title="'+CAT_META[c].name+'">'+CAT_META[c].icon+' '+(CAT_META[c].name.length>4?CAT_META[c].name.slice(0,4)+'…':CAT_META[c].name)+'</th>').join('')+'<th>관리</th>';
   const q=(searchVal||'').toLowerCase();const gf=groupFilter||'all';
   let filtered=companies.filter(c=>{
     const nm=!q||c.name.toLowerCase().includes(q);if(!nm)return false;
@@ -4684,9 +4684,9 @@ function renderClientsTable(headId,bodyId,searchVal,page,perPage,paginationId,gr
       +CAT_IDS.map(c=>'<td>'+(domains[c]?badge(domains[c]):'<span style="color:var(--text4);font-size:12px">—</span>')+'</td>').join('')
       +'<td><button onclick="openCompanyModal(\''+cid+'\')" style="background:none;border:none;color:var(--text4);font-size:14px;cursor:pointer;padding:2px">✏️</button></td>'
       +'</tr>';
-  }).join(''):'<tr><td colspan="99" style="text-align:center;padding:30px;color:var(--text4)">등록된 업체가 없습니다</td></tr>';
+  }).join(''):'<tr><td colspan="99" style="text-align:center;padding:30px;color:var(--text4)">등록된 기업가 없습니다</td></tr>';
   const pgEl=document.getElementById(paginationId);
-  if(pgEl){const fn=paginationId==='pg-cli-ov'?'setCliPageOv':'setCliPageSub';pgEl.innerHTML=total>perPage?makePagination(safePage,totalPages,fn):`<div class="pg-info" style="text-align:center;padding:6px 0">총 ${total}개 업체</div>`;}
+  if(pgEl){const fn=paginationId==='pg-cli-ov'?'setCliPageOv':'setCliPageSub';pgEl.innerHTML=total>perPage?makePagination(safePage,totalPages,fn):`<div class="pg-info" style="text-align:center;padding:6px 0">총 ${total}개 기업</div>`;}
 }
 function setCliGroupFilter(group,ctx){
   const isOv=ctx==='ov';
@@ -4839,7 +4839,7 @@ function renderStatsPage(){
   catList.sort((a,b)=>b.cnt-a.cnt);
   const maxCnt=catList[0]?.cnt||1;
 
-  // 업체별 집계
+  // 기업별 집계
   const compMap={};
   doneWork.forEach(w=>{
     if(!w.clientBizno)return;
@@ -4909,7 +4909,7 @@ function renderStatsPage(){
     </div>`;
   }).join('');
 
-  // 업체별 테이블 - 페이지네이션 적용
+  // 기업별 테이블 - 페이지네이션 적용
   const totalComps=compList.length;
   const totalCompPages=Math.ceil(totalComps/STATS_COMP_PER_PAGE)||1;
   const safeCompPage=Math.min(Math.max(1,statsCompPage),totalCompPages);
@@ -4927,8 +4927,8 @@ function renderStatsPage(){
 
   const compPaginationHtml=totalComps>STATS_COMP_PER_PAGE
     ? makePagination(safeCompPage,totalCompPages,'setStatsCompPage')
-      +'<div style="text-align:center;font-size:12px;color:var(--text4);margin-top:4px">총 '+totalComps+'개 업체 중 '+((safeCompPage-1)*STATS_COMP_PER_PAGE+1)+'~'+Math.min(safeCompPage*STATS_COMP_PER_PAGE,totalComps)+'번째</div>'
-    : '<div style="text-align:center;font-size:12px;color:var(--text4);padding:6px">총 '+totalComps+'개 업체</div>';
+      +'<div style="text-align:center;font-size:12px;color:var(--text4);margin-top:4px">총 '+totalComps+'개 기업 중 '+((safeCompPage-1)*STATS_COMP_PER_PAGE+1)+'~'+Math.min(safeCompPage*STATS_COMP_PER_PAGE,totalComps)+'번째</div>'
+    : '<div style="text-align:center;font-size:12px;color:var(--text4);padding:6px">총 '+totalComps+'개 기업</div>';
 
   el.innerHTML=`
     <!-- 필터 -->
@@ -4958,12 +4958,12 @@ function renderStatsPage(){
       </div>
       <div class="stat-mini" style="padding:16px">
         <div class="stat-mini-val" style="font-size:28px;color:var(--blue-l)">${uniqueComps.size}</div>
-        <div class="stat-mini-label">🏢 참여 업체 수</div>
+        <div class="stat-mini-label">🏢 참여 기업 수</div>
         <div class="stat-mini-sub">중복 제외</div>
       </div>
       <div class="stat-mini" style="padding:16px">
         <div class="stat-mini-val" style="font-size:28px;color:var(--teal)">${uniqueComps.size?Math.round(totalDone/uniqueComps.size*10)/10:'—'}</div>
-        <div class="stat-mini-label">📊 업체당 평균</div>
+        <div class="stat-mini-label">📊 기업당 평균</div>
         <div class="stat-mini-sub">완료 건수</div>
       </div>
     </div>
@@ -4980,15 +4980,15 @@ function renderStatsPage(){
       </div>
     </div>
 
-    <!-- 업체별 완료 이력 -->
+    <!-- 기업별 완료 이력 -->
     <div class="card" style="margin-bottom:20px">
       <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-        <div style="font-size:14px;font-weight:500">🏢 업체별 완료 이력</div>
-        <div style="font-size:12px;color:var(--text4)">${totalComps}개 업체</div>
+        <div style="font-size:14px;font-weight:500">🏢 기업별 완료 이력</div>
+        <div style="font-size:12px;color:var(--text4)">${totalComps}개 기업</div>
       </div>
       <div class="tbl-wrap"><table class="tbl">
         <thead><tr>
-          <th>업체명</th><th>완료 건수</th><th>신청금액</th><th>승인금액</th><th>최근 완료일</th>
+          <th>기업명</th><th>완료 건수</th><th>신청금액</th><th>승인금액</th><th>최근 완료일</th>
         </tr></thead>
         <tbody>${compRowsHtml}</tbody>
       </table></div>
@@ -5019,7 +5019,7 @@ function exportStatsExcel(){
 
   // CSV 생성
   let csv='\uFEFF'; // BOM for Excel Korean
-  csv+='구분,업체명,분야,업무내용,신청금액(만원),승인금액(만원),완료일\n';
+  csv+='구분,기업명,분야,업무내용,신청금액(만원),승인금액(만원),완료일\n';
 
   doneCons.forEach(c=>{
     const m=CAT_META[c.category]||CAT_META.etc;
@@ -5117,7 +5117,7 @@ function renderHistoryPage(){
   // 테이블 헤더
   const headEl=document.getElementById('hist-head');
   const showDateCol=(stF==='done'||stF==='all');
-  if(headEl)headEl.innerHTML='<th>업체명</th><th>분야</th><th>업무내용</th><th>세부구분</th><th>상태</th>'+(showDateCol?'<th>완료일</th><th>경과</th>':'')+'<th>출처</th>';
+  if(headEl)headEl.innerHTML='<th>기업명</th><th>분야</th><th>업무내용</th><th>세부구분</th><th>상태</th>'+(showDateCol?'<th>완료일</th><th>경과</th>':'')+'<th>출처</th>';
 
   // 페이지네이션
   const total=all.length;
@@ -5209,7 +5209,7 @@ async function migrateIsoCycle3yr(){
     setBadge('ISO 3년 주기 재계산 '+cnt+'건',2500);
   }
 }
-// 통합심사 사이클 ID 보정 — 같은 (업체,발급일) 복합주기 인증에 cycleGroupId 부여 (1회, idempotent)
+// 통합심사 사이클 ID 보정 — 같은 (기업,발급일) 복합주기 인증에 cycleGroupId 부여 (1회, idempotent)
 async function migrateCycleGroupId(){
   if(!certifications||!certifications.length)return;
   var batch=writeBatch(db);
@@ -5506,7 +5506,7 @@ function certStatusBadge(cert){
 // 통합심사 사이클 펼침 상태 (key: bizno|acqDate)
 var expandedCycles = new Set();
 
-// 인증 목록 그룹 렌더 — 같은 (업체, 발급일) 복합주기 인증을 한 사이클로 묶어 헤더 1줄로 표시
+// 인증 목록 그룹 렌더 — 같은 (기업, 발급일) 복합주기 인증을 한 사이클로 묶어 헤더 1줄로 표시
 function renderCertGrouped(certs){
   certs = (certs||[]).filter(function(c){return c.status!=='제외';}); // 제외(드롭) 상태 숨김
   var groupsByKey = {};
@@ -5735,11 +5735,11 @@ function certRow(c){
 
 
 function renderCertPage(){
-  // 업체 필터 드롭다운
+  // 기업 필터 드롭다운
   const compFilter=document.getElementById('cert-comp-filter');
   if(compFilter){
     const cur=compFilter.value;
-    compFilter.innerHTML='<option value="">전체 업체</option>'+
+    compFilter.innerHTML='<option value="">전체 기업</option>'+
       companies.filter(c=>c.active!=='N').map(c=>`<option value="${c._id}"${cur===c._id?' selected':''}>${c.name}</option>`).join('');
   }
   // 인증 종류 필터 (certMaster 기반)
@@ -5793,12 +5793,12 @@ function renderCertAlert(){
 
   // 갱신형 테이블
   const renewalTableHtml=renewalList.length
-    ?'<div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>업체명</th><th>인증 종류</th><th>취득일</th><th>만료·갱신일</th><th>갱신주기</th><th>상태</th><th>D-Day</th><th>관리</th></tr></thead><tbody>'+renderCertGrouped(sortedRenewal)+'</tbody></table></div></div>'
+    ?'<div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>기업명</th><th>인증 종류</th><th>취득일</th><th>만료·갱신일</th><th>갱신주기</th><th>상태</th><th>D-Day</th><th>관리</th></tr></thead><tbody>'+renderCertGrouped(sortedRenewal)+'</tbody></table></div></div>'
     :'<div class="empty"><div class="empty-txt">등록된 갱신형 인증이 없습니다</div></div>';
 
   // 연간신고 테이블
   const annualTableHtml=annualList.length
-    ?'<div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>업체명</th><th>인증 종류</th><th>설립일</th><th>다음신고기한</th><th>신고주기</th><th>구분</th><th>신고현황</th><th>관리</th></tr></thead><tbody>'+sortedAnnual.map(certRow).join('')+'</tbody></table></div></div>'
+    ?'<div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>기업명</th><th>인증 종류</th><th>설립일</th><th>다음신고기한</th><th>신고주기</th><th>구분</th><th>신고현황</th><th>관리</th></tr></thead><tbody>'+sortedAnnual.map(certRow).join('')+'</tbody></table></div></div>'
     :'<div class="empty"><div class="empty-txt">등록된 연간신고 인증이 없습니다</div></div>';
 
   el.innerHTML=
@@ -5819,7 +5819,7 @@ function renderCertAlert(){
     '<div class="stat-mini"><div class="stat-mini-val" style="color:var(--blue-l)">'+annualList.length+'</div><div class="stat-mini-label">📋 전체</div></div>'+
     '</div>'+annualTableHtml+'</div>';
 }
-// 탭2: 인증별 업체 조회
+// 탭2: 인증별 기업 조회
 function renderCertByCert(){
   const typeF=document.getElementById('cert-type-filter')?.value||'';
   const q=(document.getElementById('cert-by-cert-search')?.value||'').toLowerCase();
@@ -5830,7 +5830,7 @@ function renderCertByCert(){
   el.innerHTML=sorted.length?renderCertGrouped(sorted):`<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text4)">${q?'검색 결과가 없습니다':'해당 인증이 없습니다'}</td></tr>`;
 }
 
-// 탭3: 업체별 인증 조회
+// 탭3: 기업별 인증 조회
 function renderCertByComp(){
   const compF=document.getElementById('cert-comp-filter')?.value||'';
   const q=(document.getElementById('cert-by-comp-search')?.value||'').toLowerCase();
@@ -5852,7 +5852,7 @@ function renderCertByComp(){
     return !certifications.some(c=>c.workItemId===w.id);
   });
 
-  // 정렬: 갱신형은 D-Day순, annual은 업체명순
+  // 정렬: 갱신형은 D-Day순, annual은 기업명순
   const sortedCert=[...filteredCert].sort((a,b)=>{
     const ma=getCertMasterInfo(a.certMasterId);
     const mb=getCertMasterInfo(b.certMasterId);
@@ -5878,7 +5878,7 @@ function renderCertByComp(){
   }).join('');
 
   const allRows=renderCertGrouped(sortedCert)+workRows;
-  el.innerHTML=allRows||`<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text4)">해당 업체의 인증이 없습니다</td></tr>`;
+  el.innerHTML=allRows||`<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text4)">해당 기업의 인증이 없습니다</td></tr>`;
 }
 
 // 인증 종류 선택 시 complex면 단계 선택 표시
@@ -6068,7 +6068,7 @@ async function createComplexPhases(masterId, bizno, companyName, acqDate, workIt
 async function saveCert(){
   const compName=document.getElementById('cert-comp-inp').value.trim();
   const comp=companies.find(c=>c.name===compName);
-  if(!compName||!comp){alert('등록된 업체를 선택해주세요.');return;}
+  if(!compName||!comp){alert('등록된 기업를 선택해주세요.');return;}
   const acqDate=getDateFields('cert-acq-y','cert-acq-m','cert-acq-d');
   if(!acqDate){alert('취득일을 입력하세요.');return;}
   const masterId=document.getElementById('cert-master-sel')?.value;
@@ -6150,7 +6150,7 @@ async function markCertPhaseDone(certIdOrEl){
     });
     setBadge('✅ 단계 완료',2000);
 
-    // 연결된 지원사업(consulting) 업체 상태도 완료로 업데이트
+    // 연결된 지원사업(consulting) 기업 상태도 완료로 업데이트
     if(cert.workItemId&&cert.workItemId.startsWith('cons:')){
       var parts=cert.workItemId.split(':');
       var linkedConsId=parts[1];
@@ -6174,7 +6174,7 @@ async function markCertPhaseDone(certIdOrEl){
           var today=cert.expDate||new Date().toISOString().slice(0,10);
           openCertModal();
           setTimeout(function(){
-            // 업체, 인증종류 자동 입력
+            // 기업, 인증종류 자동 입력
             var compSearch=document.getElementById('cert-comp-search-inp');
             if(compSearch){compSearch.style.display='';compSearch.value=compName;}
             // 인증마스터 자동 선택
@@ -6216,7 +6216,7 @@ async function deleteCert(){
   // 삭제할 인증 정보
   const certToDelete=certifications.find(function(c){return c.id===id;});
 
-  // 연결된 work_items - certId 직접 연결 + 같은 업체/분류 업무 모두 포함
+  // 연결된 work_items - certId 직접 연결 + 같은 기업/분류 업무 모두 포함
   const linkedWorks=workItems.filter(function(w){
     if(w.certId===id)return true;
     if(certToDelete&&w.clientBizno===certToDelete.bizno&&isCertCategory(w.category)&&!w.certId){
@@ -6748,7 +6748,7 @@ function renderCompaniesPage(){
 
   // 검색 결과 수
   const resultEl=document.getElementById('corp-search-result');
-  if(resultEl)resultEl.textContent=filtered.length+'개 업체'+(totalPages>1?' ('+safePage+'/'+totalPages+'페이지)':'');
+  if(resultEl)resultEl.textContent=filtered.length+'개 기업'+(totalPages>1?' ('+safePage+'/'+totalPages+'페이지)':'');
 
   // 구분 헤더 표시 (법인/개인/예비창업자가 섞여있을 때만)
   var typeMap={법인:'🏛️ 법인사업자',개인:'👤 개인사업자',예비창업:'🌱 예비창업자'};
@@ -6816,7 +6816,7 @@ function renderCompaniesPage(){
   pgHtml+='<button onclick="setCorpPage('+(safePage+1)+')" '+(safePage===totalPages?'disabled style="'+btnStyle+'opacity:.35"':'style="'+btnStyle+'"')+'>다음 ›</button>';
 
   // 정보
-  pgHtml+='<span style="font-size:12px;color:var(--text4);margin-left:8px">'+filtered.length+'개 업체 중 '+startIdx+1+'~'+Math.min(endIdx,filtered.length)+'번째</span>';
+  pgHtml+='<span style="font-size:12px;color:var(--text4);margin-left:8px">'+filtered.length+'개 기업 중 '+startIdx+1+'~'+Math.min(endIdx,filtered.length)+'번째</span>';
 
   pgEl.innerHTML=pgHtml;
 }
@@ -6901,7 +6901,7 @@ function getCalEvents(){
         events.push({
           date:c.startDate,
           title:'[시작] '+c.title,
-          desc:'지원사업 시작  업체: '+compNames,
+          desc:'지원사업 시작  기업: '+compNames,
           type:'gantt',
           alerts:[]
         });
@@ -6912,7 +6912,7 @@ function getCalEvents(){
         events.push({
           date:c.endDate,
           title:'[마감] '+c.title,
-          desc:'지원사업 마감  업체: '+compNames,
+          desc:'지원사업 마감  기업: '+compNames,
           type:'gantt',
           alerts:[7]
         });
@@ -7002,15 +7002,15 @@ function exportCalendar(){
 let matchTab='comp';
 let matchCompStatus='ing';
 
-// 매칭 페이지에서 지원사업에 업체 바로 추가
+// 매칭 페이지에서 지원사업에 기업 바로 추가
 async function quickAddToConsulting(consId,bizno){
   var comp=companies.find(function(c){return c._id===bizno;});
   var cons=consulting.find(function(c){return c.id===consId;});
   if(!comp||!cons){alert('정보를 찾을 수 없습니다.');return;}
   if(consCompanies.find(function(cc){return cc.consId===consId&&cc.bizno===bizno;})){
-    alert('이미 참여 중인 업체입니다.');return;
+    alert('이미 참여 중인 기업입니다.');return;
   }
-  if(!confirm('['+cons.title+']\n'+comp.name+' 을(를) 참여 업체로 추가하시겠습니까?'))return;
+  if(!confirm('['+cons.title+']\n'+comp.name+' 을(를) 참여 기업로 추가하시겠습니까?'))return;
   try{
     setBadge('추가 중...');
     await addDoc(COL.consulting_company(),{
@@ -7041,7 +7041,7 @@ function setMatchTab(tab){
   renderMatchingPage();
 }
 
-// 업체가 지원사업 조건에 맞는지 확인
+// 기업가 지원사업 조건에 맞는지 확인
 function isCompMatch(comp,cons){
   var ageBand=getCompAgeBand(comp.estDate);
   // 지역 조건
@@ -7087,7 +7087,7 @@ function renderMatchComp(){
   var showAll=document.getElementById('match-show-all-comp')?.checked||false;
   var statusF=matchCompStatus||'active';
 
-  // 업체 필터
+  // 기업 필터
   var filteredComps=companies.filter(function(c){
     if(c.active==='N')return false;
     if(q&&!c.name.toLowerCase().includes(q))return false;
@@ -7098,11 +7098,11 @@ function renderMatchComp(){
   });
 
   if(!filteredComps.length){
-    el.innerHTML='<div class="empty"><div class="empty-ico">🔍</div><div class="empty-txt">조건에 맞는 업체가 없습니다</div></div>';
+    el.innerHTML='<div class="empty"><div class="empty-ico">🔍</div><div class="empty-txt">조건에 맞는 기업가 없습니다</div></div>';
     return;
   }
 
-  // 각 업체별 매칭 지원사업 계산
+  // 각 기업별 매칭 지원사업 계산
   var compData=filteredComps.map(function(comp){
     var matched=consulting.filter(function(c){
       if(statusF==='active'&&c.status==='done')return false;
@@ -7111,7 +7111,7 @@ function renderMatchComp(){
     return {comp:comp,matched:matched};
   });
 
-  // 매칭 없는 업체 숨김 (showAll 아닐 때)
+  // 매칭 없는 기업 숨김 (showAll 아닐 때)
   var displayData=showAll?compData:compData.filter(function(d){return d.matched.length>0;});
   var hiddenCount=compData.length-displayData.length;
 
@@ -7120,7 +7120,7 @@ function renderMatchComp(){
   if(sumEl)sumEl.textContent='전체 '+compData.length+'개사 중 매칭 '+displayData.length+'개사'+(hiddenCount?' ('+hiddenCount+'개사 매칭없음 숨김)':'');
 
   if(!displayData.length){
-    el.innerHTML='<div class="empty"><div class="empty-ico">🎯</div><div class="empty-txt">매칭되는 지원사업이 있는 업체가 없습니다<br><span style="font-size:12px">"매칭 없는 업체도 표시" 체크박스를 켜거나 조건을 변경해보세요</span></div></div>';
+    el.innerHTML='<div class="empty"><div class="empty-ico">🎯</div><div class="empty-txt">매칭되는 지원사업이 있는 기업가 없습니다<br><span style="font-size:12px">"매칭 없는 기업도 표시" 체크박스를 켜거나 조건을 변경해보세요</span></div></div>';
     return;
   }
 
@@ -7204,7 +7204,7 @@ function renderMatchCons(){
   var html='';
   filteredCons.forEach(function(c){
     var cm=CAT_META[c.category]||CAT_META.etc;
-    // 이 지원사업에 맞는 업체 찾기
+    // 이 지원사업에 맞는 기업 찾기
     var matched=companies.filter(function(comp){
       if(comp.active==='N')return false;
       return isCompMatch(comp,c);
@@ -7229,7 +7229,7 @@ function renderMatchCons(){
     html+='</div>';
     html+='<div style="text-align:right">';
     html+='<div style="font-size:18px;font-weight:700;color:'+(matched.length>0?'var(--accent)':'var(--text4)')+'">'+matched.length+'개사</div>';
-    html+='<div style="font-size:11px;color:var(--text4)">매칭 업체</div>';
+    html+='<div style="font-size:11px;color:var(--text4)">매칭 기업</div>';
     html+='</div></div>';
 
     // 조건 태그
@@ -7239,9 +7239,9 @@ function renderMatchCons(){
     });
     html+='</div>';
 
-    // 매칭 업체 목록
+    // 매칭 기업 목록
     if(matched.length){
-      html+='<div style="font-size:12px;font-weight:600;color:var(--text3);margin-bottom:6px">✅ 조건 맞는 업체 ('+matched.length+'개사)</div>';
+      html+='<div style="font-size:12px;font-weight:600;color:var(--text3);margin-bottom:6px">✅ 조건 맞는 기업 ('+matched.length+'개사)</div>';
       html+='<div style="display:flex;flex-wrap:wrap;gap:6px">';
       matched.forEach(function(comp){
         var alreadyIn=consCompanies.some(function(cc){return cc.consId===c.id&&cc.bizno===comp._id;});
@@ -7257,7 +7257,7 @@ function renderMatchCons(){
       });
       html+='</div>';
     } else {
-      html+='<div style="font-size:13px;color:var(--text4);padding:8px 0">조건에 맞는 업체가 없습니다. 업체 정보에 지역·규모·업종을 입력해주세요.</div>';
+      html+='<div style="font-size:13px;color:var(--text4);padding:8px 0">조건에 맞는 기업가 없습니다. 기업 정보에 지역·규모·업종을 입력해주세요.</div>';
     }
     html+='</div>';
   });
@@ -7266,10 +7266,10 @@ function renderMatchCons(){
 
 // ── REPORT ──
 function openReportModal(){
-  // 업체 드롭다운 채우기
+  // 기업 드롭다운 채우기
   var compSel=document.getElementById('report-comp-filter');
   if(compSel){
-    compSel.innerHTML='<option value="">전체 업체</option>'
+    compSel.innerHTML='<option value="">전체 기업</option>'
       +companies.filter(function(c){return c.active!=='N';}).map(function(c){
         return '<option value="'+c._id+'">'+c.name+'</option>';
       }).join('');
@@ -7362,13 +7362,13 @@ function printSummaryReport(){
   var html='<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>SG솔루션 종합 현황 보고서</title>'+getReportStyles()+'</head><body>';
   html+='<div class="report-header">';
   html+='<div class="report-title">📊 SG솔루션 Business Control Tower - 종합 현황 보고서</div>';
-  html+='<div class="report-meta"><span>출력일: '+fmtDate()+'</span><span>관리 업체: '+totalComps+'개사</span></div>';
+  html+='<div class="report-meta"><span>출력일: '+fmtDate()+'</span><span>관리 기업: '+totalComps+'개사</span></div>';
   html+='</div>';
 
   // 핵심 지표
   html+='<div class="section"><div class="section-title">핵심 지표</div>';
   html+='<div class="summary-grid">';
-  html+='<div class="summary-card"><div class="summary-val">'+totalComps+'</div><div class="summary-label">관리 업체</div></div>';
+  html+='<div class="summary-card"><div class="summary-val">'+totalComps+'</div><div class="summary-label">관리 기업</div></div>';
   html+='<div class="summary-card"><div class="summary-val">'+ingWorks+'</div><div class="summary-label">진행중 업무</div></div>';
   html+='<div class="summary-card"><div class="summary-val">'+urgentCerts+'</div><div class="summary-label">D-30 인증 임박</div></div>';
   html+='<div class="summary-card"><div class="summary-val">'+(totalAmt?Math.round(totalAmt/100000000*10)/10+'억':'—')+'</div><div class="summary-label">지원사업 총 신청액</div></div>';
@@ -7409,7 +7409,7 @@ function printSummaryReport(){
   openPrintWindow(html);
 }
 
-// 2. 업체별 진행 현황 보고서
+// 2. 기업별 진행 현황 보고서
 function printCompanyReport(){
   var filterBizno=document.getElementById('report-comp-filter')?.value||'';
   var targetComps=companies.filter(function(c){
@@ -7418,9 +7418,9 @@ function printCompanyReport(){
     return true;
   });
 
-  var html='<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>업체별 진행 현황 보고서</title>'+getReportStyles()+'</head><body>';
+  var html='<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>기업별 진행 현황 보고서</title>'+getReportStyles()+'</head><body>';
   html+='<div class="report-header">';
-  html+='<div class="report-title">🏢 업체별 진행 현황 보고서</div>';
+  html+='<div class="report-title">🏢 기업별 진행 현황 보고서</div>';
   html+='<div class="report-meta"><span>출력일: '+fmtDate()+'</span><span>대상: '+targetComps.length+'개사</span></div>';
   html+='</div>';
 
@@ -7516,7 +7516,7 @@ function printCertReport(){
   html+='</div></div>';
 
   html+='<div class="section"><div class="section-title">인증 목록</div>';
-  html+='<table><tr><th>업체명</th><th>인증 종류</th><th>취득일</th><th>만료일</th><th>갱신주기</th><th>D-Day</th><th>상태</th></tr>';
+  html+='<table><tr><th>기업명</th><th>인증 종류</th><th>취득일</th><th>만료일</th><th>갱신주기</th><th>D-Day</th><th>상태</th></tr>';
   filtered.forEach(function(c){
     var m=getCertMasterInfo(c.certMasterId);
     var comp=companies.find(function(x){return x._id===c.bizno;});
@@ -7539,7 +7539,7 @@ function printCertReport(){
   var annual=certifications.filter(function(c){return getCertMasterInfo(c.certMasterId).reportType==='annual';});
   if(annual.length){
     html+='<div class="section"><div class="section-title">연간 신고 현황</div>';
-    html+='<table><tr><th>업체명</th><th>인증 종류</th><th>최근 신고연도</th><th>신고기한</th><th>상태</th></tr>';
+    html+='<table><tr><th>기업명</th><th>인증 종류</th><th>최근 신고연도</th><th>신고기한</th><th>상태</th></tr>';
     annual.forEach(function(c){
       var m=getCertMasterInfo(c.certMasterId);
       var comp=companies.find(function(x){return x._id===c.bizno;});
@@ -7589,7 +7589,7 @@ function printConsultingReport(){
   html+='</div></div>';
 
   html+='<div class="section"><div class="section-title">지원사업 목록</div>';
-  html+='<table><tr><th>사업명</th><th>분야</th><th>기관</th><th>기간</th><th>참여업체</th><th>신청액</th><th>승인액</th><th>상태</th></tr>';
+  html+='<table><tr><th>사업명</th><th>분야</th><th>기관</th><th>기간</th><th>참여기업</th><th>신청액</th><th>승인액</th><th>상태</th></tr>';
   filtered.forEach(function(c){
     var cm=CAT_META[c.category]||CAT_META.etc;
     var ccs=consCompanies.filter(function(cc){return cc.consId===c.id;});
@@ -8110,7 +8110,7 @@ async function downloadExcel(){
         [{v:'출력일: '+today,s:subFont},'',' ',' ',' ',' '],
         [' ',' ',' ',' ',' ',' '],
         // 핵심 지표 헤더
-        [{v:'관리 업체',s:hdrStyle(H1)},{v:'진행중 업무',s:hdrStyle(H2)},{v:'완료 업무',s:hdrStyle(H3)},{v:'D-30 인증',s:hdrStyle(H4)},{v:'만료 인증',s:hdrStyle(H5)},{v:'지원사업',s:hdrStyle(H1)}],
+        [{v:'관리 기업',s:hdrStyle(H1)},{v:'진행중 업무',s:hdrStyle(H2)},{v:'완료 업무',s:hdrStyle(H3)},{v:'D-30 인증',s:hdrStyle(H4)},{v:'만료 인증',s:hdrStyle(H5)},{v:'지원사업',s:hdrStyle(H1)}],
         [{v:activeComps.length+'개사',s:cellStyle('EFF4FF','1B2B4B',true,'center')},{v:ingWorks+'건',s:cellStyle('DBEAFE','1D4ED8',true,'center')},{v:doneWorks+'건',s:cellStyle('D1FAE5','065F46',true,'center')},{v:urgCerts+'건',s:cellStyle('FEF3C7','92400E',true,'center')},{v:expCerts+'건',s:cellStyle('FEE2E2','991B1B',true,'center')},{v:totalCons+'건',s:cellStyle('EFF4FF','1B2B4B',true,'center')}],
         [' ',' ',' ',' ',' ',' '],
         [{v:'총 신청액',s:hdrStyle(H2)},{v:'승인액',s:hdrStyle(H3)},{v:'완료 지원사업',s:hdrStyle(H3)},{v:'대기 업무',s:hdrStyle('6B7280')},{v:'인증 전체',s:hdrStyle(H1)},{v:'ToDo 전체',s:hdrStyle(H1)}],
@@ -8196,7 +8196,7 @@ async function downloadExcel(){
         [' ',' ',' ',' ',' ',' ',' ',' ',' '],
         [
           {v:'No',s:hdrStyle('065F46')},{v:'구분',s:hdrStyle('065F46')},{v:'분야',s:hdrStyle('065F46')},
-          {v:'업체명',s:hdrStyle('065F46')},{v:'업무명/사업명',s:hdrStyle('065F46')},{v:'담당기관',s:hdrStyle('065F46')},
+          {v:'기업명',s:hdrStyle('065F46')},{v:'업무명/사업명',s:hdrStyle('065F46')},{v:'담당기관',s:hdrStyle('065F46')},
           {v:'시작일',s:hdrStyle('065F46')},{v:'완료일',s:hdrStyle('065F46')},
           {v:'신청액(원)',s:hdrStyle('1D4ED8')},{v:'승인액(원)',s:hdrStyle('059669')},{v:'상태',s:hdrStyle('065F46')},
         ],
@@ -8267,7 +8267,7 @@ async function downloadExcel(){
         [{v:'출력일: '+today+' | 만료 임박순 정렬',s:subFont},'',' ',' ',' ',' ',' ',' '],
         [' ',' ',' ',' ',' ',' ',' ',' '],
         [
-          {v:'No',s:hdrStyle('7C3AED')},{v:'업체명',s:hdrStyle('7C3AED')},{v:'인증 종류',s:hdrStyle('7C3AED')},
+          {v:'No',s:hdrStyle('7C3AED')},{v:'기업명',s:hdrStyle('7C3AED')},{v:'인증 종류',s:hdrStyle('7C3AED')},
           {v:'취득일',s:hdrStyle('7C3AED')},{v:'만료일',s:hdrStyle('7C3AED')},{v:'갱신주기',s:hdrStyle('7C3AED')},
           {v:'D-Day',s:hdrStyle('DC2626')},{v:'상태',s:hdrStyle('7C3AED')},{v:'담당부서',s:hdrStyle('7C3AED')},
         ],
@@ -8309,7 +8309,7 @@ async function downloadExcel(){
         [{v:'출력일: '+today,s:subFont},'',' ',' ',' '],
         [' ',' ',' ',' ',' '],
         [
-          {v:'No',s:hdrStyle('0F766E')},{v:'업체명',s:hdrStyle('0F766E')},{v:'할일 내용',s:hdrStyle('0F766E')},
+          {v:'No',s:hdrStyle('0F766E')},{v:'기업명',s:hdrStyle('0F766E')},{v:'할일 내용',s:hdrStyle('0F766E')},
           {v:'우선순위',s:hdrStyle('0F766E')},{v:'마감일',s:hdrStyle('DC2626')},{v:'상태',s:hdrStyle('0F766E')},
         ],
       ];
@@ -8810,8 +8810,8 @@ function removeEventTag(t,id){PropertiesService.getScriptProperties().deleteProp
 
 // ── MOBILE ──
 var PAGE_LABELS={
-  overview:'전체 현황', gantt:'지원사업·정책자금', todo:'To Do List',
-  work:'업무 영역별', clients:'업체별 진행현황', cert:'인증·갱신관리',
+  overview:'현재 진행 업무', gantt:'일정관리', todo:'To Do List',
+  work:'업무 영역별', clients:'기업별 진행현황', cert:'인증·갱신관리',
   stats:'누적통계', history:'완료업무이력', matching:'지원사업매칭',
   companies:'기업관리'
 };
@@ -8945,7 +8945,7 @@ function saveConsResult(){
   renderConsCompaniesList();
 }
 
-// 간트 행에 업체별 결과 요약 배지 표시
+// 간트 행에 기업별 결과 요약 배지 표시
 function getConsResultSummary(consId){
   var cons=consulting.find(function(c){return c.id===consId;});
   var HIDE_R=['iso','lab','direct_prod','patent','admin','family','venture','innobiz'];
