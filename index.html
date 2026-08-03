@@ -1303,8 +1303,8 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
     </div>
     <div class="fg"><label class="fl">메모</label><textarea class="fta" id="comp-memo"></textarea></div>
     <div id="comp-bizno-migrate-wrap" style="display:none;margin-bottom:12px;padding:12px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px">
-      <div style="font-size:12px;font-weight:600;color:#D97706;margin-bottom:8px">📋 예비창업자 → 사업자 전환</div>
-      <div style="font-size:12px;color:#6C6C70;margin-bottom:10px">사업자등록 후 번호를 입력하면 모든 연관 데이터가 자동으로 업데이트됩니다.</div>
+      <div style="font-size:12px;font-weight:600;color:#D97706;margin-bottom:8px" id="comp-migrate-title">📋 사업자번호 변경</div>
+      <div style="font-size:12px;color:#6C6C70;margin-bottom:10px" id="comp-migrate-desc">새 번호를 입력하면 업무·인증·연간신고·지원사업 등 <b>연관 데이터가 모두 함께 이동</b>합니다.<br>사업자번호는 기업을 식별하는 기준이라 위 입력칸이 아닌 <b>여기서만</b> 변경됩니다.</div>
       <div style="display:flex;gap:8px;align-items:center">
         <input class="fi" id="comp-new-bizno" placeholder="새 사업자번호 (000-00-00000)" style="flex:1">
         <button class="btn btn-primary btn-sm" onclick="migrateBizno()">전환 실행</button>
@@ -6522,10 +6522,27 @@ function openCompanyModal(bizno){
       delBtn.textContent='🚫 비활성화';delBtn.className='btn btn-danger btn-sm';delBtn.onclick=deleteCompany;
       if(permDelBtn)permDelBtn.style.display='none';
     }
-    // TEMP 번호일 때 사업자 전환 패널 표시
+    // [사업자번호 변경] 수정 중에는 위 입력칸을 잠그고 전환 패널로만 바꾸게 한다.
+    //   사업자번호는 문서 ID라 saveCompany로는 바뀌지 않는다(예전엔 조용히 무시돼 혼란).
+    const biznoEdit=document.getElementById('comp-bizno');
+    if(biznoEdit){
+      biznoEdit.disabled=true;
+      biznoEdit.title='사업자번호는 아래 「사업자번호 변경」에서만 바꿀 수 있습니다';
+      biznoEdit.style.background='var(--surface2)';
+      biznoEdit.style.cursor='not-allowed';
+    }
+    const isTemp=bizno.startsWith('TEMP-');
+    const autoEl=document.getElementById('comp-bizno-auto');
+    if(autoEl){autoEl.textContent='(변경은 아래 패널에서)';autoEl.style.color='var(--text4)';}
     const migrateWrap=document.getElementById('comp-bizno-migrate-wrap');
     if(migrateWrap){
-      migrateWrap.style.display=bizno.startsWith('TEMP-')?'block':'none';
+      migrateWrap.style.display='block';           // 정식번호도 변경 가능하도록 항상 표시
+      const t=document.getElementById('comp-migrate-title');
+      const d=document.getElementById('comp-migrate-desc');
+      if(t)t.textContent = isTemp ? '📋 예비창업자 → 사업자 전환' : '📋 사업자번호 변경';
+      if(d)d.innerHTML = isTemp
+        ? '사업자등록 후 번호를 입력하면 모든 연관 데이터가 자동으로 업데이트됩니다.'
+        : '새 번호를 입력하면 업무·인증·연간신고·지원사업 등 <b>연관 데이터가 모두 함께 이동</b>합니다.<br>사업자번호는 기업 식별 기준이라 위 입력칸이 아닌 <b>여기서만</b> 변경됩니다.';
       const newBizEl=document.getElementById('comp-new-bizno');
       if(newBizEl)newBizEl.value='';
     }
@@ -6540,9 +6557,11 @@ function openCompanyModal(bizno){
     document.getElementById('comp-group').value='일반고객';
     document.getElementById('comp-active').value='Y';
     document.getElementById('comp-bizclass').value='법인';
-    // bizno 필드 초기화 (예비창업자에서 돌아올 때 disabled 해제)
+    // bizno 필드 초기화 (수정 모드에서 잠갔던 것을 신규 등록 시 해제)
     const biznoInit=document.getElementById('comp-bizno');
-    if(biznoInit){biznoInit.disabled=false;biznoInit.style.background='';}
+    if(biznoInit){biznoInit.disabled=false;biznoInit.style.background='';biznoInit.style.cursor='';biznoInit.title='';}
+    const autoInit=document.getElementById('comp-bizno-auto');
+    if(autoInit)autoInit.style.color='var(--gold)';
     const migrateWrapNew=document.getElementById('comp-bizno-migrate-wrap');
     if(migrateWrapNew)migrateWrapNew.style.display='none';
     toggleBizDateFields();
@@ -6586,7 +6605,11 @@ async function saveCompany(){
     if(editBizno){await updateDoc(doc(db,'companies',editBizno),data);}
     else{data.createdAt=Date.now();await setDoc(doc(db,'companies',bizno),data);}
     setBadge('✅ 저장됨',2000);closeModal('company-modal');
-  }catch(e){setBadge('⚠️ 저장 실패');}
+  }catch(e){
+    // 예전에는 작은 배지만 떠서 왜 실패했는지 알 수 없었음 → 원인을 그대로 보여준다
+    setBadge('⚠️ 저장 실패',4000);
+    alert('저장 실패\n\n'+(e&&e.message||e)+'\n\n※ 사업자번호는 이 화면에서 바뀌지 않습니다. 「사업자번호 변경」 패널을 사용하세요.');
+  }
 }
 async function deleteCompany(){
   const bizno=document.getElementById('comp-edit-bizno').value;
@@ -6638,18 +6661,36 @@ async function permanentDeleteCompany(){
   }
 }
 
-// 예비창업자 사업자번호 전환 (TEMP-xxx → 실제 사업자번호)
+// 사업자번호 전환 — TEMP-xxx → 실제번호, 그리고 정식번호 → 정식번호(오등록 정정)
+//   사업자번호는 companies 문서 ID이므로 updateDoc으로는 바꿀 수 없다.
+//   새 문서를 만들고 연관 데이터(FK)를 모두 옮긴 뒤 옛 문서를 지우는 방식.
 async function migrateBizno(){
   const oldBizno=document.getElementById('comp-edit-bizno').value;
   const newBizno=document.getElementById('comp-new-bizno').value.trim();
 
-  if(!oldBizno.startsWith('TEMP-')){alert('예비창업자(TEMP) 번호만 전환할 수 있습니다.');return;}
+  if(!oldBizno){alert('먼저 기업을 선택하세요.');return;}
   if(!newBizno){alert('새 사업자번호를 입력해주세요.');return;}
+  if(newBizno===oldBizno){alert('현재 번호와 같습니다.');return;}
   if(!/^[0-9\-]{10,12}$/.test(newBizno.replace(/\s/g,''))){
     if(!confirm('사업자번호 형식이 올바르지 않을 수 있습니다.\n계속 진행하시겠습니까?'))return;
   }
   if(companies.find(c=>c._id===newBizno)){alert('이미 등록된 사업자번호입니다.');return;}
-  if(!confirm(oldBizno+' → '+newBizno+'\n\n연관된 모든 데이터(업무, 인증, 간트, 연간신고)가 자동으로 업데이트됩니다.\n\n진행하시겠습니까?'))return;
+
+  const isTemp=oldBizno.startsWith('TEMP-');
+  const comp=companies.find(c=>c._id===oldBizno);
+  const cnt={
+    work:workItems.filter(w=>w.clientBizno===oldBizno||w.bizno===oldBizno).length,
+    cert:certifications.filter(c=>c.bizno===oldBizno).length,
+    annual:annualReports.filter(r=>r.bizno===oldBizno).length,
+    cons:consCompanies.filter(cc=>cc.bizno===oldBizno).length,
+  };
+  const msg=(comp?comp.name+'\n\n':'')
+    +oldBizno+'  →  '+newBizno+'\n\n'
+    +'함께 이동할 데이터\n'
+    +'  · 업무 '+cnt.work+'건\n  · 인증 '+cnt.cert+'건\n  · 연간신고 '+cnt.annual+'건\n  · 지원사업 참여 '+cnt.cons+'건\n\n'
+    +(isTemp?'':'⚠️ 정식 사업자번호를 변경합니다. 되돌리려면 같은 방법으로 다시 바꿔야 합니다.\n\n')
+    +'진행하시겠습니까?';
+  if(!confirm(msg))return;
 
   setBadge('🔄 전환 중...');
   try{
@@ -6691,12 +6732,12 @@ async function migrateBizno(){
       await updateDoc(doc(db,'consulting_company',cc.id),{bizno:newBizno,updatedAt:Date.now()});
     }
 
-    // 6. 기존 TEMP 기업 문서 삭제
+    // 6. 기존 기업 문서 삭제 (연관 데이터 이동이 모두 끝난 뒤)
     await deleteDoc(doc(db,'companies',oldBizno));
 
     setBadge('✅ 전환 완료!',3000);
     closeModal('company-modal');
-    alert('✅ 사업자번호 전환 완료!\n\n'+oldBizno+' → '+newBizno+'\n업무 '+wItems.length+'건, 인증 '+certs.length+'건, 연간신고 '+aReps.length+'건, 간트 '+consComps.length+'건 업데이트 완료');
+    alert('✅ 사업자번호 변경 완료!\n\n'+oldBizno+' → '+newBizno+'\n업무 '+wItems.length+'건, 인증 '+certs.length+'건, 연간신고 '+aReps.length+'건, 지원사업 '+consComps.length+'건 이동 완료');
   }catch(e){
     setBadge('⚠️ 전환 실패');
     alert('전환 실패: '+e.message+'\n\n새 기업 문서가 생성됐을 수 있습니다. 데이터를 확인해주세요.');
