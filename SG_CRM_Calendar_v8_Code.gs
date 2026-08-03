@@ -108,14 +108,14 @@ function upsertEvent(type,p){
     title="[인증만료] "+p.companyName+" - "+p.certName;
     date=new Date(p.expDate);
     if(p.endDate)endDate=new Date(p.endDate); // 여러 날 심사: 종료일은 배타적(앱에서 시작+일수로 전달)
-    desc="업체: "+p.companyName+"\n인증: "+p.certName+"\n만료일: "+p.expDate;
+    desc="기업: "+p.companyName+"\n인증: "+p.certName+"\n만료일: "+p.expDate;
     color=COLOR_CERT;
     alarms=[90*24*60,30*24*60,7*24*60,1*24*60];
   }
   else if(type==="annual"){
     title="[연간신고] "+p.companyName+" - "+p.certName+" "+p.year;
     date=new Date(p.dueDate);
-    desc="업체: "+p.companyName+"\n신고기한: "+p.dueDate;
+    desc="기업: "+p.companyName+"\n신고기한: "+p.dueDate;
     color=COLOR_ANNUAL;
     alarms=[30*24*60,7*24*60,1*24*60];
   }
@@ -123,7 +123,7 @@ function upsertEvent(type,p){
     title="[지원사업] "+p.title;
     date=new Date(p.startDate||p.endDate);
     if(p.endDate){endDate=new Date(p.endDate);endDate.setDate(endDate.getDate()+1);} // 종료일 포함(올데이 end는 배타적)
-    desc="사업명: "+p.title+"\n업체: "+(p.companies||"");
+    desc="사업명: "+p.title+"\n기업: "+(p.companies||"");
     color=COLOR_CONS;
     alarms=[30*24*60,7*24*60];
   }

@@ -143,7 +143,7 @@ CSS: L146~230 간트(`.gantt-wrap` `.gantt-bar` 등), **L238~270 캘린더 뷰(`
 |---|---|---|
 | L3000~3051 | `ganttIsoCells` `ganttEmptyCells` `ganttIsoSubLabel` | 간트 셀 생성 |
 | L3052 | **`consPassesGanttFilter(c,ccs)`** | **상태·지역·업종 필터 — 간트/캘린더 두 뷰가 공유** |
-| **L3084** | **`renderGantt(sfx)`** | 간트 메인 렌더러 (head 일자 + 대분류행 + 업체행) |
+| **L3084** | **`renderGantt(sfx)`** | 간트 메인 렌더러 (head 일자 + 대분류행 + 기업행) |
 | L3230~3247 | `toggleCat` `prevMonth` `nextMonth` `goToday` `setGanttFilter` | 간트 조작 |
 | L3263~3311 | `gcalExternalOn` `loadGcalExternal` `updateGcalExtStatus` `toggleGcalExternal` | 구글 캘린더 **읽기**(외부 일정) |
 | **L3312** | **`collectGanttEvents(rs,re)`** | **캘린더 이벤트 수집 — 지원사업/ISO 1·2차 심사/인증만료/연간신고/ToDo/구글일정** |
