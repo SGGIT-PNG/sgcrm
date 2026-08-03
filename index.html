@@ -549,7 +549,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
     <!-- 메인 메뉴 -->
     <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,.35);padding:10px 8px 4px;letter-spacing:.08em;text-transform:uppercase">메인 메뉴</div>
     <div class="mob-drawer-item" onclick="mobileNavTo('gantt')">📅 일정관리</div>
-    <div class="mob-drawer-item" onclick="mobileNavTo('overview')">🏠 현재 진행 업무</div>
+    <div class="mob-drawer-item" onclick="mobileNavTo('overview')">🏠 전체 현황</div>
     <div class="mob-drawer-item" onclick="mobileNavTo('todo')">✅ 수시처리 To Do List</div>
     <div class="mob-drawer-item" onclick="mobileNavTo('clients')">🏢 기업별 진행현황</div>
     <div class="mob-drawer-item" onclick="mobileNavTo('work')">📋 업무 영역별</div>
@@ -587,7 +587,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
     <span class="mob-ico">📅</span><span class="mob-lbl">일정</span>
   </button>
   <button class="mob-tab active" id="mobtab-overview" onclick="mobileNavTo('overview')">
-    <span class="mob-ico">🏠</span><span class="mob-lbl">진행업무</span>
+    <span class="mob-ico">🏠</span><span class="mob-lbl">현황</span>
   </button>
   <button class="mob-tab" id="mobtab-todo" onclick="mobileNavTo('todo')">
     <span class="mob-ico">✅</span><span class="mob-lbl">ToDo</span>
@@ -608,7 +608,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
   </div>
   <div class="sb-section">메인 메뉴</div>
   <div class="sb-menu" id="nav-gantt" onclick="navTo('gantt')"><span class="sb-ico">📅</span><span>일정관리</span><span class="sb-cnt" id="sb-gantt-cnt">0</span></div>
-  <div class="sb-menu active" id="nav-overview" onclick="navTo('overview')"><span class="sb-ico">🏠</span><span>현재 진행 업무</span></div>
+  <div class="sb-menu active" id="nav-overview" onclick="navTo('overview')"><span class="sb-ico">🏠</span><span>전체 현황</span></div>
   <div class="sb-menu" id="nav-todo" onclick="navTo('todo')"><span class="sb-ico">✅</span><span>수시처리 To Do List</span><span class="sb-cnt" id="sb-todo-cnt">0</span></div>
   <div class="sb-menu" id="nav-clients" onclick="navTo('clients')"><span class="sb-ico">🏢</span><span>기업별 진행현황</span><span class="sb-cnt" id="sb-cli-cnt">0</span></div>
   <div class="sb-menu" id="nav-work" onclick="navTo('work')"><span class="sb-ico">📊</span><span>업무 영역별 현황</span></div>
@@ -631,7 +631,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
 <div id="main">
   <div id="topbar">
     <div>
-      <div class="tb-title" id="topbar-title">현재 진행 업무</div>
+      <div class="tb-title" id="topbar-title">전체 현황</div>
       <div class="tb-sub">SG솔루션 Business Control Tower</div>
     </div>
     <div id="live-time"></div>
@@ -2326,7 +2326,7 @@ const ST = {
   done:{label:'완료',bg:'#ECFDF5',tx:'#059669',dot:'#10B981'},
 };
 const PAGE_TITLES={
-  overview:'현재 진행 업무',gantt:'일정관리',
+  overview:'전체 현황',gantt:'일정관리',
   todo:'수시처리 To Do List',work:'업무 영역별 진행 현황',
   clients:'기업별 진행 분야 현황',cert:'📋 인증·갱신 관리',
   stats:'누적 통계 데이터',history:'📁 완료 업무 이력',companies:'기업 관리',matching:'🎯 지원사업 매칭'
@@ -8810,7 +8810,7 @@ function removeEventTag(t,id){PropertiesService.getScriptProperties().deleteProp
 
 // ── MOBILE ──
 var PAGE_LABELS={
-  overview:'현재 진행 업무', gantt:'일정관리', todo:'To Do List',
+  overview:'전체 현황', gantt:'일정관리', todo:'To Do List',
   work:'업무 영역별', clients:'기업별 진행현황', cert:'인증·갱신관리',
   stats:'누적통계', history:'완료업무이력', matching:'지원사업매칭',
   companies:'기업관리'
