@@ -810,7 +810,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
           </label>
           <span id="gcal-ext-status" style="font-size:10px"></span>
           <div class="gcal-legend">
-            <span>📅 지원사업</span><span>🏅 인증만료</span><span>📋 연간신고</span><span>✅ ToDo</span><span style="color:#0D9488">● 구글 일정</span>
+            <span>📅 지원사업</span><span>🏅 인증만료</span><span>📋 연간신고</span><span>✅ ToDo</span><span style="color:#7C3AED">● ISO 심사</span><span style="color:#0D9488">● 구글 일정</span>
           </div>
         </div>
         <!-- 월 뷰 -->
@@ -2301,6 +2301,7 @@ const COL = {
   certifications:     ()=>collection(db,'certifications'),
   cert_master:        ()=>collection(db,'cert_master'),
   annual_reports:     ()=>collection(db,'annual_reports'), // 연구소 연간 신고 이력
+  iso_audits:         ()=>collection(db,'iso_audits'),     // [iso-one 연동] ISO 심사 일정 (읽기 전용 — iso-one이 원본)
   app_state:          ()=>doc(db,'app_state','config'),
 };
 
@@ -2344,6 +2345,8 @@ let todos = [];
 let certifications = [];
 let certMaster = [];
 let annualReports = []; // 연구소 연간 신고 이력
+// [iso-one 연동] ISO 심사 일정 — iso-one이 원본이고 CRM은 읽어서 표시만 한다(쓰기 금지).
+let isoAudits = [];
 let calY = new Date().getFullYear();
 let calM = new Date().getMonth();
 let expandedCats = new Set();
@@ -2417,8 +2420,8 @@ async function loadAll(){
         }
       }catch(e){console.warn('구글 캘린더 설정 이전 실패:',e.message);}
     }
-    // 8개 컬렉션 병렬 로드
-    const [cSnap,conSnap,ccSnap,wiSnap,tSnap,catSnap,certSnap,cmSnap,arSnap]=await Promise.all([
+    // 컬렉션 병렬 로드
+    const [cSnap,conSnap,ccSnap,wiSnap,tSnap,catSnap,certSnap,cmSnap,arSnap,iaSnap]=await Promise.all([
       getDocs(COL.companies()),
       getDocs(COL.consulting()),
       getDocs(COL.consulting_company()),
@@ -2428,7 +2431,9 @@ async function loadAll(){
       getDocs(COL.certifications()),
       getDocs(COL.cert_master()),
       getDocs(COL.annual_reports()),
+      getDocs(COL.iso_audits()),
     ]);
+    isoAudits      = iaSnap.docs.map(d=>({id:d.id,...d.data()}));
     companies      = cSnap.docs.map(d=>({_id:d.id,...d.data()}));
     consulting     = conSnap.docs.map(d=>({id:d.id,...d.data()}));
     consCompanies  = ccSnap.docs.map(d=>({id:d.id,...d.data()}));
@@ -2510,6 +2515,8 @@ function startRealtimeSync(){
   onSnapshot(COL.certifications(),(s)=>{certifications=s.docs.map(d=>({id:d.id,...d.data()}));renderAll();updateCounts();});
   onSnapshot(COL.cert_master(),(s)=>{certMaster=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.sortOrder||99)-(b.sortOrder||99));renderAll();});
   onSnapshot(COL.annual_reports(),(s)=>{annualReports=s.docs.map(d=>({id:d.id,...d.data()}));renderAll();});
+  // [iso-one 연동] iso-one에서 심사를 저장하면 여기로 바로 반영됨
+  onSnapshot(COL.iso_audits(),(s)=>{isoAudits=s.docs.map(d=>({id:d.id,...d.data()}));renderAll();updateCounts();});
 }
 
 // 사용자 추가 분야를 CAT_META에 병합
@@ -3357,7 +3364,28 @@ function collectGanttEvents(rs,re){
     if(ganttFilter!=='all'&&t.status!==ganttFilter)return;
     evs.push({start:t.dueDate,end:t.dueDate,label:'✅ '+(t.text||''),type:'todo',color:(ST[t.status]&&ST[t.status].dot)||'#94A3B8',click:"openTodoModal('"+(t.status||'ing')+"','"+t.id+"')"});
   });
-  // 5) 구글 캘린더 개인 일정 (읽기 전용 — 폰·PC에서 입력한 일정)
+  // 5) ISO 심사 일정 (iso-one 연동, 읽기 전용)
+  //    iso-one이 원본이므로 CRM에서는 수정할 수 없고 클릭하면 iso-one으로 이동한다.
+  isoAudits.forEach(function(a){
+    // 상태 필터 공유: 진행중=ing / 완료=done
+    var st = (a.status==='완료') ? 'done' : 'ing';
+    if(ganttFilter!=='all' && ganttFilter!==st) return;
+    var comp = a.bizno ? companies.find(function(c){return c._id===a.bizno;}) : null;
+    var nm = comp ? comp.name : (a.companyName||'미상');
+    var tail = comp ? '' : ' (CRM 미등록)';          // 사업자번호가 CRM에 없으면 표시해 등록을 유도
+    var color = comp ? '#7C3AED' : '#94A3B8';        // 미등록은 회색으로 구분
+    [['1단계', a.s1Start, a.s1End], ['2단계', a.s2Start, a.s2End]].forEach(function(p){
+      var s=p[1], e=p[2]||p[1];
+      if(!s || !overlap(s,e)) return;
+      evs.push({
+        start:s, end:e,
+        label:'🏅 '+nm+' '+(a.atype||'')+' '+p[0]+tail,
+        type:'isoaudit', color:color,
+        click:"window.open('https://iso-one.web.app/','_blank')"
+      });
+    });
+  });
+  // 6) 구글 캘린더 개인 일정 (읽기 전용 — 폰·PC에서 입력한 일정)
   //    상태 필터 대상 아님(상태 개념이 없음)
   gcalExternal.events.forEach(function(g){
     if(!g.start)return;
@@ -3383,7 +3411,7 @@ function collectGanttEvents(rs,re){
 // 이벤트 조각 HTML (기간 막대는 시작/끝에서만 라운딩)
 function gcalEvHtml(ev,ds,dow){
   const isS=ev.start===ds, isE=ev.end===ds;
-  const isBar=ev.type==='cons'||ev.type==='iso1'||ev.type==='iso2';
+  const isBar=ev.type==='cons'||ev.type==='iso1'||ev.type==='iso2'||ev.type==='isoaudit';
   const style=isBar
     ? 'background:'+ev.color+';color:#FFF;'
     : 'background:'+ev.color+'1F;color:'+ev.color+';border:1px solid '+ev.color+'55;font-weight:500;';
