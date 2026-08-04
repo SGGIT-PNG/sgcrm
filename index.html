@@ -2112,8 +2112,8 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
     </div>
     <!-- complex 인증(ISO 등) 단계 선택 -->
     <div class="fg" id="cert-phase-wrap" style="display:none">
-      <label class="fl">현재 단계 <span style="font-size:11px;color:var(--text4)">(ISO 사후심사 단계)</span></label>
-      <select class="fs" id="cert-phase-sel"></select>
+      <label class="fl">현재 단계 <span style="font-size:11px;color:var(--text4)">(최초 · 사후 · 갱신 — 만료일 자동계산)</span></label>
+      <select class="fs" id="cert-phase-sel" onchange="calcCertExpDate()"></select>
     </div>
     <!-- 취득일 / 설립일 (annual 타입이면 라벨 변경) -->
     <div class="frow">
@@ -5364,7 +5364,9 @@ function certMasterOptions(selectedId=''){
   return certMaster.map(m=>{
     let label='';
     if(m.reportType==='annual') label=`${m.icon} ${m.certName} (매년${m.annualMonth||4}월신고)`;
-    else if(m.cycleType==='complex') label=`${m.icon} ${m.certName} (사후심사)`;
+    // 복합주기(ISO)는 최초·사후1·사후2·갱신 4단계를 모두 다룬다.
+    //   예전 라벨이 '(사후심사)'라 최초심사는 등록 못 하는 것처럼 보였음 → 주기·단계수로 표기.
+    else if(m.cycleType==='complex') label=`${m.icon} ${m.certName} (${Math.round((m.cycleMonths||36)/12)}년 ${(m.phases||[]).length||4}단계)`;
     else label=`${m.icon} ${m.certName} (${(m.cycleMonths||12)/12}년)`;
     return `<option value="${m.id}"${m.id===selectedId?' selected':''}>${label}</option>`;
   }).join('');
@@ -5920,9 +5922,16 @@ function onCertTypeChange(){
   const expLabel=document.getElementById('cert-exp-label');
   const cycleWrap=document.getElementById('cert-cycle-wrap');
   const annualSection=document.getElementById('cert-annual-section');
+  const isComplex=!isAnnual&&m.cycleType==='complex'&&!!(m.phases&&m.phases.length);
   if(acqLabel)acqLabel.textContent=isAnnual?'설립일 (인정서 발급일) *':'취득일 (인증서 발급일) *';
-  if(expLabel)expLabel.innerHTML=isAnnual?'다음 신고 기한 <span style="font-size:11px;color:var(--text4)">(다음연도 4월 30일 자동)</span>':'만료·갱신일 * <span style="font-size:11px;color:var(--text4)">(취득일+주기 자동계산)</span>';
-  if(cycleWrap)cycleWrap.style.display=isAnnual?'none':'';
+  if(expLabel)expLabel.innerHTML=isAnnual
+    ? '다음 신고 기한 <span style="font-size:11px;color:var(--text4)">(다음연도 4월 30일 자동)</span>'
+    : (isComplex
+      ? '만료·갱신일 * <span style="font-size:11px;color:var(--text4)">(취득일+단계 자동계산)</span>'
+      : '만료·갱신일 * <span style="font-size:11px;color:var(--text4)">(취득일+주기 자동계산)</span>');
+  // 복합주기(ISO)는 3년 고정이고 단계가 주기를 결정하므로 갱신주기 선택칸을 숨긴다.
+  //   (값 자체는 저장 시 쓰이므로 아래에서 마스터 값으로 세팅만 해둔다)
+  if(cycleWrap)cycleWrap.style.display=(isAnnual||isComplex)?'none':'';
   if(annualSection){
     annualSection.style.display=isAnnual?'':'none';
     if(isAnnual)renderAnnualReportList();
@@ -6002,13 +6011,27 @@ function calcCertExpDate(){
     return;
   }
 
-  // 일반 갱신: 취득일 + 갱신주기
-  const cycle=+document.getElementById('cert-cycle')?.value||0;
-  if(cycle===0)return;
+  // 만료·갱신일 계산
+  //  · 복합주기(ISO): 선택한 **단계까지의 누적 개월** (최초 +0 / 1차사후 +12 / 2차사후 +24 / 갱신 +36)
+  //    → createComplexPhases(L6029)의 running 누적과 동일한 값이 나오도록 맞춤.
+  //    예전엔 단계를 무시하고 갱신주기(36)만 더해 **어느 단계를 골라도 같은 날짜**가 나왔다.
+  //  · 고정주기(벤처·이노비즈 등): 취득일 + 갱신주기
+  let months;
+  if(master.cycleType==='complex'&&master.phases&&master.phases.length){
+    const pv=document.getElementById('cert-phase-sel')?.value||'';
+    let idx=master.phases.findIndex(p=>p.name===pv);
+    if(idx<0)idx=0;
+    months=0;
+    for(let i=0;i<=idx;i++)months+=(+master.phases[i].months||0);
+  } else {
+    months=+document.getElementById('cert-cycle')?.value||0;
+    if(months===0)return;   // '직접입력' 선택 시 자동계산 안 함
+  }
   const acq=new Date(yNum, mNum-1, dNum||1);
   if(isNaN(acq))return;
-  acq.setMonth(acq.getMonth()+cycle);
-  setDateFields('cert-exp-y','cert-exp-m','cert-exp-d',acq.toISOString().slice(0,10));
+  acq.setMonth(acq.getMonth()+months);
+  // toISOString()은 UTC 기준이라 한국시간에서는 하루 전으로 밀린다 → 로컬 날짜로 조립
+  setDateFields('cert-exp-y','cert-exp-m','cert-exp-d',dateStr(acq.getFullYear(),acq.getMonth(),acq.getDate()));
 }
 
 
