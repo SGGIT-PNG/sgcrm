@@ -2113,7 +2113,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
     <!-- complex 인증(ISO 등) 단계 선택 -->
     <div class="fg" id="cert-phase-wrap" style="display:none">
       <label class="fl">현재 단계 <span style="font-size:11px;color:var(--text4)">(최초 · 사후 · 갱신 — 만료일 자동계산)</span></label>
-      <select class="fs" id="cert-phase-sel" onchange="calcCertExpDate()"></select>
+      <select class="fs" id="cert-phase-sel" onchange="onCertPhaseChange()"></select>
     </div>
     <!-- 취득일 / 설립일 (annual 타입이면 라벨 변경) -->
     <div class="frow">
@@ -2137,6 +2137,12 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
           <option value="0">직접입력</option>
         </select>
       </div>
+    </div>
+    <!-- [ISO 등 복합주기] 인증서 유효기간 — 취득일 기준 자동 계산, 표시 전용(저장 안 함).
+         유효기간 만료 알림·일정은 iso-one이 담당하므로 CRM은 참고용으로만 보여준다. -->
+    <div class="fg" id="cert-valid-wrap" style="display:none">
+      <label class="fl">인증서 유효기간 <span style="font-size:11px;color:var(--text4)">(취득일 기준 자동 계산 · 표시 전용)</span></label>
+      <div id="cert-valid-text" style="padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'JetBrains Mono',monospace;color:var(--text4)">취득일을 입력하세요</div>
     </div>
     <!-- 만료·갱신일 / 신고기한 (annual 타입이면 라벨 변경) -->
     <div class="frow">
@@ -5924,11 +5930,7 @@ function onCertTypeChange(){
   const annualSection=document.getElementById('cert-annual-section');
   const isComplex=!isAnnual&&m.cycleType==='complex'&&!!(m.phases&&m.phases.length);
   if(acqLabel)acqLabel.textContent=isAnnual?'설립일 (인정서 발급일) *':'취득일 (인증서 발급일) *';
-  if(expLabel)expLabel.innerHTML=isAnnual
-    ? '다음 신고 기한 <span style="font-size:11px;color:var(--text4)">(다음연도 4월 30일 자동)</span>'
-    : (isComplex
-      ? '만료·갱신일 * <span style="font-size:11px;color:var(--text4)">(취득일+단계 자동계산)</span>'
-      : '만료·갱신일 * <span style="font-size:11px;color:var(--text4)">(취득일+주기 자동계산)</span>');
+  // 날짜 칸 라벨은 단계에 따라 달라지므로 updateCertExpLabel()이 담당 (아래 calcCertExpDate에서 호출)
   // 복합주기(ISO)는 3년 고정이고 단계가 주기를 결정하므로 갱신주기 선택칸을 숨긴다.
   //   (값 자체는 저장 시 쓰이므로 아래에서 마스터 값으로 세팅만 해둔다)
   if(cycleWrap)cycleWrap.style.display=(isAnnual||isComplex)?'none':'';
@@ -5990,7 +5992,67 @@ function openCertModal(id){
 }
 
 // 취득일 + 주기로 만료일 자동 계산
+// [ISO 등 복합주기] 단계 성격에 맞는 날짜 라벨
+//   최초심사는 '만료일'이 아니라 인증서를 받는 날, 사후심사는 인증서 발급 없이 효력을 유지하는 심사일이다.
+function certPhaseDateLabel(m, phaseName){
+  if(!(m&&m.cycleType==='complex'&&m.phases&&m.phases.length))return null;
+  const p=m.phases.find(x=>x.name===phaseName)||m.phases[0];
+  if(!p)return null;
+  if(p.isRenewal)return '갱신심사 예정일';
+  if(p.isPost)return '사후심사 예정일';
+  if(p.isInitial)return '인증서 발급일';
+  return '심사 예정일';
+}
+// 날짜 칸 라벨을 인증 종류·현재 단계에 맞게 갱신
+function updateCertExpLabel(){
+  const expLabel=document.getElementById('cert-exp-label');
+  if(!expLabel)return;
+  const m=getCertMasterInfo(document.getElementById('cert-master-sel')?.value);
+  if(m.reportType==='annual'){
+    expLabel.innerHTML='다음 신고 기한 <span style="font-size:11px;color:var(--text4)">(다음연도 4월 30일 자동)</span>';
+    return;
+  }
+  const phase=document.getElementById('cert-phase-sel')?.value||'';
+  const lbl=certPhaseDateLabel(m,phase);
+  expLabel.innerHTML=lbl
+    ? lbl+' * <span style="font-size:11px;color:var(--text4)">(취득일+단계 자동계산)</span>'
+    : '만료·갱신일 * <span style="font-size:11px;color:var(--text4)">(취득일+주기 자동계산)</span>';
+}
+// [ISO 등 복합주기] 인증서 유효기간 = 취득일 ~ 취득일+주기-1일
+//   예) 2026-07-16 취득 → 2026-07-16 ~ 2029-07-15 (3년)
+//   저장하지 않고 화면에만 표시한다(만료 알림·일정은 iso-one 담당).
+function updateCertValidity(){
+  const wrap=document.getElementById('cert-valid-wrap');
+  const txt=document.getElementById('cert-valid-text');
+  if(!wrap||!txt)return;
+  const m=getCertMasterInfo(document.getElementById('cert-master-sel')?.value);
+  const isComplex=m.cycleType==='complex'&&!!(m.phases&&m.phases.length);
+  wrap.style.display=isComplex?'':'none';
+  if(!isComplex)return;
+  const acq=getDateFields('cert-acq-y','cert-acq-m','cert-acq-d');
+  const p=(acq||'').split('-');
+  if(p.length!==3||!p[0]||!p[1]||!p[2]){
+    txt.textContent='취득일을 입력하세요';txt.style.color='var(--text4)';return;
+  }
+  const start=new Date(+p[0],+p[1]-1,+p[2]);   // 로컬 기준으로 조립(UTC 변환 밀림 방지)
+  if(isNaN(start)){txt.textContent='취득일을 확인하세요';txt.style.color='var(--danger)';return;}
+  const months=+m.cycleMonths||36;
+  const end=new Date(start);
+  end.setMonth(end.getMonth()+months);
+  end.setDate(end.getDate()-1);                // 유효 마지막 날 = 다음 주기 시작 하루 전
+  txt.textContent=acq+'  ~  '+dateStr(end.getFullYear(),end.getMonth(),end.getDate())
+    +'   ('+Math.round(months/12)+'년)';
+  txt.style.color='var(--text2)';
+}
+// 현재 단계 변경 시: 라벨·유효기간·예정일을 함께 갱신
+function onCertPhaseChange(){
+  updateCertExpLabel();
+  updateCertValidity();
+  calcCertExpDate();
+}
 function calcCertExpDate(){
+  updateCertExpLabel();
+  updateCertValidity();
   const y=document.getElementById('cert-acq-y')?.value;
   const m=document.getElementById('cert-acq-m')?.value;
   const d=document.getElementById('cert-acq-d')?.value;
@@ -9095,7 +9157,7 @@ Object.assign(window,{
   openCatAddModal,saveCatAdd,deleteCatAdd,setCatRequiresCert,
   setCertTab,renderCertByCert,renderCertByComp,renderCertMaster,renderCertAlert,toggleCycleExpand,openCyclePhaseDoneModal,submitCyclePhaseDone,
   openCertMasterModal,saveCertMaster,deleteCertMaster,toggleCmCycleFields,addCmPhase,renderCmPhases,
-  openCertModal,onCertTypeChange,saveCert,deleteCert,calcCertExpDate,
+  openCertModal,onCertTypeChange,onCertPhaseChange,saveCert,deleteCert,calcCertExpDate,
   markCertPhaseDone,createComplexPhases,buildIsoConfirmMsg,
   openCertFromWork,onCfwTypeChange,cfwCalcExpDate,saveCertFromWork,skipCertFromWork,
   openCertFromCons,processNextCertFromCons,
