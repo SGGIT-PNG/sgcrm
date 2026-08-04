@@ -6295,10 +6295,18 @@ async function saveCert(){
 
   try{
     if(editId){
-      // 수정 모드: 단계별 구분 없이 현재 데이터만 업데이트
+      // 수정 모드: 현재 데이터만 업데이트
       const expDate=getDateFields('cert-exp-y','cert-exp-m','cert-exp-d');
       const currentPhase=document.getElementById('cert-phase-sel')?.value||'';
-      await updateDoc(doc(db,'certifications',editId),{
+      // ⚠️ 단계를 바꾸면 phaseIndex도 반드시 따라가야 한다.
+      //   migrateIsoCycle3yr가 phaseIndex로 만료일을 다시 계산하므로,
+      //   이름만 바꾸고 phaseIndex를 두면 다음 새로고침에 옛 단계 날짜로 되돌아간다.
+      //   (제이알(JR)컴퍼니 ISO 9001이 이 상태였음 — 1차 사후심사인데 phaseIndex=0이라
+      //    만료일이 취득일과 같은 날로 계속 되돌아갔다)
+      const isComplexEdit=m.cycleType==='complex'&&!!(m.phases&&m.phases.length);
+      let phaseIdx=isComplexEdit?m.phases.findIndex(p=>p.name===currentPhase):-1;
+      if(isComplexEdit&&phaseIdx<0)phaseIdx=0;
+      const certPatch={
         bizno:comp._id,companyName:comp.name,
         certMasterId:masterId,certName:m.certName,certIcon:m.icon,
         cycleType:m.cycleType,
@@ -6308,7 +6316,12 @@ async function saveCert(){
         status:document.getElementById('cert-status').value,
         memo:document.getElementById('cert-memo').value,
         updatedAt:Date.now()
-      });
+      };
+      if(isComplexEdit){
+        certPatch.phaseIndex=phaseIdx;
+        certPatch.isLastPhase=(phaseIdx===m.phases.length-1);
+      }
+      await updateDoc(doc(db,'certifications',editId),certPatch);
     } else {
       // 신규 등록
       if(m.cycleType==='complex'&&m.phases?.length){
