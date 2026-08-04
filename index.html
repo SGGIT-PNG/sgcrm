@@ -2138,6 +2138,12 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
         </select>
       </div>
     </div>
+    <!-- [ISO 등 복합주기 · 신규 등록 시만] 통합심사 규격 다중 선택.
+         9001+14001+45001처럼 여러 규격을 한 번에 등록하면 같은 사이클(cycleGroupId)로 묶인다. -->
+    <div class="fg" id="cert-iso-wrap" style="display:none">
+      <label class="fl">통합심사 규격 <span style="font-size:11px;color:var(--text4)">(체크한 규격마다 인증서가 생성되며 하나의 사이클로 묶입니다)</span></label>
+      <div id="cert-iso-list" style="display:flex;flex-wrap:wrap;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px"></div>
+    </div>
     <!-- [ISO 등 복합주기] 인증서 유효기간 — 취득일 기준 자동 계산, 표시 전용(저장 안 함).
          유효기간 만료 알림·일정은 iso-one이 담당하므로 CRM은 참고용으로만 보여준다. -->
     <div class="fg" id="cert-valid-wrap" style="display:none">
@@ -5918,6 +5924,22 @@ function renderCertByComp(){
 }
 
 // 인증 종류 선택 시 complex면 단계 선택 표시
+// [통합심사 규격 다중선택] 복합주기(ISO) 인증을 여러 규격 한 번에 등록하기 위한 체크박스.
+//   조합(9001+14001 등)을 인증종류로 만들면 규격이 늘 때마다 항목이 폭증하므로
+//   종류는 규격 1개 = 1항목으로 두고, 등록 화면에서 여러 개를 고르는 방식.
+function renderCertIsoStds(selectedIds){
+  const el=document.getElementById('cert-iso-list');if(!el)return;
+  const masters=certMaster.filter(m=>m.cycleType==='complex'&&m.phases&&m.phases.length);
+  el.innerHTML=masters.map(function(m){
+    const checked=(selectedIds||[]).indexOf(m.id)>-1?' checked':'';
+    return '<label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;background:var(--surface);border:1px solid var(--border2);border-radius:7px;padding:5px 10px">'
+      +'<input type="checkbox" class="cert-iso-cb" value="'+m.id+'"'+checked+'>'
+      +(m.icon||'🏅')+' '+(m.certName||m.id)+'</label>';
+  }).join('')||'<span style="font-size:12px;color:var(--text4)">복합주기 인증 종류가 없습니다</span>';
+}
+function getCertIsoChecked(){
+  return Array.prototype.slice.call(document.querySelectorAll('.cert-iso-cb:checked')).map(function(cb){return cb.value;});
+}
 function onCertTypeChange(){
   const masterId=document.getElementById('cert-master-sel')?.value;
   const m=getCertMasterInfo(masterId);
@@ -5929,6 +5951,13 @@ function onCertTypeChange(){
   const cycleWrap=document.getElementById('cert-cycle-wrap');
   const annualSection=document.getElementById('cert-annual-section');
   const isComplex=!isAnnual&&m.cycleType==='complex'&&!!(m.phases&&m.phases.length);
+  // 통합심사 규격 체크박스 — 신규 등록에서만. 수정은 인증서 1건만 다루므로 숨긴다.
+  const isoWrap=document.getElementById('cert-iso-wrap');
+  if(isoWrap){
+    const isNew=!document.getElementById('cert-edit-id')?.value;
+    if(isComplex&&isNew){ isoWrap.style.display=''; renderCertIsoStds([masterId]); }
+    else isoWrap.style.display='none';
+  }
   if(acqLabel)acqLabel.textContent=isAnnual?'설립일 (인정서 발급일) *':'취득일 (인증서 발급일) *';
   // 날짜 칸 라벨은 단계에 따라 달라지므로 updateCertExpLabel()이 담당 (아래 calcCertExpDate에서 호출)
   // 복합주기(ISO)는 3년 고정이고 단계가 주기를 결정하므로 갱신주기 선택칸을 숨긴다.
@@ -5974,6 +6003,12 @@ function openCertModal(id){
     // 현재 단계 세팅
     const phaseSelect=document.getElementById('cert-phase-sel');
     if(phaseSelect&&c.currentPhase)phaseSelect.value=c.currentPhase;
+    // ⚠️ onCertTypeChange()가 단계 설정 '전에' 자동계산을 돌리므로, 저장된 만료일이
+    //    1단계 기준 값으로 덮어써진다(예: 1차 사후심사 인증서를 열면 발급일로 바뀜).
+    //    단계를 세팅한 뒤 라벨을 다시 맞추고 저장된 날짜를 되돌린다.
+    updateCertExpLabel();
+    updateCertValidity();
+    setDateFields('cert-exp-y','cert-exp-m','cert-exp-d',c.expDate||'');
     // annual 타입이면 신고 이력 렌더
     const m=getCertMasterInfo(c.certMasterId);
     if(m.reportType==='annual')renderAnnualReportList();
@@ -6207,9 +6242,21 @@ async function saveCert(){
     } else {
       // 신규 등록
       if(m.cycleType==='complex'&&m.phases?.length){
-        // ISO 등 complex 타입: 단계별 자동 생성
-        if(!confirm(buildIsoConfirmMsg(m,acqDate)))return;
-        await createComplexPhases(masterId,comp._id,comp.name,acqDate,null);
+        // ISO 등 complex 타입: 체크한 규격마다 단계별 인증서를 만들고 하나의 사이클로 묶는다.
+        const checked=getCertIsoChecked();
+        const stds=checked.length?checked:[masterId];
+        const cycleGroupId='cycle_'+comp._id+'_'+acqDate+'_'+Date.now();
+        if(stds.length>1){
+          const names=stds.map(id=>getCertMasterInfo(id).certName).join(', ');
+          if(!confirm('[통합심사 일괄 등록]\n\n'+comp.name+'\n취득일(발급일): '+acqDate
+            +'\n\n'+stds.length+'개 규격의 인증서를 생성합니다:\n'+names
+            +'\n\n규격마다 최초·1차 사후·2차 사후·갱신 4단계가 자동 생성되며,\n하나의 통합심사 사이클로 묶입니다.'))return;
+        } else {
+          if(!confirm(buildIsoConfirmMsg(getCertMasterInfo(stds[0]),acqDate)))return;
+        }
+        for(let si=0;si<stds.length;si++){
+          await createComplexPhases(stds[si],comp._id,comp.name,acqDate,null,cycleGroupId);
+        }
       } else {
         // 일반 fixed 타입
         const expDate=getDateFields('cert-exp-y','cert-exp-m','cert-exp-d');
