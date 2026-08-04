@@ -6172,7 +6172,7 @@ function calcCertExpDate(){
     for(let i=0;i<=idx;i++)months+=(+master.phases[i].months||0);
   } else {
     months=+document.getElementById('cert-cycle')?.value||0;
-    if(months===0)return;   // '직접입력' 선택 시 자동계산 안 함
+    if(months===0)return;   // 인증 종류에 주기가 없으면 자동계산 안 함
   }
   const acq=new Date(yNum, mNum-1, dNum||1);
   if(isNaN(acq))return;
