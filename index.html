@@ -5578,6 +5578,9 @@ function certDdayBadge(diff){
 }
 function certStatusBadge(cert){
   if(cert.cycleType==='complex'&&cert.phaseIndex===0)return `<span class="badge" style="background:var(--ok-pale);color:var(--ok)">✅ 발급</span>`;
+  // 이미 끝난 심사는 날짜가 지났어도 '만료'가 아니다.
+  //   (사후심사를 완료 처리해도 예정일이 과거라 만료로 표시되던 문제)
+  if(cert.status==='완료')return `<span class="badge" style="background:var(--ok-pale);color:var(--ok)">✅ 완료</span>`;
   const diff=getCertDday(cert.expDate);
   if(cert.status==='만료'||diff<0)return `<span class="badge" style="background:var(--danger-pale);color:var(--danger)">⚠️ 만료</span>`;
   if(cert.status==='갱신중')return `<span class="badge" style="background:var(--warn-pale);color:var(--warn)">🔄 갱신중</span>`;
@@ -5785,7 +5788,13 @@ function certRow(c){
     :'';
   const linkedWork=c.workItemId?workItems.find(w=>w.id===c.workItemId):null;
   const workLink=linkedWork?`<div style="font-size:11px;color:var(--teal);margin-top:2px">&#128279; ${linkedWork.name} [${ST[linkedWork.status]?.label||linkedWork.status}]</div>`:'';
-  const statusCell=isAnnual?getAnnualStatusDisplay(c.id):(isComplex&&c.phaseIndex===0?'<span style="color:var(--text4)">발급</span>':certDdayBadge(diff));
+  // D-Day 열: 최초심사는 '발급', 끝난 심사는 '완료'.
+  //   완료된 단계에 만료 D+52 같은 값이 뜨던 문제 (예정일이 과거라서)
+  const statusCell=isAnnual
+    ?getAnnualStatusDisplay(c.id)
+    :(isComplex&&c.phaseIndex===0)?'<span style="color:var(--text4)">발급</span>'
+    :(c.status==='완료')?'<span style="color:var(--text4)">완료</span>'
+    :certDdayBadge(diff);
   return `<tr${c.status==='완료'?' style="opacity:.6"':''}>
     <td>
       <div style="font-size:14px;font-weight:500;cursor:pointer;color:var(--blue-l)" onclick="openCertModal('${c.id}')">${comp?.name||c.companyName||'&#8212;'}</div>
