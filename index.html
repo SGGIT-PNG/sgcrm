@@ -4597,7 +4597,12 @@ async function saveCertFromWork(){
     var isoStds=getCfwIsoChecked();
     if(!isoStds.length){alert('등록할 규격을 1개 이상 선택하세요.');return;}
     var stdNames=isoStds.map(function(id){return getCertMasterInfo(id).certName;}).join(', ');
-    if(!confirm('[통합심사 인증서 일괄 등록]\n\n'+comp.name+'\n취득일(발급일): '+acqDate+'\n\n다음 '+isoStds.length+'개 규격의 인증서를 생성합니다:\n'+stdNames+'\n\n각 규격마다 사후심사·갱신 일정이 자동 생성됩니다.'))return;
+    var isoRep=getCertMasterInfo(isoStds[0]);
+    if(!confirm('[통합심사 인증서 일괄 등록]\n\n'+comp.name+'\n취득일(발급일): '+acqDate
+      +'\n\n다음 '+isoStds.length+'개 규격의 인증서를 생성합니다:\n'+stdNames
+      +'\n\n규격마다 아래 '+(isoRep.phases||[]).length+'단계가 자동 생성되어\n하나의 통합심사 사이클로 묶입니다:\n'
+      +isoScheduleLines(isoRep,acqDate)
+      +'\n\n계속하시겠습니까?'))return;
     try{
       for(var si=0;si<isoStds.length;si++){
         await createComplexPhases(isoStds[si],comp._id,comp.name,acqDate,workItemId);
@@ -4622,14 +4627,11 @@ async function saveCertFromWork(){
         ? (workItemId.split(':')[1]||('cycle_'+comp._id+'_'+acqDate))
         : ('cycle_'+comp._id+'_'+acqDate+'_'+Date.now());
       // 첫 번째 단계에 workItemId 연결
-      const acq=new Date(acqDate);
-      let running=new Date(acq);
+      const sched=isoPhaseSchedule(m,acqDate);
       const refs=[];
       for(let i=0;i<m.phases.length;i++){
         const phase=m.phases[i];
-        running=new Date(running);
-        running.setMonth(running.getMonth()+(phase.months||12));
-        const phaseExpDate=running.toISOString().slice(0,10);
+        const phaseExpDate=sched[i].date;
         const ref=doc(COL.certifications());
         refs.push({ref,data:{
           bizno:comp._id,companyName:comp.name,
@@ -6183,15 +6185,31 @@ function calcCertExpDate(){
 
 
 // ISO complex 단계 확인 메시지 생성
+// ISO 단계별 예정일 — 취득일 기준 누적 개월. 인증서 생성·확인 팝업이 공유하는 단일 계산식.
+//   ⚠️ months는 반드시 ??로 받는다. 최초심사는 months:0(취득일 당일)인데
+//      ||를 쓰면 0이 12로 둔갑해 4단계 전부 1년씩 밀린다.
+//   날짜는 로컬로 조립한다(UTC 변환 밀림 방지).
+function isoPhaseSchedule(m, acqDate){
+  const p=(acqDate||'').split('-');
+  if(!m||!m.phases||!m.phases.length||p.length!==3)return [];
+  let cum=0;
+  return m.phases.map(ph=>{
+    cum+=(ph.months??12);
+    const d=new Date(+p[0],+p[1]-1,+p[2]);
+    d.setMonth(d.getMonth()+cum);
+    return {name:ph.name, date:dateStr(d.getFullYear(),d.getMonth(),d.getDate()),
+            months:ph.months??12, isRenewal:!!ph.isRenewal, isInitial:!!ph.isInitial&&!ph.isRenewal};
+  });
+}
+// 단계 일정을 팝업용 여러 줄 문자열로
+function isoScheduleLines(m, acqDate){
+  return isoPhaseSchedule(m,acqDate).map((s,i)=>
+    '  '+(i+1)+'. '+s.name+' — '+s.date+(s.isInitial?'  (인증서 발급)':'')).join('\n');
+}
 function buildIsoConfirmMsg(m, acqDate){
   let msg = m.certName + ' 인증을 등록하면\n';
   msg += '취득일(' + acqDate + ') 기준으로 아래 일정이 자동 생성됩니다:\n\n';
-  var running = new Date(acqDate);
-  for(var i=0; i<m.phases.length; i++){
-    running = new Date(running);
-    running.setMonth(running.getMonth()+(m.phases[i].months||12));
-    msg += '  '+(i+1)+'단계. '+m.phases[i].name+': '+running.toISOString().slice(0,10)+' 이전\n';
-  }
+  msg += isoScheduleLines(m, acqDate) + '\n';
   msg += '\n계속하시겠습니까?';
   return msg;
 }
@@ -6208,13 +6226,10 @@ async function createComplexPhases(masterId, bizno, companyName, acqDate, workIt
     }
   }
   const batch=writeBatch(db);
-  const acq=new Date(acqDate);
-  let running=new Date(acq);
+  const sched=isoPhaseSchedule(m,acqDate);
 
   m.phases.forEach((phase,i)=>{
-    running=new Date(running);
-    running.setMonth(running.getMonth()+(phase.months||12));
-    const phaseExpDate=running.toISOString().slice(0,10);
+    const phaseExpDate=sched[i].date;
     const isLast=(i===m.phases.length-1);
     const phaseData={
       bizno,companyName,
@@ -6243,11 +6258,8 @@ async function createComplexPhases(masterId, bizno, companyName, acqDate, workIt
   // ── 각 단계별 캘린더 자동 등록 ──
   var gcalSettings=getGcalSettings();
   if(gcalSettings.enabled&&gcalSettings.syncCert){
-    var runCal=new Date(acqDate);
     m.phases.forEach(function(phase,i){
-      runCal=new Date(runCal);
-      runCal.setMonth(runCal.getMonth()+(phase.months||12));
-      var phaseExpDate=runCal.toISOString().slice(0,10);
+      var phaseExpDate=sched[i].date;
       var isRenewal=phase.isRenewal;
       var phaseName=phase.name;
       // 갱신심사는 강조 표시
@@ -6300,9 +6312,14 @@ async function saveCert(){
         const cycleGroupId='cycle_'+comp._id+'_'+acqDate+'_'+Date.now();
         if(stds.length>1){
           const names=stds.map(id=>getCertMasterInfo(id).certName).join(', ');
+          // 규격이 여러 개라도 단계 일정은 동일하므로 대표 1개로 보여준다.
+          //   (규격 1개일 때와 똑같이 실제 날짜를 보여줘야 확인하고 넘어갈 수 있다)
+          const rep=getCertMasterInfo(stds[0]);
           if(!confirm('[통합심사 일괄 등록]\n\n'+comp.name+'\n취득일(발급일): '+acqDate
             +'\n\n'+stds.length+'개 규격의 인증서를 생성합니다:\n'+names
-            +'\n\n규격마다 최초·1차 사후·2차 사후·갱신 4단계가 자동 생성되며,\n하나의 통합심사 사이클로 묶입니다.'))return;
+            +'\n\n규격마다 아래 '+(rep.phases||[]).length+'단계가 자동 생성되어\n하나의 통합심사 사이클로 묶입니다:\n'
+            +isoScheduleLines(rep,acqDate)
+            +'\n\n계속하시겠습니까?'))return;
         } else {
           if(!confirm(buildIsoConfirmMsg(getCertMasterInfo(stds[0]),acqDate)))return;
         }
