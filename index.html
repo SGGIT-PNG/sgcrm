@@ -2127,15 +2127,15 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
           <input class="fi" id="cert-acq-d" placeholder="DD" maxlength="2" style="width:48px;text-align:center" oninput="calcCertExpDate()">
         </div>
       </div>
-      <!-- renewal 타입: 갱신주기 / annual 타입: 숨김 -->
+      <!-- renewal 타입: 갱신주기(읽기 전용) / annual·complex 타입: 숨김
+           주기는 '인증 종류 관리'가 단일 소스다. 벤처·이노비즈·메인비즈·가족친화 등
+           갱신형은 전부 3년 고정이라 등록할 때 다시 고를 이유가 없고,
+           두 곳에서 관리하면 만료일이 어긋날 수 있어 선택칸을 없앴다.
+           값은 hidden으로 유지 → 기존 저장·자동계산 로직이 그대로 동작한다. -->
       <div class="fg" id="cert-cycle-wrap">
-        <label class="fl">갱신주기</label>
-        <select class="fs" id="cert-cycle" onchange="calcCertExpDate()">
-          <option value="12">1년 (12개월)</option>
-          <option value="24">2년 (24개월)</option>
-          <option value="36">3년 (36개월)</option>
-          <option value="0">직접입력</option>
-        </select>
+        <label class="fl">갱신주기 <span style="font-size:11px;color:var(--text4)">(인증 종류에서 자동 적용)</span></label>
+        <input type="hidden" id="cert-cycle">
+        <div id="cert-cycle-text" style="padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text3)">-</div>
       </div>
     </div>
     <!-- [ISO 등 복합주기 · 신규 등록 시만] 통합심사 규격 다중 선택.
@@ -5393,10 +5393,10 @@ function certMasterOptions(selectedId='', collapseIso=false){
     if(isos.length){
       list=certMaster.filter(m=>!isIsoStdMaster(m));
       const rep=certMaster.find(m=>m.id===defaultIsoMasterId())||isos[0];
-      const yr=Math.round((rep.cycleMonths||36)/12);
-      const ph=(rep.phases||[]).length||4;
       const sel=isos.some(m=>m.id===selectedId)?' selected':'';
-      isoOpt=`<option value="${rep.id}"${sel}>🏅 ISO 인증 (${yr}년 ${ph}단계 · 규격은 아래에서 선택)</option>`;
+      // 주기·단계수는 붙이지 않는다 — 3년은 아래 '인증서 유효기간'에, 4단계는 '현재 단계'
+      //   드롭다운에 이미 보인다. ISO는 목록에 한 줄뿐이라 구분용 꼬리표도 필요 없다.
+      isoOpt=`<option value="${rep.id}"${sel}>🏅 ISO 인증 (규격은 아래에서 선택)</option>`;
     }
   }
   return isoOpt+list.map(m=>{
@@ -5992,8 +5992,8 @@ function onCertTypeChange(){
   }
   if(acqLabel)acqLabel.textContent=isAnnual?'설립일 (인정서 발급일) *':'취득일 (인증서 발급일) *';
   // 날짜 칸 라벨은 단계에 따라 달라지므로 updateCertExpLabel()이 담당 (아래 calcCertExpDate에서 호출)
-  // 복합주기(ISO)는 3년 고정이고 단계가 주기를 결정하므로 갱신주기 선택칸을 숨긴다.
-  //   (값 자체는 저장 시 쓰이므로 아래에서 마스터 값으로 세팅만 해둔다)
+  // 복합주기(ISO)는 단계가 주기를 결정하고, 연간신고는 주기 개념이 없어 칸 자체를 숨긴다.
+  //   갱신형(벤처·이노비즈 등)만 읽기 전용으로 보여준다. (값 자체는 저장 시 쓰인다)
   if(cycleWrap)cycleWrap.style.display=(isAnnual||isComplex)?'none':'';
   if(annualSection){
     annualSection.style.display=isAnnual?'':'none';
@@ -6009,7 +6009,9 @@ function onCertTypeChange(){
       phaseSelect.innerHTML=m.phases.map((p,i)=>`<option value="${p.name}">${i+1}단계: ${p.name}</option>`).join('');
     } else {phaseWrap.style.display='none';}
   }
+  // 주기는 인증 종류(cert_master)가 단일 소스 — 화면에서는 고르지 않고 표시만 한다
   document.getElementById('cert-cycle').value=m.cycleMonths||12;
+  updateCertCycleText();
   calcCertExpDate();
 }
 
@@ -6041,6 +6043,10 @@ function openCertModal(id){
     updateCertExpLabel();
     updateCertValidity();
     setDateFields('cert-exp-y','cert-exp-m','cert-exp-d',c.expDate||'');
+    // 저장된 주기를 되돌린다 — onCertTypeChange()가 마스터 값으로 덮어쓰기 때문.
+    //   과거에 다른 주기로 등록된 인증서가 열기만 해도 바뀌는 일을 막는다.
+    //   (인증 종류를 바꾸면 그때는 새 종류의 주기가 정상 적용됨)
+    if(c.cycleMonths){document.getElementById('cert-cycle').value=c.cycleMonths;updateCertCycleText();}
     // annual 타입이면 신고 이력 렌더
     const m=getCertMasterInfo(c.certMasterId);
     if(m.reportType==='annual')renderAnnualReportList();
@@ -6111,6 +6117,18 @@ function updateCertValidity(){
     +'   ('+Math.round(months/12)+'년)';
   txt.style.color='var(--text2)';
 }
+// 갱신주기 읽기 전용 표시 — hidden #cert-cycle 값을 사람이 읽는 형태로 보여준다
+function updateCertCycleText(){
+  const txt=document.getElementById('cert-cycle-text');
+  if(!txt)return;
+  const months=+document.getElementById('cert-cycle')?.value||0;
+  if(!months){txt.textContent='-';txt.style.color='var(--text4)';return;}
+  txt.textContent=(months%12===0)
+    ? (months/12)+'년 ('+months+'개월)'
+    : months+'개월';
+  txt.style.color='var(--text2)';
+}
+
 // 현재 단계 변경 시: 라벨·유효기간·예정일을 함께 갱신
 function onCertPhaseChange(){
   updateCertExpLabel();
