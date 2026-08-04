@@ -2112,7 +2112,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
     </div>
     <!-- complex 인증(ISO 등) 단계 선택 -->
     <div class="fg" id="cert-phase-wrap" style="display:none">
-      <label class="fl">현재 단계 <span style="font-size:11px;color:var(--text4)">(최초 · 사후 · 갱신 — 만료일 자동계산)</span></label>
+      <label class="fl" id="cert-phase-label">현재 단계 <span style="font-size:11px;color:var(--text4)">(최초 · 사후 · 갱신 — 만료일 자동계산)</span></label>
       <select class="fs" id="cert-phase-sel" onchange="onCertPhaseChange()"></select>
     </div>
     <!-- 취득일 / 설립일 (annual 타입이면 라벨 변경) -->
@@ -2150,8 +2150,10 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
       <label class="fl">인증서 유효기간 <span style="font-size:11px;color:var(--text4)">(취득일 기준 자동 계산 · 표시 전용)</span></label>
       <div id="cert-valid-text" style="padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'JetBrains Mono',monospace;color:var(--text4)">취득일을 입력하세요</div>
     </div>
-    <!-- 만료·갱신일 / 신고기한 (annual 타입이면 라벨 변경) -->
-    <div class="frow">
+    <!-- 만료·갱신일 / 신고기한 (annual 타입이면 라벨 변경)
+         신규 등록 + 복합주기(ISO)에서는 숨긴다 — 단계별 인증서를 자동 생성하므로
+         이 두 칸(만료일·상태)은 저장에 쓰이지 않는다. 일정은 위 유효기간과 확인 팝업에 나온다. -->
+    <div class="frow" id="cert-exp-row">
       <div class="fg">
         <label class="fl" id="cert-exp-label">만료·갱신일 * <span style="font-size:11px;color:var(--text4)">(취득일+주기 자동계산)</span></label>
         <div style="display:flex;gap:4px;align-items:center">
@@ -5802,7 +5804,12 @@ function certRow(c){
     </td>
     <td>
       <span style="font-size:13px">${m.icon} ${m.certName}</span>${phaseLabel}
-      ${c.status==='완료'?'<span style="font-size:11px;padding:1px 5px;border-radius:4px;background:var(--ok-pale);color:var(--ok);margin-left:4px">&#10003;완료</span>':''}
+      ${c.status==='완료'
+        // 최초심사는 '심사를 끝냈다'기보다 '인증서를 받았다'가 맞는 표현이라 발급으로 쓴다.
+        //   사후·갱신심사만 완료로 표시한다.
+        ?`<span style="font-size:11px;padding:1px 5px;border-radius:4px;background:var(--ok-pale);color:var(--ok);margin-left:4px">${
+            isComplex&&c.phaseIndex===0?'발급':'&#10003;완료'}</span>`
+        :''}
     </td>
     <td style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--text4)">${c.acqDate||'&#8212;'}</td>
     <td style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--text4)">${c.expDate||'&#8212;'}</td>
@@ -6015,7 +6022,28 @@ function onCertTypeChange(){
     if(isComplex&&isNew){ isoWrap.style.display=''; renderCertIsoStds([masterId]); }
     else isoWrap.style.display='none';
   }
-  if(acqLabel)acqLabel.textContent=isAnnual?'설립일 (인정서 발급일) *':'취득일 (인증서 발급일) *';
+  const isNewMode=isCertNewMode();
+  // 신규 등록 + 복합주기(ISO)는 '입력한 날짜 = 고른 단계의 심사일'로 받는다.
+  //   진행 중인 인증을 등록할 때 최초 발급일을 모르는 경우가 많아,
+  //   최초심사일은 아래 saveCert에서 역산한다.
+  if(acqLabel)acqLabel.textContent=isAnnual?'설립일 (인정서 발급일) *'
+    :(isComplex&&isNewMode)?'심사일 * (위에서 고른 단계를 진행한 날짜)'
+    :'취득일 (인증서 발급일) *';
+  const phaseLabel=document.getElementById('cert-phase-label');
+  if(phaseLabel)phaseLabel.innerHTML=isNewMode
+    ?'등록 시점의 단계 <span style="font-size:11px;color:var(--text4)">(이 단계까지 완료로 등록되고, 이후 일정이 자동 생성됩니다)</span>'
+    :'현재 단계 <span style="font-size:11px;color:var(--text4)">(최초 · 사후 · 갱신 — 만료일 자동계산)</span>';
+  // 복합주기는 만료일이 취득일·단계에서 자동 계산된다. 손으로 고쳐도
+  //   migrateIsoCycle3yr가 새로고침 때 되돌리므로 입력을 막고 계산 결과만 보여준다.
+  ['cert-exp-y','cert-exp-m','cert-exp-d'].forEach(id=>{
+    const el=document.getElementById(id); if(!el)return;
+    el.readOnly=isComplex;
+    el.style.background=isComplex?'var(--surface2)':'';
+    el.style.color=isComplex?'var(--text4)':'';
+  });
+  // 신규 + 복합주기는 만료일·상태를 저장에 쓰지 않는다 (단계별로 자동 생성) → 칸 자체를 숨긴다
+  const expRow=document.getElementById('cert-exp-row');
+  if(expRow)expRow.style.display=(isComplex&&isNewMode)?'none':'';
   // 날짜 칸 라벨은 단계에 따라 달라지므로 updateCertExpLabel()이 담당 (아래 calcCertExpDate에서 호출)
   // 복합주기(ISO)는 단계가 주기를 결정하고, 연간신고는 주기 개념이 없어 칸 자체를 숨긴다.
   //   갱신형(벤처·이노비즈 등)만 읽기 전용으로 보여준다. (값 자체는 저장 시 쓰인다)
@@ -6127,19 +6155,27 @@ function updateCertValidity(){
   const isComplex=m.cycleType==='complex'&&!!(m.phases&&m.phases.length);
   wrap.style.display=isComplex?'':'none';
   if(!isComplex)return;
-  const acq=getDateFields('cert-acq-y','cert-acq-m','cert-acq-d');
-  const p=(acq||'').split('-');
-  if(p.length!==3||!p[0]||!p[1]||!p[2]){
-    txt.textContent='취득일을 입력하세요';txt.style.color='var(--text4)';return;
+  const entered=getDateFields('cert-acq-y','cert-acq-m','cert-acq-d');
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(entered||'')){
+    txt.textContent=isCertNewMode()?'심사일을 입력하세요':'취득일을 입력하세요';
+    txt.style.color='var(--text4)';return;
   }
+  // 신규 등록은 입력값이 '고른 단계의 심사일'이므로 최초심사일을 역산해 기준으로 삼는다.
+  const phase=document.getElementById('cert-phase-sel')?.value||'';
+  const base=isCertNewMode()?isoBaseAcqDate(m,phase,entered):entered;
+  const p=(base||'').split('-');
   const start=new Date(+p[0],+p[1]-1,+p[2]);   // 로컬 기준으로 조립(UTC 변환 밀림 방지)
-  if(isNaN(start)){txt.textContent='취득일을 확인하세요';txt.style.color='var(--danger)';return;}
+  if(isNaN(start)){txt.textContent='날짜를 확인하세요';txt.style.color='var(--danger)';return;}
   const months=+m.cycleMonths||36;
   const end=new Date(start);
   end.setMonth(end.getMonth()+months);
   end.setDate(end.getDate()-1);                // 유효 마지막 날 = 다음 주기 시작 하루 전
-  txt.textContent=acq+'  ~  '+dateStr(end.getFullYear(),end.getMonth(),end.getDate())
+  const range=base+'  ~  '+dateStr(end.getFullYear(),end.getMonth(),end.getDate())
     +'   ('+Math.round(months/12)+'년)';
+  // 역산이 일어난 경우(사후·갱신 단계로 등록) 최초심사일을 따로 알려준다
+  txt.innerHTML=(isCertNewMode()&&base!==entered)
+    ? range+'<div style="font-size:11px;color:var(--text4);margin-top:3px">최초심사(인증서 발급) '+base+' 로 역산됨</div>'
+    : range;
   txt.style.color='var(--text2)';
 }
 // 갱신주기 읽기 전용 표시 — hidden #cert-cycle 값을 사람이 읽는 형태로 보여준다
@@ -6190,6 +6226,13 @@ function calcCertExpDate(){
   //  · 고정주기(벤처·이노비즈 등): 취득일 + 갱신주기
   let months;
   if(master.cycleType==='complex'&&master.phases&&master.phases.length){
+    // 신규 등록은 입력값 자체가 '고른 단계의 심사일'이라 더할 것이 없다.
+    //   (최초심사일은 저장할 때 isoBaseAcqDate로 역산한다)
+    if(isCertNewMode()){
+      setDateFields('cert-exp-y','cert-exp-m','cert-exp-d',
+        dateStr(yNum, mNum-1, dNum||1));
+      return;
+    }
     const pv=document.getElementById('cert-phase-sel')?.value||'';
     let idx=master.phases.findIndex(p=>p.name===pv);
     if(idx<0)idx=0;
@@ -6224,20 +6267,51 @@ function isoPhaseSchedule(m, acqDate){
             months:ph.months??12, isRenewal:!!ph.isRenewal, isInitial:!!ph.isInitial&&!ph.isRenewal};
   });
 }
-// 단계 일정을 팝업용 여러 줄 문자열로
-function isoScheduleLines(m, acqDate){
-  return isoPhaseSchedule(m,acqDate).map((s,i)=>
-    '  '+(i+1)+'. '+s.name+' — '+s.date+(s.isInitial?'  (인증서 발급)':'')).join('\n');
+// 단계 이름 → 인덱스 (없으면 0)
+function isoPhaseIdx(m, phaseName){
+  if(!m||!m.phases||!m.phases.length)return 0;
+  const i=m.phases.findIndex(p=>p.name===phaseName);
+  return i<0?0:i;
 }
-function buildIsoConfirmMsg(m, acqDate){
+// 입력한 심사일과 그 단계로 최초심사(인증서 발급)일을 역산한다.
+//   진행 중인 인증을 등록할 때 최초 발급일을 모르는 경우가 많다.
+//   예) 1차 사후심사를 2026-06-13에 했다 → 최초심사는 2025-06-13
+//   이 역산이 없으면 사후심사 날짜가 취득일로 들어가 전 단계가 1년씩 밀린다
+//   (제이알(JR)컴퍼니가 그 사례였음).
+function isoBaseAcqDate(m, phaseName, enteredDate){
+  const p=(enteredDate||'').split('-');
+  if(!m||!m.phases||!m.phases.length||p.length!==3||!p[0]||!p[1]||!p[2])return enteredDate||'';
+  const idx=isoPhaseIdx(m,phaseName);
+  let cum=0; for(let i=0;i<=idx;i++)cum+=(m.phases[i].months??12);
+  const d=new Date(+p[0],+p[1]-1,+p[2]);
+  d.setMonth(d.getMonth()-cum);
+  return dateStr(d.getFullYear(),d.getMonth(),d.getDate());
+}
+// 인증 등록 모달이 신규 모드인지
+function isCertNewMode(){
+  return !document.getElementById('cert-edit-id')?.value;
+}
+// 단계 일정을 팝업용 여러 줄 문자열로
+//   doneThruIdx 이하는 이미 끝난 심사이므로 '완료'로 표시한다
+function isoScheduleLines(m, acqDate, doneThruIdx){
+  if(typeof doneThruIdx!=='number')doneThruIdx=-1;
+  return isoPhaseSchedule(m,acqDate).map((s,i)=>
+    '  '+(i+1)+'. '+s.name+' — '+s.date
+    +(i<=doneThruIdx?'  ✔ 완료':(s.isInitial?'  (인증서 발급)':''))).join('\n');
+}
+function buildIsoConfirmMsg(m, acqDate, doneThruIdx, doneNote){
   let msg = m.certName + ' 인증을 등록하면\n';
-  msg += '취득일(' + acqDate + ') 기준으로 아래 일정이 자동 생성됩니다:\n\n';
-  msg += isoScheduleLines(m, acqDate) + '\n';
+  msg += '인증서 발급일(' + acqDate + ') 기준으로 아래 일정이 자동 생성됩니다:';
+  msg += (doneNote||'') + '\n\n';
+  msg += isoScheduleLines(m, acqDate, doneThruIdx) + '\n';
   msg += '\n계속하시겠습니까?';
   return msg;
 }
 // ISO complex 타입 단계별 자동 생성
-async function createComplexPhases(masterId, bizno, companyName, acqDate, workItemId, cycleGroupId){
+//   doneThruIdx: 이 인덱스까지는 이미 끝난 심사이므로 '완료'로 만든다 (기본 -1 = 전부 예정).
+//     진행 중인 인증을 등록할 때(예: 1차 사후심사까지 마친 상태) 쓰인다.
+async function createComplexPhases(masterId, bizno, companyName, acqDate, workItemId, cycleGroupId, doneThruIdx){
+  if(typeof doneThruIdx!=='number')doneThruIdx=-1;
   const m=getCertMasterInfo(masterId);
   if(!m||m.cycleType!=='complex'||!m.phases?.length)return;
   // cycleGroupId 미지정 시: cons에서 호출이면 consId, 아니면 새로 생성
@@ -6267,7 +6341,7 @@ async function createComplexPhases(masterId, bizno, companyName, acqDate, workIt
       cycleGroupId,
       acqDate,
       expDate:phaseExpDate,
-      status:'유효',
+      status:(i<=doneThruIdx)?'완료':'유효',
       memo:'',
       workItemId:workItemId||null,
       createdAt:Date.now(),
@@ -6282,6 +6356,7 @@ async function createComplexPhases(masterId, bizno, companyName, acqDate, workIt
   var gcalSettings=getGcalSettings();
   if(gcalSettings.enabled&&gcalSettings.syncCert){
     m.phases.forEach(function(phase,i){
+      if(i<=doneThruIdx)return;   // 이미 끝난 심사는 캘린더에 알림을 만들지 않는다
       var phaseExpDate=sched[i].date;
       var isRenewal=phase.isRenewal;
       var phaseName=phase.name;
@@ -6345,22 +6420,32 @@ async function saveCert(){
         const checked=getCertIsoChecked();
         if(isoWrapVisible&&!checked.length){alert('등록할 규격을 1개 이상 선택하세요.');return;}
         const stds=checked.length?checked:[masterId];
-        const cycleGroupId='cycle_'+comp._id+'_'+acqDate+'_'+Date.now();
+        // 입력한 날짜는 '고른 단계의 심사일'이다. 최초심사(발급)일을 역산해 기준으로 삼고,
+        //   그 단계까지는 이미 끝난 것으로 본다.
+        const rep0=getCertMasterInfo(stds[0]);
+        const selPhase=document.getElementById('cert-phase-sel')?.value||'';
+        const doneThru=isoPhaseIdx(rep0,selPhase);
+        const baseAcq=isoBaseAcqDate(rep0,selPhase,acqDate);
+        const cycleGroupId='cycle_'+comp._id+'_'+baseAcq+'_'+Date.now();
+        const doneNote=doneThru>0
+          ? '\n\n입력하신 '+acqDate+' 는 '+(doneThru+1)+'단계 '+selPhase+' 날짜로 보고\n'
+            +'최초심사(인증서 발급)일을 '+baseAcq+' 로 역산했습니다.\n'
+            +(doneThru+1)+'단계까지는 완료로 등록됩니다.'
+          : '';
         if(stds.length>1){
           const names=stds.map(id=>getCertMasterInfo(id).certName).join(', ');
           // 규격이 여러 개라도 단계 일정은 동일하므로 대표 1개로 보여준다.
           //   (규격 1개일 때와 똑같이 실제 날짜를 보여줘야 확인하고 넘어갈 수 있다)
-          const rep=getCertMasterInfo(stds[0]);
-          if(!confirm('[통합심사 일괄 등록]\n\n'+comp.name+'\n취득일(발급일): '+acqDate
+          if(!confirm('[통합심사 일괄 등록]\n\n'+comp.name+'\n인증서 발급일: '+baseAcq+doneNote
             +'\n\n'+stds.length+'개 규격의 인증서를 생성합니다:\n'+names
-            +'\n\n규격마다 아래 '+(rep.phases||[]).length+'단계가 자동 생성되어\n하나의 통합심사 사이클로 묶입니다:\n'
-            +isoScheduleLines(rep,acqDate)
+            +'\n\n규격마다 아래 '+(rep0.phases||[]).length+'단계가 자동 생성되어\n하나의 통합심사 사이클로 묶입니다:\n'
+            +isoScheduleLines(rep0,baseAcq,doneThru)
             +'\n\n계속하시겠습니까?'))return;
         } else {
-          if(!confirm(buildIsoConfirmMsg(getCertMasterInfo(stds[0]),acqDate)))return;
+          if(!confirm(buildIsoConfirmMsg(rep0,baseAcq,doneThru,doneNote)))return;
         }
         for(let si=0;si<stds.length;si++){
-          await createComplexPhases(stds[si],comp._id,comp.name,acqDate,null,cycleGroupId);
+          await createComplexPhases(stds[si],comp._id,comp.name,baseAcq,null,cycleGroupId,doneThru);
         }
       } else {
         // 일반 fixed 타입
