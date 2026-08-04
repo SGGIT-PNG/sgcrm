@@ -5384,32 +5384,44 @@ function defaultIsoMasterId(){
   const q=isos.find(m=>/^iso_9001$/i.test(m.id||'')||/^ISO\s*9001$/i.test(m.certName||''));
   return (q||isos.slice().sort((a,b)=>(a.sortOrder||99)-(b.sortOrder||99))[0]).id;
 }
+// 인증 종류 정렬 — 저장된 sortOrder가 흐트러져 있어(ISO 9001=848, 벤처=947 등)
+//   Firestore 문서 순서대로 뿌리면 목록이 뒤섞인다. 화면에서 정렬해 보정한다.
+//   isoRepFirst=true면 대표 규격(9001)을 맨 앞에 고정 — 규격 체크박스와 순서를 맞추기 위해서.
+function sortCertMasters(list, isoRepFirst){
+  const rep=isoRepFirst?defaultIsoMasterId():'';
+  return list.slice().sort((a,b)=>{
+    if(rep){ if(a.id===rep)return -1; if(b.id===rep)return 1; }
+    return (a.sortOrder||99)-(b.sortOrder||99)
+      ||String(a.certName||'').localeCompare(String(b.certName||''));
+  });
+}
 // 인증 종류 드롭다운 옵션 생성
-//   collapseIso=true : ISO 규격들을 'ISO 인증' 하나로 합쳐 맨 위에 둔다.
-//     규격 선택은 아래 통합심사 체크박스가 담당하므로 드롭다운에 규격을 또 나열할 필요가 없다.
-//     (수정 모드에서는 어떤 규격의 인증서인지 보여야 하므로 합치지 않는다)
+//   collapseIso=true (신규 등록) : ISO 규격을 'ISO 인증' 한 줄로 합쳐 맨 위에 둔다.
+//     규격은 아래 통합심사 체크박스가 담당하므로 드롭다운에 또 나열할 필요가 없다.
+//   collapseIso=false (수정)     : 인증서 1건 = 규격 1개라 실제 규격을 보여주고 바꿀 수도 있어야 한다.
+//     합칠 수 없으므로 optgroup으로 묶어 신규 화면의 'ISO 인증' 덩어리와 시각적으로 맞춘다.
 function certMasterOptions(selectedId='', collapseIso=false){
-  let list=certMaster, isoOpt='';
-  if(collapseIso){
-    const isos=certMaster.filter(isIsoStdMaster);
-    if(isos.length){
-      list=certMaster.filter(m=>!isIsoStdMaster(m));
-      const rep=certMaster.find(m=>m.id===defaultIsoMasterId())||isos[0];
-      const sel=isos.some(m=>m.id===selectedId)?' selected':'';
-      // 주기·단계수는 붙이지 않는다 — 3년은 아래 '인증서 유효기간'에, 4단계는 '현재 단계'
-      //   드롭다운에 이미 보인다. ISO는 목록에 한 줄뿐이라 구분용 꼬리표도 필요 없다.
-      isoOpt=`<option value="${rep.id}"${sel}>🏅 ISO 인증 (규격은 아래에서 선택)</option>`;
-    }
+  const isos=sortCertMasters(certMaster.filter(isIsoStdMaster), true);
+  const others=sortCertMasters(certMaster.filter(m=>!isIsoStdMaster(m)), false);
+  // 복합주기(ISO)에는 주기·단계수를 붙이지 않는다 — 3년은 '인증서 유효기간'에,
+  //   단계는 '현재 단계' 드롭다운에 이미 보인다.
+  const labelOf=m=>{
+    if(m.reportType==='annual') return `${m.icon} ${m.certName} (매년${m.annualMonth||4}월신고)`;
+    if(m.cycleType==='complex') return `${m.icon} ${m.certName}`;
+    return `${m.icon} ${m.certName} (${(m.cycleMonths||12)/12}년)`;
+  };
+  const opt=m=>`<option value="${m.id}"${m.id===selectedId?' selected':''}>${labelOf(m)}</option>`;
+
+  if(collapseIso&&isos.length){
+    const rep=certMaster.find(m=>m.id===defaultIsoMasterId())||isos[0];
+    const sel=isos.some(m=>m.id===selectedId)?' selected':'';
+    return `<option value="${rep.id}"${sel}>🏅 ISO 인증 (규격은 아래에서 선택)</option>`
+      +others.map(opt).join('');
   }
-  return isoOpt+list.map(m=>{
-    let label='';
-    if(m.reportType==='annual') label=`${m.icon} ${m.certName} (매년${m.annualMonth||4}월신고)`;
-    // 복합주기(ISO)는 최초·사후1·사후2·갱신 4단계를 모두 다룬다.
-    //   예전 라벨이 '(사후심사)'라 최초심사는 등록 못 하는 것처럼 보였음 → 주기·단계수로 표기.
-    else if(m.cycleType==='complex') label=`${m.icon} ${m.certName} (${Math.round((m.cycleMonths||36)/12)}년 ${(m.phases||[]).length||4}단계)`;
-    else label=`${m.icon} ${m.certName} (${(m.cycleMonths||12)/12}년)`;
-    return `<option value="${m.id}"${m.id===selectedId?' selected':''}>${label}</option>`;
-  }).join('');
+  let html='';
+  if(isos.length)  html+='<optgroup label="ISO 인증">'+isos.map(opt).join('')+'</optgroup>';
+  if(others.length)html+='<optgroup label="기타 인증">'+others.map(opt).join('')+'</optgroup>';
+  return html;
 }
 
 let certTabCurrent='alert';
@@ -5957,13 +5969,9 @@ function renderCertByComp(){
 //   종류는 규격 1개 = 1항목으로 두고, 등록 화면에서 여러 개를 고르는 방식.
 function renderCertIsoStds(selectedIds){
   const el=document.getElementById('cert-iso-list');if(!el)return;
-  // 9001을 맨 앞에, 나머지는 정렬값·이름 순 (저장본에 sortOrder가 없어 순서가 뒤섞이는 것 보정)
-  const rep=defaultIsoMasterId();
-  const masters=certMaster.filter(m=>m.cycleType==='complex'&&m.phases&&m.phases.length)
-    .slice().sort(function(a,b){
-      if(a.id===rep)return -1; if(b.id===rep)return 1;
-      return (a.sortOrder||99)-(b.sortOrder||99)||String(a.certName||'').localeCompare(String(b.certName||''));
-    });
+  // 9001을 맨 앞에, 나머지는 정렬값·이름 순 (드롭다운과 같은 정렬을 쓴다)
+  const masters=sortCertMasters(
+    certMaster.filter(m=>m.cycleType==='complex'&&m.phases&&m.phases.length), true);
   el.innerHTML=masters.map(function(m){
     const checked=(selectedIds||[]).indexOf(m.id)>-1?' checked':'';
     return '<label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;background:var(--surface);border:1px solid var(--border2);border-radius:7px;padding:5px 10px">'
