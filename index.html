@@ -5797,7 +5797,13 @@ function certRow(c){
     </td>
     <td style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--text4)">${c.acqDate||'&#8212;'}</td>
     <td style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--text4)">${c.expDate||'&#8212;'}</td>
-    <td style="font-size:12px;color:var(--text3)">${isAnnual?`매년 ${m.annualMonth||4}월 ${m.annualDay||30}일`:isComplex?`${c.cycleMonths||12}개월`:(m.cycleMonths||12)+'개월'}</td>
+    <td style="font-size:12px;color:var(--text3)">${isAnnual
+      ?`매년 ${m.annualMonth||4}월 ${m.annualDay||30}일`
+      :isComplex
+        // 복합주기 하위 행은 c.cycleMonths(단계 간격)를 찍고 있어 36/36/12처럼 뒤죽박죽이었다.
+        //   주기는 사이클 전체가 하나(3년)이므로 마스터 값으로 통일하고, 단계 번호를 함께 보여준다.
+        ?`${Math.round((m.cycleMonths||36)/12)}년 (${(typeof c.phaseIndex==='number'?c.phaseIndex:0)+1}단계)`
+        :(m.cycleMonths||12)+'개월'}</td>
     <td>${isAnnual?'<span class="badge" style="background:#F0F0F0;color:#2563EB">연간신고</span>':certStatusBadge(c)}</td>
     <td>${statusCell}</td>
     <td>
