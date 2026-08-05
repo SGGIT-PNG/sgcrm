@@ -4120,11 +4120,7 @@ async function deleteConsulting(){
     // 캘린더 정리
     gcalSyncCons({id:id},'delete'); // 기간 + consaudit1/2
     linkedCerts.forEach(function(c){
-      if(c.cycleType==='complex'){
-        sendToGcal('delete','cert',{id:'phase_'+c.bizno+'_'+c.certMasterId+'_'+(c.phaseIndex||0)});
-      } else {
-        gcalSyncCert({id:c.id},'delete');
-      }
+      gcalDeleteCertEvents(c);
     });
     setBadge('삭제 완료',2000);
     closeModal('consulting-modal');
@@ -4358,11 +4354,7 @@ async function confirmDeleteWork(){
     linkedAnnuals.forEach(function(r){batch.delete(doc(db,'annual_reports',r.id));});
     await batch.commit();
     linkedCerts.forEach(function(c){
-      if(c.cycleType==='complex'){
-        sendToGcal('delete','cert',{id:'phase_'+c.bizno+'_'+c.certMasterId+'_'+(c.phaseIndex||0)});
-      } else {
-        gcalSyncCert({id:c.id},'delete');
-      }
+      gcalDeleteCertEvents(c);
     });
     setBadge('삭제 완료',2000);
     closeModal('work-modal');
@@ -5312,11 +5304,7 @@ async function cleanupOrphanCerts(){
     orphanAnnuals.forEach(function(r){batch.delete(doc(db,'annual_reports',r.id));});
     await batch.commit();
     orphans.forEach(function(c){
-      if(c.cycleType==='complex'){
-        sendToGcal('delete','cert',{id:'phase_'+c.bizno+'_'+c.certMasterId+'_'+(c.phaseIndex||0)});
-      } else {
-        gcalSyncCert({id:c.id},'delete');
-      }
+      gcalDeleteCertEvents(c);
     });
     // 고아 cons에 묶여있던 1차/2차 심사 캘린더 이벤트도 같이 정리 (consId 단위 dedup)
     var orphanConsIds={};
@@ -5757,7 +5745,7 @@ async function submitCyclePhaseDone(){
         var std=c.certMasterId||c.certName;
         if(kept.indexOf(std)===-1 && (c.phaseIndex||0)>phaseIdx && c.status!=='제외'){
           batch.update(doc(db,'certifications',c.id),{status:'제외',droppedAt:nowTs,droppedAtPhase:phaseIdx,updatedAt:nowTs});
-          sendToGcal('delete','cert',{id:'phase_'+c.bizno+'_'+c.certMasterId+'_'+(c.phaseIndex||0)});
+          gcalDeleteCertEvents(c);
         }
       });
     }
@@ -6324,6 +6312,7 @@ async function createComplexPhases(masterId, bizno, companyName, acqDate, workIt
   }
   const batch=writeBatch(db);
   const sched=isoPhaseSchedule(m,acqDate);
+  const newIds=[];   // 캘린더 이벤트 ID로도 쓴다 (gcalSyncCert와 같은 값이어야 중복이 안 생긴다)
 
   m.phases.forEach((phase,i)=>{
     const phaseExpDate=sched[i].date;
@@ -6348,29 +6337,36 @@ async function createComplexPhases(masterId, bizno, companyName, acqDate, workIt
       updatedAt:Date.now()
     };
     const newRef=doc(COL.certifications());
+    newIds[i]=newRef.id;
     batch.set(newRef,phaseData);
   });
   await batch.commit();
 
   // ── 각 단계별 캘린더 자동 등록 ──
+  //   ⚠️ 이벤트 ID는 반드시 인증서 문서 ID를 쓴다. 예전엔 'phase_<사업자번호>_<규격>_<번호>'라
+  //      나중에 전체 동기화(gcalSyncCert, 문서 ID 사용)가 같은 인증서를 못 알아보고
+  //      일정을 하나 더 만들었다. 제목도 certGcalTitle()로 양쪽을 맞춘다.
   var gcalSettings=getGcalSettings();
   if(gcalSettings.enabled&&gcalSettings.syncCert){
     m.phases.forEach(function(phase,i){
       if(i<=doneThruIdx)return;   // 이미 끝난 심사는 캘린더에 알림을 만들지 않는다
-      var phaseExpDate=sched[i].date;
-      var isRenewal=phase.isRenewal;
-      var phaseName=phase.name;
-      // 갱신심사는 강조 표시
-      var calCertName=m.certName+(isRenewal?' [갱신심사=최초심사]':' ['+phaseName+']');
       sendToGcal('upsert','cert',{
-        id:'phase_'+bizno+'_'+masterId+'_'+i,
+        id:newIds[i],
         companyName:companyName,
-        certName:calCertName,
-        expDate:phaseExpDate,
+        certName:certGcalTitle(m,phase.name,i),
+        expDate:sched[i].date,
         cycleMonths:phase.months||12,
       });
     });
   }
+}
+// 캘린더 일정 제목 — 복합주기(ISO)는 어떤 심사인지 단계를 붙인다.
+//   createComplexPhases와 gcalSyncCert가 반드시 같은 값을 써야 같은 일정으로 갱신된다.
+function certGcalTitle(m, phaseName, phaseIndex){
+  var name=(m&&m.certName)||'인증';
+  if(!m||m.cycleType!=='complex'||!phaseName)return name;
+  var ph=(m.phases||[])[phaseIndex];
+  return name+((ph&&ph.isRenewal)?' [갱신심사=최초심사]':' ['+phaseName+']');
 }
 
 async function saveCert(){
@@ -6382,6 +6378,9 @@ async function saveCert(){
   const masterId=document.getElementById('cert-master-sel')?.value;
   const m=getCertMasterInfo(masterId);
   const editId=document.getElementById('cert-edit-id').value;
+  // 복합주기 신규 등록은 createComplexPhases가 단계별로 캘린더까지 보낸다.
+  //   아래 자동 동기화를 또 돌리면 같은 인증서를 한 번 더 보내게 되므로 건너뛴다.
+  let complexCreated=false;
 
   try{
     if(editId){
@@ -6447,6 +6446,7 @@ async function saveCert(){
         for(let si=0;si<stds.length;si++){
           await createComplexPhases(stds[si],comp._id,comp.name,baseAcq,null,cycleGroupId,doneThru);
         }
+        complexCreated=true;
       } else {
         // 일반 fixed 타입
         const expDate=getDateFields('cert-exp-y','cert-exp-m','cert-exp-d');
@@ -6463,11 +6463,11 @@ async function saveCert(){
         });
       }
     }
-    // 구글 캘린더 자동 동기화
+    // 구글 캘린더 자동 동기화 (복합주기 신규는 위에서 이미 보냈으므로 건너뛴다)
     var savedEditId=editId;
     var savedComp=comp;
     var savedMasterId=masterId;
-    setTimeout(function(){
+    if(!complexCreated)setTimeout(function(){
       var certId=savedEditId||'';
       if(!certId){
         var latest=certifications.filter(function(c){return c.bizno===savedComp._id&&c.certMasterId===savedMasterId;});
@@ -6594,10 +6594,7 @@ async function deleteCert(){
     batch.delete(doc(db,'certifications',id));
     await batch.commit();
     setBadge('삭제 완료',2000);
-    gcalSyncCert({id:id},'delete');
-    if(certToDelete&&certToDelete.cycleType==='complex'){
-      sendToGcal('delete','cert',{id:'phase_'+certToDelete.bizno+'_'+certToDelete.certMasterId+'_'+(certToDelete.phaseIndex||0)});
-    }
+    gcalDeleteCertEvents(certToDelete||{id:id});
     closeModal('cert-modal');
     if(linkedWorks.length||linkedAnnuals.length){
       alert('삭제 완료\n인증 1건, 업무 '+linkedWorks.length+'건, 연간신고 '+linkedAnnuals.length+'건 삭제됨');
@@ -8919,7 +8916,10 @@ function gcalSyncCert(cert,action){
   if(action==='delete')return sendToGcal('delete','cert',{id:cert.id});
   if(!cert.expDate)return Promise.resolve({ok:true,skipped:true});
   var m=getCertMasterInfo(cert.certMasterId);
-  var certName=cert.certName||m.certName||'인증';
+  // 복합주기(ISO)는 단계까지 붙여야 createComplexPhases가 만든 일정과 같은 제목이 된다
+  var certName=certGcalTitle(
+    {certName:cert.certName||m.certName, cycleType:cert.cycleType||m.cycleType, phases:m.phases},
+    cert.currentPhase, cert.phaseIndex);
   var companyName=cert.companyName||'';
   if(!companyName&&cert.bizno){
     var comp=companies.find(function(c){return c._id===cert.bizno;});
@@ -8932,6 +8932,17 @@ function gcalSyncCert(cert,action){
     expDate:cert.expDate,
     cycleMonths:m.cycleMonths||cert.cycleMonths||null,
   });
+}
+
+// 인증서의 캘린더 일정 삭제 — 새 ID(인증서 문서 ID)와 옛 ID(phase_…) 둘 다 지운다.
+//   2026-08-04 이전에 만들어진 복합주기 일정은 phase_ 형식이라 문서 ID로는 지워지지 않는다.
+//   없는 일정을 지우라고 해도 문제되지 않으므로 양쪽 다 보낸다.
+function gcalDeleteCertEvents(c){
+  if(!c)return;
+  gcalSyncCert({id:c.id},'delete');
+  if(c.cycleType==='complex'&&c.bizno&&c.certMasterId){
+    sendToGcal('delete','cert',{id:'phase_'+c.bizno+'_'+c.certMasterId+'_'+(c.phaseIndex||0)});
+  }
 }
 
 // ── 연간신고 저장/삭제 시 자동 동기화 ──
