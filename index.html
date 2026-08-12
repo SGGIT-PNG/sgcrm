@@ -5211,6 +5211,7 @@ async function initCertMaster(){
     {id:'iso_22000',   certName:'ISO 22000', icon:'🍽️',cycleType:'complex',reportType:'renewal',cycleMonths:36,phases:ISO_PHASES,alertDays:[90,30,7],description:'식품안전경영시스템',sortOrder:13},
     {id:'iso_37001',   certName:'ISO 37001', icon:'⚖️',cycleType:'complex',reportType:'renewal',cycleMonths:36,phases:ISO_PHASES,alertDays:[90,30,7],description:'반부패경영시스템',sortOrder:14},
     {id:'iso_37301',   certName:'ISO 37301', icon:'📜',cycleType:'complex',reportType:'renewal',cycleMonths:36,phases:ISO_PHASES,alertDays:[90,30,7],description:'컴플라이언스경영시스템',sortOrder:15},
+    {id:'iso_13485',   certName:'ISO 13485', icon:'🩺',cycleType:'complex',reportType:'renewal',cycleMonths:36,phases:ISO_PHASES,alertDays:[90,30,7],description:'의료기기 품질경영시스템',sortOrder:16},
   ];
   const batch=writeBatch(db);
   defaults.forEach(d=>{const {id,...data}=d;batch.set(doc(db,'cert_master',id),{...data,createdAt:Date.now()});});
@@ -5525,10 +5526,15 @@ async function saveCertMaster(){
     phases:cycleType==='complex'?cmPhases:[],
     alertDays,
     description:document.getElementById('cm-description').value,
-    sortOrder:100+Date.now()%1000,
     updatedAt:Date.now()
   };
   const editId=document.getElementById('cm-edit-id').value;
+  // sortOrder는 목록 순서다. 예전엔 저장할 때마다 100+Date.now()%1000을 새로 써서
+  //   한 번 수정할 때마다 순서가 뒤섞였다 (ISO 9001=848, 벤처기업인증=947 …).
+  //   수정할 때는 건드리지 않고, 새로 만들 때만 맨 뒤 번호를 준다.
+  if(!editId){
+    data.sortOrder=certMaster.reduce((mx,m)=>Math.max(mx,+m.sortOrder||0),0)+1;
+  }
   try{
     if(editId){
       await updateDoc(doc(db,'cert_master',editId),data);
