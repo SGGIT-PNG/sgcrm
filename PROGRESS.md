@@ -14,7 +14,7 @@
   - `createComplexPhases` — ISO 단계별 직접 푸시 제외(`!isIsoStdMaster(m)`).
   - 신설 `isoCalTargets()`(iso_audits를 bizno별 묶어 규격 합침 + 차기 마감 1건, 마감 없으면 삭제)·`gcalSyncIso()`·`scheduleIsoGcalSync()`(iso_audits 스냅샷 시 4초 디바운스 자동푸시).
   - `syncGcalType('iso')` 분기 + `syncGcalAll`에 포함(인증 동기화 토글 종속), `sendToGcal` typeMap `iso:'syncCert'`.
-- **Apps Script(.gs + `getAppsScriptCode()` 둘 다) v8→v9**: `type==="iso"` 추가(`[ISO심사] 기업 - ISO 9001·14001 차기유형`, 보라 MAUVE, D-90/30/7 알림), `CRM_TITLE_RE`에 ISO심사 추가.
+- **Apps Script(.gs + `getAppsScriptCode()` 둘 다) v8→v9→v10**: `type==="iso"`(`[ISO심사] 차기심사`, 보라 MAUVE, D-90/30/7) + `type="isocert"`(`[인증완료] 발급일`, 초록 PALE_GREEN, 알림 없음) 추가. `CRM_TITLE_RE`에 ISO심사·인증완료 추가. **기업당 구글 2건**(차기심사 미래 + 인증완료 과거). `isoCalTargets`에 bizno·stdText 추가, `gcalSyncIso`가 두 이벤트(iso+isocert) 동시 푸시.
 - **iso-one 쪽(별도 저장소 ims-project)**: 미러 `iso_audits`에 `certDate`(발급일)·`nextDeadline`(발급+N년-1일)·`nextAtype` 추가 전송.
 - **⚠️ 배포 후 필수(사장님)**: ① Apps Script 편집기에서 `.gs`를 **v9로 교체 후 재배포**(안 하면 `type=iso` 무시) ② 「전체 동기화」 1회(잘못된 [인증만료] 삭제 + ISO 차기심사 생성). iso-one도 재배포·재동기화 필요.
 - 검증: `verify.mjs` 통과 / `.gs` node --check 통과.

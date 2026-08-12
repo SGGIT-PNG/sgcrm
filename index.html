@@ -8891,7 +8891,7 @@ function _gcalRelease(){
 function sendToGcal(action,type,payload){
   var s=getGcalSettings();
   if(!s.enabled||!s.webhookUrl)return Promise.resolve({ok:false,err:'연동 미설정',skipped:true});
-  var typeMap={cert:'syncCert',annual:'syncAnnual',cons:'syncCons',todo:'syncTodo',iso:'syncCert'};
+  var typeMap={cert:'syncCert',annual:'syncAnnual',cons:'syncCons',todo:'syncTodo',iso:'syncCert',isocert:'syncCert'};
   if(!s[typeMap[type]])return Promise.resolve({ok:false,err:'해당 항목 동기화 꺼짐',skipped:true});
 
   return _gcalAcquire().then(function(){
@@ -8987,20 +8987,44 @@ function isoCalTargets(){
     var comp=companies.find(function(c){return c._id===bz;});
     var nm=comp?comp.name:(g.companyName||'미상');
     return {
-      id:'isonext_'+bz,
+      bizno:bz,
+      id:'isonext_'+bz,          // 차기심사 이벤트 ID
       companyName:nm,
-      certName:stdTxt+(g.nextAtype?(' '+g.nextAtype):''),
-      dueDate:g.nextDeadline||'',
-      issueDate:g.certDate||'',
-      _del:!g.nextDeadline    // 차기 마감 없으면 구글 일정 삭제(진행중이거나 발급일만 있는 경우)
+      stdText:stdTxt,            // 규격만 (예: "ISO 9001·14001") — 인증완료 제목용
+      certName:stdTxt+(g.nextAtype?(' '+g.nextAtype):''),   // 차기심사 제목용(규격+차기유형)
+      dueDate:g.nextDeadline||'',   // 차기심사 예정일
+      issueDate:g.certDate||'',     // 인증완료(발급일)
+      _del:!g.nextDeadline    // 차기 마감 없으면 차기심사 일정 삭제(진행중이거나 발급일만 있는 경우)
     };
   });
 }
+// 기업 1곳당 구글 캘린더에 2건: [ISO심사](차기심사·미래·알림) + [인증완료](발급일·과거·마커).
+//   차기 마감이 없으면(진행중) 차기심사는 삭제, 발급일이 없으면 인증완료는 삭제.
 function gcalSyncIso(t,action){
-  if(action==='delete'||!t||t._del||!t.dueDate)return sendToGcal('delete','iso',{id:t.id});
-  return sendToGcal('upsert','iso',{
-    id:t.id, companyName:t.companyName, certName:t.certName,
-    dueDate:t.dueDate, issueDate:t.issueDate
+  if(!t)return Promise.resolve({ok:true,skipped:true});
+  var proms=[];
+  // ① 차기심사(미래, D-90/30/7 알림)
+  if(action==='delete'||t._del||!t.dueDate){
+    proms.push(sendToGcal('delete','iso',{id:t.id}));
+  } else {
+    proms.push(sendToGcal('upsert','iso',{
+      id:t.id, companyName:t.companyName, certName:t.certName,
+      dueDate:t.dueDate, issueDate:t.issueDate
+    }));
+  }
+  // ② 인증완료(발급일 마커, 알림 없음)
+  var certId='isocert_'+t.bizno;
+  if(action==='delete'||!t.issueDate){
+    proms.push(sendToGcal('delete','isocert',{id:certId}));
+  } else {
+    proms.push(sendToGcal('upsert','isocert',{
+      id:certId, companyName:t.companyName, certName:t.stdText||t.certName,
+      issueDate:t.issueDate
+    }));
+  }
+  return Promise.all(proms).then(function(rs){
+    var bad=rs.filter(function(r){return r&&r.ok===false&&!r.skipped;});
+    return bad.length?bad[0]:{ok:true};
   });
 }
 // iso_audits 변동 시(iso-one 동기화 등) 구글 ISO 일정을 자동 갱신(디바운스).
@@ -9166,7 +9190,8 @@ var COLOR_ANNUAL=CalendarApp.EventColor.YELLOW;
 var COLOR_CONS=CalendarApp.EventColor.BLUE;
 var COLOR_TODO=CalendarApp.EventColor.GREEN;
 var COLOR_ISO=CalendarApp.EventColor.MAUVE;
-var CRM_TITLE_RE=/^\\[(인증만료|연간신고|지원사업|ToDo|ISO심사)\\]/;
+var COLOR_ISOCERT=CalendarApp.EventColor.PALE_GREEN;
+var CRM_TITLE_RE=/^\\[(인증만료|인증완료|연간신고|지원사업|ToDo|ISO심사)\\]/;
 
 function jsonOut(obj){
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
@@ -9189,7 +9214,7 @@ function doGet(e){
   try{
     var p=(e&&e.parameter)||{};
     if(p.action==="list")return jsonOut({ok:true,events:listEvents(p.from,p.to)});
-    return jsonOut({ok:true,message:"SG솔루션 CRM 캘린더 연동 정상 v9"});
+    return jsonOut({ok:true,message:"SG솔루션 CRM 캘린더 연동 정상 v10"});
   }catch(err){ return jsonOut({ok:false,error:err.message}); }
 }
 
@@ -9257,6 +9282,11 @@ function upsertEvent(type,p){
     date=new Date(p.dueDate);
     desc="기업: "+p.companyName+"\\n차기심사: "+(p.certName||"")+"\\n예정일: "+p.dueDate+(p.issueDate?("\\n인증발급일: "+p.issueDate):"")+"\\n(출처: iso-one)";
     color=COLOR_ISO; alarms=[90*24*60,30*24*60,7*24*60];
+  } else if(type==="isocert"){
+    title="[인증완료] "+p.companyName+" - "+p.certName;
+    date=new Date(p.issueDate);
+    desc="기업: "+p.companyName+"\\n인증완료(발급일): "+p.issueDate+"\\n(출처: iso-one)";
+    color=COLOR_ISOCERT; alarms=[];
   }
   if(!date||isNaN(date.getTime()))return;
   if(endDate&&(isNaN(endDate.getTime())||endDate.getTime()<=date.getTime()))endDate=null;

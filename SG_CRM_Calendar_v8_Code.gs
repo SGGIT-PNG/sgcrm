@@ -1,5 +1,10 @@
 /**
- * SG CRM Calendar Webhook v9
+ * SG CRM Calendar Webhook v10
+ *
+ * 변경점(v9 → v10):
+ *  - type="isocert" 추가: ISO 인증완료(발급일) 마커를 iso-one에서 받아 표시(초록, 알림 없음).
+ *    → 이제 기업당 [ISO심사](차기심사·미래) + [인증완료](발급일·과거) 2건.
+ *  - CRM_TITLE_RE에 인증완료 추가.
  *
  * 변경점(v8 → v9):
  *  - type="iso" 추가: ISO 인증 심사 일정을 iso-one(발급일 기준)에서 받아 표시.
@@ -24,10 +29,11 @@ var COLOR_CERT=CalendarApp.EventColor.RED;
 var COLOR_ANNUAL=CalendarApp.EventColor.YELLOW;
 var COLOR_CONS=CalendarApp.EventColor.BLUE;
 var COLOR_TODO=CalendarApp.EventColor.GREEN;
-var COLOR_ISO=CalendarApp.EventColor.MAUVE;   // ISO 심사(iso-one 연동) — 보라
+var COLOR_ISO=CalendarApp.EventColor.MAUVE;      // ISO 차기심사(iso-one 연동) — 보라
+var COLOR_ISOCERT=CalendarApp.EventColor.PALE_GREEN;  // ISO 인증완료(발급일) — 초록
 
 // CRM이 자동 생성한 일정 제목 접두어 (목록 조회 시 제외용)
-var CRM_TITLE_RE=/^\[(인증만료|연간신고|지원사업|ToDo|ISO심사)\]/;
+var CRM_TITLE_RE=/^\[(인증만료|인증완료|연간신고|지원사업|ToDo|ISO심사)\]/;
 
 function jsonOut(obj){
   return ContentService.createTextOutput(JSON.stringify(obj))
@@ -56,7 +62,7 @@ function doGet(e){
     if(p.action==="list"){
       return jsonOut({ok:true,events:listEvents(p.from,p.to)});
     }
-    return jsonOut({ok:true,message:"SG솔루션 CRM 캘린더 연동 정상 v9"});
+    return jsonOut({ok:true,message:"SG솔루션 CRM 캘린더 연동 정상 v10"});
   }catch(err){
     return jsonOut({ok:false,error:err.message});
   }
@@ -148,6 +154,14 @@ function upsertEvent(type,p){
         +(p.issueDate?("\n인증발급일: "+p.issueDate):"")+"\n(출처: iso-one)";
     color=COLOR_ISO;
     alarms=[90*24*60,30*24*60,7*24*60];
+  }
+  else if(type==="isocert"){
+    // ISO 인증완료(발급일) 마커 — 과거 날짜라 알림 없음. certName 예: "ISO 9001·14001"
+    title="[인증완료] "+p.companyName+" - "+p.certName;
+    date=new Date(p.issueDate);
+    desc="기업: "+p.companyName+"\n인증완료(발급일): "+p.issueDate+"\n(출처: iso-one)";
+    color=COLOR_ISOCERT;
+    alarms=[];
   }
 
   if(!date||isNaN(date.getTime()))return;
