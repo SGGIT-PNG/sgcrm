@@ -1,11 +1,16 @@
 /**
- * SG CRM Calendar Webhook v8
+ * SG CRM Calendar Webhook v9
+ *
+ * 변경점(v8 → v9):
+ *  - type="iso" 추가: ISO 인증 심사 일정을 iso-one(발급일 기준)에서 받아 표시.
+ *    → CRM 수기 인증([인증만료])은 더 이상 ISO를 만들지 않고, iso-one의 정확한
+ *       "차기심사 예정일([ISO심사])"만 캘린더에 뜬다(D-90/30/7 알림).
+ *  - CRM_TITLE_RE에 ISO심사 추가(목록 중복 방지), 색상 COLOR_ISO(보라).
  *
  * 변경점(v7 → v8):
  *  - doGet에 action=list 추가: 지정 기간의 구글 캘린더 일정을 JSON으로 반환
- *    → 앱(간트 > 캘린더 뷰)에서 폰·PC로 입력한 개인 일정을 함께 표시하기 위함
- *  - CRM이 만든 일정([인증만료]/[연간신고]/[지원사업]/[ToDo])은 목록에서 제외 (중복 방지)
- *  - doPost가 FormData(multipart) 전송도 받도록 파싱 보강 (기존에는 JSON.parse 실패 가능)
+ *  - CRM이 만든 일정은 목록에서 제외 (중복 방지)
+ *  - doPost가 FormData(multipart) 전송도 받도록 파싱 보강
  *
  * 적용법: Apps Script 편집기에서 기존 Code.gs 내용을 전부 지우고 이 코드로 교체 →
  *        저장(Ctrl+S) → "배포 > 배포 관리 > 편집(연필) > 버전: 새 버전 > 배포"로 재배포.
@@ -19,9 +24,10 @@ var COLOR_CERT=CalendarApp.EventColor.RED;
 var COLOR_ANNUAL=CalendarApp.EventColor.YELLOW;
 var COLOR_CONS=CalendarApp.EventColor.BLUE;
 var COLOR_TODO=CalendarApp.EventColor.GREEN;
+var COLOR_ISO=CalendarApp.EventColor.MAUVE;   // ISO 심사(iso-one 연동) — 보라
 
 // CRM이 자동 생성한 일정 제목 접두어 (목록 조회 시 제외용)
-var CRM_TITLE_RE=/^\[(인증만료|연간신고|지원사업|ToDo)\]/;
+var CRM_TITLE_RE=/^\[(인증만료|연간신고|지원사업|ToDo|ISO심사)\]/;
 
 function jsonOut(obj){
   return ContentService.createTextOutput(JSON.stringify(obj))
@@ -50,7 +56,7 @@ function doGet(e){
     if(p.action==="list"){
       return jsonOut({ok:true,events:listEvents(p.from,p.to)});
     }
-    return jsonOut({ok:true,message:"SG솔루션 CRM 캘린더 연동 정상 v8"});
+    return jsonOut({ok:true,message:"SG솔루션 CRM 캘린더 연동 정상 v9"});
   }catch(err){
     return jsonOut({ok:false,error:err.message});
   }
@@ -133,6 +139,15 @@ function upsertEvent(type,p){
     desc=p.title;
     color=COLOR_TODO;
     alarms=[1*24*60];
+  }
+  else if(type==="iso"){
+    // ISO 인증 차기심사 예정(iso-one 발급일 기준). certName 예: "ISO 9001·14001 사후심사(1차)"
+    title="[ISO심사] "+p.companyName+" - "+p.certName;
+    date=new Date(p.dueDate);
+    desc="기업: "+p.companyName+"\n차기심사: "+(p.certName||"")+"\n예정일: "+p.dueDate
+        +(p.issueDate?("\n인증발급일: "+p.issueDate):"")+"\n(출처: iso-one)";
+    color=COLOR_ISO;
+    alarms=[90*24*60,30*24*60,7*24*60];
   }
 
   if(!date||isNaN(date.getTime()))return;

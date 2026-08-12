@@ -3,7 +3,21 @@
 > **PC와 노트북 두 대에서 번갈아 작업합니다.**
 > 작업 시작 전 `git pull` / 작업 종료 시 이 파일 갱신 → "올려줘" 지시 시 push.
 >
-> **최종 갱신: 2026-08-05 (PC)**
+> **최종 갱신: 2026-08-12**
+
+---
+
+## ⭐ 2026-08-12 — ISO 인증 캘린더를 iso-one 발급일 기준으로 통일 (구글 중복·오차 해결)
+- **배경**: 구글 캘린더에 `[인증만료] 태성 9001/14001 07.15` 2건이, iso-one 「인증완료 07.16」과 어긋남. 원인 = ISO 이중관리(CRM 수기 `certifications` 취득일+3년 자체계산 vs iso-one 발급일). ISO는 iso-one이 정답.
+- **CRM 변경(index.html)**:
+  - `gcalSyncCert` — **ISO 규격이면 구글 푸시 차단 + 기존 ISO 일정 삭제**(문서ID+옛 phase_ID). 비-ISO(벤처·이노비즈·메인비즈·연구소 등)는 그대로.
+  - `createComplexPhases` — ISO 단계별 직접 푸시 제외(`!isIsoStdMaster(m)`).
+  - 신설 `isoCalTargets()`(iso_audits를 bizno별 묶어 규격 합침 + 차기 마감 1건, 마감 없으면 삭제)·`gcalSyncIso()`·`scheduleIsoGcalSync()`(iso_audits 스냅샷 시 4초 디바운스 자동푸시).
+  - `syncGcalType('iso')` 분기 + `syncGcalAll`에 포함(인증 동기화 토글 종속), `sendToGcal` typeMap `iso:'syncCert'`.
+- **Apps Script(.gs + `getAppsScriptCode()` 둘 다) v8→v9**: `type==="iso"` 추가(`[ISO심사] 기업 - ISO 9001·14001 차기유형`, 보라 MAUVE, D-90/30/7 알림), `CRM_TITLE_RE`에 ISO심사 추가.
+- **iso-one 쪽(별도 저장소 ims-project)**: 미러 `iso_audits`에 `certDate`(발급일)·`nextDeadline`(발급+N년-1일)·`nextAtype` 추가 전송.
+- **⚠️ 배포 후 필수(사장님)**: ① Apps Script 편집기에서 `.gs`를 **v9로 교체 후 재배포**(안 하면 `type=iso` 무시) ② 「전체 동기화」 1회(잘못된 [인증만료] 삭제 + ISO 차기심사 생성). iso-one도 재배포·재동기화 필요.
+- 검증: `verify.mjs` 통과 / `.gs` node --check 통과.
 
 ---
 
