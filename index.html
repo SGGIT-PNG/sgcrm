@@ -2977,6 +2977,28 @@ function getConsWorkItems(cat){
   return items;
 }
 // 기업 도메인 상태 조회
+// 인증 종류 → 분야(category). getRelatedCertMasters()의 역방향이다.
+//   ⚠️ getRelatedCertMasters는 매핑이 없으면 전체 목록을 돌려주므로 그대로 뒤집으면 안 된다.
+//   매핑이 없는 종류(직접생산확인·가족친화 등)는 ''을 돌려주고 분야에 넣지 않는다.
+function certCategoryOf(masterId){
+  if(!masterId)return '';
+  for(let i=0;i<CAT_IDS.length;i++){
+    const ids=CAT_META[CAT_IDS[i]]?.certMasterIds;
+    if(ids&&ids.length&&ids.indexOf(masterId)>-1)return CAT_IDS[i];
+  }
+  if(['venture','innobiz','mainbiz'].indexOf(masterId)>-1)return 'ven';
+  if(['lab','rnd_dept'].indexOf(masterId)>-1)return 'lab';
+  const m=certMaster.find(x=>x.id===masterId);
+  if(/^iso_/i.test(masterId)||/iso/i.test((m&&m.certName)||''))return 'iso';
+  return '';
+}
+// 인증서가 살아있는가 — 분야를 '완료'로 볼 근거가 되는지
+function certIsActive(c){
+  if(!c||c.status==='제외'||c.status==='만료')return false;
+  if(c.status==='완료')return true;      // 끝난 심사 = 인증을 받았다는 근거
+  const d=getCertDday(c.expDate);
+  return d==null||d>=0;                  // 예정일이 남아 있으면 유효
+}
 function getCompanyDomains(bizno){
   const result={};CAT_IDS.forEach(c=>result[c]='');
   consCompanies.filter(cc=>cc.bizno===bizno).forEach(cc=>{
@@ -2985,6 +3007,14 @@ function getCompanyDomains(bizno){
   });
   workItems.filter(w=>w.clientBizno===bizno).forEach(w=>{
     result[w.category]=stHigher(result[w.category],w.status||'wait');
+  });
+  // 인증 관리에서 직접 등록한 인증서도 근거로 삼는다.
+  //   예전엔 간트(지원사업·심사)나 업무에 연결된 것만 봐서, 인증서만 등록한 기업은
+  //   ISO를 완료해도 이 표에 아무것도 안 떴다 (라코티나·태성아이앤티 등).
+  certifications.filter(c=>c.bizno===bizno&&c.status!=='제외').forEach(c=>{
+    const cat=certCategoryOf(c.certMasterId);
+    if(!cat||result[cat]===undefined)return;
+    result[cat]=stHigher(result[cat],certIsActive(c)?'done':'ing');
   });
   return result;
 }
@@ -5197,14 +5227,18 @@ async function initCertMaster(){
     {name:'2차 사후심사',months:12,isPost:true},
     {name:'갱신심사',months:12,isRenewal:true,isInitial:true},
   ];
+  // sortOrder = 화면 표시 순서 (사장님 지정, 2026-08-05)
+  //   ISO(10~) → 기업부설연구소 → 연구개발전담부서 → 벤처 → 메인비즈 → 이노비즈
+  //   → 직접생산확인 → 가족친화(별도 등록, 26)
   const defaults=[
-    {id:'venture',     certName:'벤처기업인증',   icon:'🚀',cycleType:'fixed', reportType:'renewal',cycleMonths:36,alertDays:[90,30,7],description:'3년마다 갱신 (기술성 평가)',sortOrder:1},
-    {id:'innobiz',     certName:'이노비즈인증',    icon:'💡',cycleType:'fixed', reportType:'renewal',cycleMonths:36,alertDays:[90,30,7],description:'3년마다 갱신',sortOrder:2},
-    {id:'mainbiz',     certName:'메인비즈인증',    icon:'🏆',cycleType:'fixed', reportType:'renewal',cycleMonths:36,alertDays:[90,30,7],description:'3년마다 갱신',sortOrder:3},
     // 연간 신고 타입 (매년 4월 30일)
-    {id:'lab',         certName:'기업부설연구소',  icon:'🔬',cycleType:'fixed', reportType:'annual',cycleMonths:12,annualMonth:4,annualDay:30,alertDays:[60,30,7],description:'매년 4월 30일까지 연차보고서 제출 (미신고 시 취소)',sortOrder:4},
-    {id:'rnd_dept',    certName:'연구개발전담부서',icon:'🔭',cycleType:'fixed', reportType:'annual',cycleMonths:12,annualMonth:4,annualDay:30,alertDays:[60,30,7],description:'매년 4월 30일까지 연차보고서 제출',sortOrder:5},
-    {id:'direct_prod', certName:'직접생산확인',    icon:'📦',cycleType:'fixed', reportType:'renewal',cycleMonths:36,alertDays:[90,30,7],description:'3년마다 갱신',sortOrder:6},
+    {id:'lab',         certName:'기업부설연구소',  icon:'🔬',cycleType:'fixed', reportType:'annual',cycleMonths:12,annualMonth:4,annualDay:30,alertDays:[60,30,7],description:'매년 4월 30일까지 연차보고서 제출 (미신고 시 취소)',sortOrder:20},
+    {id:'rnd_dept',    certName:'연구개발전담부서',icon:'🔭',cycleType:'fixed', reportType:'annual',cycleMonths:12,annualMonth:4,annualDay:30,alertDays:[60,30,7],description:'매년 4월 30일까지 연차보고서 제출',sortOrder:21},
+    // 갱신형 (전부 3년)
+    {id:'venture',     certName:'벤처기업인증',   icon:'🚀',cycleType:'fixed', reportType:'renewal',cycleMonths:36,alertDays:[90,30,7],description:'3년마다 갱신 (기술성 평가)',sortOrder:22},
+    {id:'mainbiz',     certName:'메인비즈인증',    icon:'🏆',cycleType:'fixed', reportType:'renewal',cycleMonths:36,alertDays:[90,30,7],description:'3년마다 갱신',sortOrder:23},
+    {id:'innobiz',     certName:'이노비즈인증',    icon:'💡',cycleType:'fixed', reportType:'renewal',cycleMonths:36,alertDays:[90,30,7],description:'3년마다 갱신',sortOrder:24},
+    {id:'direct_prod', certName:'직접생산확인',    icon:'📦',cycleType:'fixed', reportType:'renewal',cycleMonths:36,alertDays:[90,30,7],description:'3년마다 갱신',sortOrder:25},
     {id:'iso_9001',    certName:'ISO 9001',  icon:'🏅',cycleType:'complex',reportType:'renewal',cycleMonths:36,phases:ISO_PHASES,alertDays:[90,30,7],description:'품질경영시스템',sortOrder:10},
     {id:'iso_14001',   certName:'ISO 14001', icon:'🌿',cycleType:'complex',reportType:'renewal',cycleMonths:36,phases:ISO_PHASES,alertDays:[90,30,7],description:'환경경영시스템',sortOrder:11},
     {id:'iso_45001',   certName:'ISO 45001', icon:'🦺',cycleType:'complex',reportType:'renewal',cycleMonths:36,phases:ISO_PHASES,alertDays:[90,30,7],description:'안전보건경영시스템',sortOrder:12},
@@ -5440,7 +5474,10 @@ let cmPhases=[]; // 모달 임시 단계 목록
 function renderCertMaster(){
   const el=document.getElementById('cert-master-body');if(!el)return;
   const q=(document.getElementById('cert-master-search')?.value||'').toLowerCase();
-  const filtered=q?certMaster.filter(m=>(m.certName||'').toLowerCase().includes(q)):certMaster;
+  // Firestore 문서 순서 그대로 뿌리면 목록이 뒤죽박죽이라 sortOrder로 정렬한다
+  //   (드롭다운·규격 체크박스와 같은 정렬을 쓴다)
+  const filtered=sortCertMasters(
+    q?certMaster.filter(m=>(m.certName||'').toLowerCase().includes(q)):certMaster, false);
   el.innerHTML=filtered.length?filtered.map(m=>`<tr>
     <td style="font-size:20px;text-align:center">${m.icon||'📋'}</td>
     <td><div style="font-size:14px;font-weight:500">${m.certName}</div></td>
@@ -5603,7 +5640,7 @@ function renderCertGrouped(certs){
       groupsByKey[key].certs.push(c);
     } else {
       var dd=getCertDday(c.expDate);
-      items.push({kind:'single',cert:c,sortDday:(dd==null?99999:dd)});
+      items.push({kind:'single',cert:c,sortDday:(dd==null?99999:dd),sortAcq:c.acqDate||''});
     }
   });
   Object.keys(groupsByKey).forEach(function(k){
@@ -5612,8 +5649,16 @@ function renderCertGrouped(certs){
     var src=pending.length?pending:g.certs;
     var arr=src.map(function(c){return getCertDday(c.expDate);}).filter(function(d){return d!=null;});
     g.sortDday=arr.length?Math.min.apply(null,arr):99999;
+    // 사이클 안의 4단계는 취득일이 같지만, 혹시 다르면 가장 최근 값을 대표로 쓴다
+    g.sortAcq=g.certs.reduce(function(mx,c){return (c.acqDate||'')>mx?(c.acqDate||''):mx;},'');
   });
-  items.sort(function(a,b){return (a.sortDday||0)-(b.sortDday||0);});
+  // 취득일 최신순 (사장님 지정, 2026-08-05) — 방금 등록한 인증이 맨 위에 오도록.
+  //   취득일이 같으면 임박한 것(D-Day 작은 것)을 먼저 보여준다.
+  items.sort(function(a,b){
+    var av=a.sortAcq||'', bv=b.sortAcq||'';
+    if(av!==bv)return bv.localeCompare(av);
+    return (a.sortDday||0)-(b.sortDday||0);
+  });
   return items.map(function(it){
     if(it.kind==='single') return certRow(it.cert);
     if(it.certs.length===1) return certRow(it.certs[0]);
@@ -5886,8 +5931,11 @@ function renderCertAlert(){
     const m=getCertMasterInfo(c.certMasterId);
     return (c.companyName||'').toLowerCase().includes(alertQ)||(m.certName||'').toLowerCase().includes(alertQ);
   }):annualList;
+  // 갱신형은 renderCertGrouped가 취득일 최신순으로 다시 정렬한다.
+  // 연간신고 표도 같은 기준으로 맞춘다 — 설립일이 곧 acqDate다.
   const sortedRenewal=[...filteredRenewal].sort((a,b)=>(getCertDday(a.expDate)??9999)-(getCertDday(b.expDate)??9999));
-  const sortedAnnual=[...filteredAnnual].sort((a,b)=>(a.companyName||'').localeCompare(b.companyName||'','ko'));
+  const sortedAnnual=[...filteredAnnual].sort((a,b)=>
+    (b.acqDate||'').localeCompare(a.acqDate||'')||(a.companyName||'').localeCompare(b.companyName||'','ko'));
 
   // 갱신형 테이블
   const renewalTableHtml=renewalList.length
