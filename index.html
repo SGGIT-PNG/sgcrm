@@ -5289,17 +5289,18 @@ async function initCertMaster(){
 // idempotent — 이미 올바른 값이면 건너뜀(중복 쓰기 없음). ISO(복합주기) 인증만 대상, 발급일 보존.
 async function migrateIsoCycle3yr(){
   if(!certifications||!certifications.length)return;
-  var OFFSET=[0,12,24,36]; // 최초/1차사후/2차사후/갱신 (개월)
+  // ⚠️ 날짜 계산은 isoPhaseSchedule() 하나만 쓴다.
+  //   예전엔 여기서 OFFSET=[0,12,24,36]을 따로 계산해, 생성 코드와 어긋나면
+  //   새로고침할 때마다 이 마이그레이션이 조용히 되돌려놨다.
   var batch=writeBatch(db);
   var cnt=0;
   certifications.forEach(function(c){
     if(c.cycleType!=='complex'||!c.acqDate)return;
     var i=(typeof c.phaseIndex==='number')?c.phaseIndex:null;
-    if(i===null||i<0||i>=OFFSET.length)return;
-    var dd=new Date(c.acqDate);
-    if(isNaN(dd.getTime()))return;
-    dd.setMonth(dd.getMonth()+OFFSET[i]);
-    var expected=dd.toISOString().slice(0,10);
+    if(i===null||i<0)return;
+    var sched=isoPhaseSchedule(getCertMasterInfo(c.certMasterId),c.acqDate);
+    if(!sched[i])return;
+    var expected=sched[i].date;
     if(c.expDate!==expected){
       batch.update(doc(db,'certifications',c.id),{expDate:expected,updatedAt:Date.now()});
       cnt++;
@@ -6352,6 +6353,10 @@ function isoPhaseSchedule(m, acqDate){
     cum+=(ph.months??12);
     const d=new Date(+p[0],+p[1]-1,+p[2]);
     d.setMonth(d.getMonth()+cum);
+    // 사후·갱신심사는 '마감일'이라 하루를 뺀다 — 발급 1주년 전날까지 받아야 한다.
+    //   iso-one의 nextDeadline도 발급일+N년-1일로 계산한다 (2026-06-19 → 2027-06-18).
+    //   최초심사(cum 0)는 발급일 자체이므로 빼지 않는다.
+    if(cum>0)d.setDate(d.getDate()-1);
     return {name:ph.name, date:dateStr(d.getFullYear(),d.getMonth(),d.getDate()),
             months:ph.months??12, isRenewal:!!ph.isRenewal, isInitial:!!ph.isInitial&&!ph.isRenewal};
   });
