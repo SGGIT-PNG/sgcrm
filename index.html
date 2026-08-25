@@ -5653,7 +5653,9 @@ function certStatusBadge(cert){
 var expandedCycles = new Set();
 
 // 인증 목록 그룹 렌더 — 같은 (기업, 발급일) 복합주기 인증을 한 사이클로 묶어 헤더 1줄로 표시
-function renderCertGrouped(certs){
+// sortBy: 'acq'(기본) 취득일 최신순 — 인증별·기업별 탭. 방금 등록한 것이 위로.
+//         'dday'                  — 알림 탭. 만료 임박한 것이 위로 (탭 목적이 다름).
+function renderCertGrouped(certs,sortBy){
   certs = (certs||[]).filter(function(c){return c.status!=='제외';}); // 제외(드롭) 상태 숨김
   var groupsByKey = {};
   var items = [];
@@ -5680,13 +5682,21 @@ function renderCertGrouped(certs){
     // 사이클 안의 4단계는 취득일이 같지만, 혹시 다르면 가장 최근 값을 대표로 쓴다
     g.sortAcq=g.certs.reduce(function(mx,c){return (c.acqDate||'')>mx?(c.acqDate||''):mx;},'');
   });
-  // 취득일 최신순 (사장님 지정, 2026-08-05) — 방금 등록한 인증이 맨 위에 오도록.
-  //   취득일이 같으면 임박한 것(D-Day 작은 것)을 먼저 보여준다.
-  items.sort(function(a,b){
-    var av=a.sortAcq||'', bv=b.sortAcq||'';
-    if(av!==bv)return bv.localeCompare(av);
-    return (a.sortDday||0)-(b.sortDday||0);
-  });
+  if(sortBy==='dday'){
+    // 알림 탭 — 만료 임박순. 같으면 취득일 최신순.
+    items.sort(function(a,b){
+      return (a.sortDday||0)-(b.sortDday||0)
+        ||(b.sortAcq||'').localeCompare(a.sortAcq||'');
+    });
+  } else {
+    // 취득일 최신순 (사장님 지정, 2026-08-05) — 방금 등록한 인증이 맨 위에 오도록.
+    //   취득일이 같으면 임박한 것(D-Day 작은 것)을 먼저 보여준다.
+    items.sort(function(a,b){
+      var av=a.sortAcq||'', bv=b.sortAcq||'';
+      if(av!==bv)return bv.localeCompare(av);
+      return (a.sortDday||0)-(b.sortDday||0);
+    });
+  }
   return items.map(function(it){
     if(it.kind==='single') return certRow(it.cert);
     if(it.certs.length===1) return certRow(it.certs[0]);
@@ -5959,15 +5969,16 @@ function renderCertAlert(){
     const m=getCertMasterInfo(c.certMasterId);
     return (c.companyName||'').toLowerCase().includes(alertQ)||(m.certName||'').toLowerCase().includes(alertQ);
   }):annualList;
-  // 갱신형은 renderCertGrouped가 취득일 최신순으로 다시 정렬한다.
-  // 연간신고 표도 같은 기준으로 맞춘다 — 설립일이 곧 acqDate다.
+  // 알림 탭은 '급한 것부터' 보는 화면이라 두 표 모두 임박순으로 둔다.
+  //   (인증별·기업별 탭은 취득일 최신순 — 목적이 다르다)
   const sortedRenewal=[...filteredRenewal].sort((a,b)=>(getCertDday(a.expDate)??9999)-(getCertDday(b.expDate)??9999));
   const sortedAnnual=[...filteredAnnual].sort((a,b)=>
-    (b.acqDate||'').localeCompare(a.acqDate||'')||(a.companyName||'').localeCompare(b.companyName||'','ko'));
+    (getCertDday(a.expDate)??9999)-(getCertDday(b.expDate)??9999)
+    ||(a.companyName||'').localeCompare(b.companyName||'','ko'));
 
   // 갱신형 테이블
   const renewalTableHtml=renewalList.length
-    ?'<div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>기업명</th><th>인증 종류</th><th>취득일</th><th>만료·갱신일</th><th>갱신주기</th><th>상태</th><th>D-Day</th><th>관리</th></tr></thead><tbody>'+renderCertGrouped(sortedRenewal)+'</tbody></table></div></div>'
+    ?'<div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>기업명</th><th>인증 종류</th><th>취득일</th><th>만료·갱신일</th><th>갱신주기</th><th>상태</th><th>D-Day</th><th>관리</th></tr></thead><tbody>'+renderCertGrouped(sortedRenewal,'dday')+'</tbody></table></div></div>'
     :'<div class="empty"><div class="empty-txt">등록된 갱신형 인증이 없습니다</div></div>';
 
   // 연간신고 테이블
