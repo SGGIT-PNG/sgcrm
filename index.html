@@ -2169,6 +2169,9 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
           <option value="유효">✅ 유효</option>
           <option value="갱신중">🔄 갱신중</option>
           <option value="만료">⚠️ 만료</option>
+          <!-- 완료는 복합주기(ISO) 단계에만 쓰는 값이라 onCertTypeChange가 보였다 숨긴다.
+               심사 진행 중에 등록해두고 나중에 완료로 바꾸는 흐름을 위해 넣었다. -->
+          <option value="완료" id="cert-status-done">✅ 완료 (심사 끝남)</option>
         </select>
       </div>
     </div>
@@ -6129,6 +6132,14 @@ function onCertTypeChange(){
   // 신규 + 복합주기는 만료일·상태를 저장에 쓰지 않는다 (단계별로 자동 생성) → 칸 자체를 숨긴다
   const expRow=document.getElementById('cert-exp-row');
   if(expRow)expRow.style.display=(isComplex&&isNewMode)?'none':'';
+  // '완료'는 복합주기 단계에만 쓰는 값이다. 고정주기(벤처 등)는 유효/갱신중/만료뿐.
+  const doneOpt=document.getElementById('cert-status-done');
+  if(doneOpt){
+    doneOpt.style.display=isComplex?'':'none';
+    doneOpt.disabled=!isComplex;
+    const sel=document.getElementById('cert-status');
+    if(!isComplex&&sel&&sel.value==='완료')sel.value='유효';
+  }
   // 날짜 칸 라벨은 단계에 따라 달라지므로 updateCertExpLabel()이 담당 (아래 calcCertExpDate에서 호출)
   // 복합주기(ISO)는 단계가 주기를 결정하고, 연간신고는 주기 개념이 없어 칸 자체를 숨긴다.
   //   갱신형(벤처·이노비즈 등)만 읽기 전용으로 보여준다. (값 자체는 저장 시 쓰인다)
@@ -6518,7 +6529,13 @@ async function saveCert(){
         certPatch.phaseIndex=phaseIdx;
         certPatch.isLastPhase=(phaseIdx===m.phases.length-1);
       }
+      const prevCert=certifications.find(c=>c.id===editId);
       await updateDoc(doc(db,'certifications',editId),certPatch);
+      // 상태를 완료로 바꾸면 목록의 '완료' 버튼과 같게 간트 상태도 맞춘다.
+      //   (두 경로가 다르게 동작하면 화면마다 값이 어긋난다)
+      if(certPatch.status==='완료'&&prevCert&&prevCert.status!=='완료'){
+        if(await syncLinkedConsDone(prevCert))setBadge('✅ 완료 + 간트 상태 업데이트',2500);
+      }
     } else {
       // 신규 등록
       if(m.cycleType==='complex'&&m.phases?.length){
@@ -6588,6 +6605,17 @@ async function saveCert(){
     closeModal('cert-modal');
   }catch(e){alert('저장 실패: '+e.message);}
 }
+// 인증 단계를 완료 처리할 때 연결된 지원사업(간트) 기업 상태도 완료로 맞춘다.
+//   목록의 '완료' 버튼과 수정 화면의 상태 변경이 같게 동작해야 해서 함수로 뺐다.
+//   반환값: 실제로 바꿨으면 true
+async function syncLinkedConsDone(cert){
+  if(!cert||!cert.workItemId||String(cert.workItemId).indexOf('cons:')!==0)return false;
+  var parts=String(cert.workItemId).split(':');
+  var cc=consCompanies.find(function(x){return x.consId===parts[1]&&x.bizno===parts[2];});
+  if(!cc||cc.status==='done')return false;
+  await updateDoc(doc(db,'consulting_company',cc.id),{status:'done',doneAt:Date.now(),updatedAt:Date.now()});
+  return true;
+}
 // ISO 사후심사 단계 완료 처리
 async function markCertPhaseDone(certIdOrEl){
   var certId=typeof certIdOrEl==="string"?certIdOrEl:(certIdOrEl?.dataset?.cid||certIdOrEl?.dataset?.id||certIdOrEl);
@@ -6608,17 +6636,8 @@ async function markCertPhaseDone(certIdOrEl){
     });
     setBadge('✅ 단계 완료',2000);
 
-    // 연결된 지원사업(consulting) 기업 상태도 완료로 업데이트
-    if(cert.workItemId&&cert.workItemId.startsWith('cons:')){
-      var parts=cert.workItemId.split(':');
-      var linkedConsId=parts[1];
-      var linkedBizno=parts[2];
-      var ccToUpdate=consCompanies.find(function(cc){return cc.consId===linkedConsId&&cc.bizno===linkedBizno;});
-      if(ccToUpdate&&ccToUpdate.status!=='done'){
-        await updateDoc(doc(db,'consulting_company',ccToUpdate.id),{status:'done',doneAt:Date.now(),updatedAt:Date.now()});
-        setBadge('✅ 단계 완료 + 간트 상태 업데이트',2500);
-      }
-    }
+    // 연결된 지원사업(간트) 기업 상태도 완료로
+    if(await syncLinkedConsDone(cert))setBadge('✅ 단계 완료 + 간트 상태 업데이트',2500);
 
     // 갱신심사 완료 → 새 사이클 시작 팝업
     if(isRenewalPhase){
