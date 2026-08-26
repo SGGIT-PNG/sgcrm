@@ -5973,41 +5973,67 @@ function isoDoneThruIdx(atype){
   if(/최초/.test(s))return 0;
   return -1;
 }
+// iso-one의 규격 플래그 → CRM 인증 종류 id
+//   ⚠️ iso-one은 9001·14001·45001 전용이라 세 가지뿐이다.
+//      13485·22000 등은 iso-one에 없으므로 CRM에서 수기로 관리한다.
+function isoStdMasterIds(a){
+  const ids=[];
+  if(a.stdQ)ids.push('iso_9001');
+  if(a.stdE)ids.push('iso_14001');
+  if(a.stdO)ids.push('iso_45001');
+  return ids;
+}
 function isoOneDiffs(){
   const out=[];
   (isoAudits||[]).forEach(function(a){
     const nm=a.companyName||'(이름없음)';
     const bizno=a.bizno||'';
-    if(!bizno){ out.push({t:'사업자번호 없음',co:nm,one:'-',crm:'-',msg:'iso-one에 사업자번호가 없어 매칭할 수 없습니다'}); return; }
+    const thru=isoDoneThruIdx(a.atype);
+    if(!bizno){ out.push({kind:'no-bizno',t:'사업자번호 없음',co:nm,one:'-',crm:'-',
+      msg:'iso-one에 사업자번호가 없어 매칭할 수 없습니다'}); return; }
     const comp=companies.find(function(c){return c._id===bizno;});
-    if(!comp){ out.push({t:'기업 미등록',co:nm,one:bizno,crm:'(없음)',msg:'이 사업자번호의 기업이 CRM에 없습니다'}); return; }
+    if(!comp){ out.push({kind:'no-company',t:'기업 미등록',co:nm,bizno:bizno,one:bizno,crm:'(없음)',
+      msg:'이 사업자번호의 기업을 CRM에 먼저 등록해야 합니다'}); return; }
     const certs=certifications.filter(function(c){
       return c.bizno===bizno&&c.cycleType==='complex'&&c.status!=='제외';});
     if(!certs.length){
-      out.push({t:'인증서 미등록',co:comp.name,one:a.certDate||'-',crm:'(없음)',
-        msg:'iso-one에는 심사 기록이 있는데 CRM에 ISO 인증서가 없습니다'}); return; }
+      const stdIds=isoStdMasterIds(a);
+      out.push({kind:'no-cert',t:'인증서 미등록',co:comp.name,bizno:bizno,
+        one:(a.certDate||'-')+(stdIds.length?' / '+stdIds.length+'개 규격':''),crm:'(없음)',
+        acq:a.certDate||'',stdIds:stdIds,doneThru:thru,
+        msg:stdIds.length?'iso-one 기록으로 4단계를 만들 수 있습니다':'iso-one에 규격 정보가 없습니다'});
+      return; }
     // ① 취득일(발급일) 대조
     if(a.certDate){
       const acqs=[...new Set(certs.map(function(c){return c.acqDate;}).filter(Boolean))];
       if(acqs.length!==1||acqs[0]!==a.certDate){
-        out.push({t:'취득일 다름',co:comp.name,one:a.certDate,crm:acqs.join(', ')||'(없음)',
+        out.push({kind:'acq',t:'취득일 다름',co:comp.name,bizno:bizno,
+          one:a.certDate,crm:acqs.join(', ')||'(없음)',acq:a.certDate,
           msg:'취득일이 다르면 사후·갱신심사 날짜가 전부 어긋납니다'});
       }
     }
     // ② 단계 완료 상태 대조
-    const thru=isoDoneThruIdx(a.atype);
     if(thru>=0&&a.status==='완료'){
       const wrong=certs.filter(function(c){
         const i=(typeof c.phaseIndex==='number')?c.phaseIndex:0;
         return i<=thru&&c.status!=='완료';});
       if(wrong.length){
-        out.push({t:'단계 상태 다름',co:comp.name,one:a.atype+' 완료',
+        out.push({kind:'phase',t:'단계 상태 다름',co:comp.name,bizno:bizno,
+          one:a.atype+' 완료',
           crm:wrong.map(function(c){return c.certName+' '+(c.currentPhase||'');}).join(', '),
+          certIds:wrong.map(function(c){return c.id;}),
           msg:'iso-one은 완료인데 CRM은 아직 완료가 아닙니다'});
       }
     }
   });
   return out;
+}
+// 반영 가능한 유형인가 (기업 등록은 정보를 사람이 넣어야 하므로 제외)
+function isoDiffApplicable(d){
+  if(!d)return false;
+  if(d.kind==='acq'||d.kind==='phase')return true;
+  if(d.kind==='no-cert')return !!(d.acq&&d.stdIds&&d.stdIds.length);
+  return false;
 }
 function renderIsoSyncBanner(){
   const el=document.getElementById('iso-sync-banner'); if(!el)return;
@@ -6028,19 +6054,83 @@ function renderIsoSyncBanner(){
 function openIsoSyncModal(){
   const body=document.getElementById('iso-sync-body'); if(!body)return;
   const d=isoOneDiffs();
+  const canCnt=d.filter(isoDiffApplicable).length;
   body.innerHTML=d.length
-    ? '<div class="tbl-wrap"><table class="tbl"><thead><tr>'
-      +'<th style="width:110px">유형</th><th>기업</th><th>iso-one</th><th>CRM</th><th>설명</th>'
+    ? (canCnt>1?'<div style="display:flex;justify-content:flex-end;margin-bottom:10px">'
+        +'<button class="btn btn-primary btn-sm" onclick="applyAllIsoDiffs()">iso-one 값으로 전부 반영 ('+canCnt+'건)</button></div>':'')
+      +'<div class="tbl-wrap"><table class="tbl"><thead><tr>'
+      +'<th style="width:104px">유형</th><th>기업</th><th>iso-one</th><th>CRM</th><th>설명</th><th style="width:74px">반영</th>'
       +'</tr></thead><tbody>'
       +d.map(function(x){
+        const btn=isoDiffApplicable(x)
+          ? '<button class="btn btn-sm" onclick="applyIsoDiff(\''+x.kind+'\',\''+(x.bizno||'')+'\')">반영</button>'
+          : '<span style="font-size:11px;color:var(--text4)">수기</span>';
         return '<tr><td><span class="badge" style="background:var(--warn-pale);color:var(--warn)">'+x.t+'</span></td>'
           +'<td style="font-size:13px;font-weight:500">'+x.co+'</td>'
           +'<td style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--ok)">'+x.one+'</td>'
           +'<td style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--danger)">'+x.crm+'</td>'
-          +'<td style="font-size:12px;color:var(--text3)">'+x.msg+'</td></tr>';
+          +'<td style="font-size:12px;color:var(--text3)">'+x.msg+'</td>'
+          +'<td>'+btn+'</td></tr>';
       }).join('')+'</tbody></table></div>'
     : '<div class="empty"><div class="empty-ico">✅</div><div class="empty-txt">어긋난 항목이 없습니다</div></div>';
   openModal('iso-sync-modal');
+}
+
+// [2단계] iso-one 값을 CRM에 반영한다.
+//   ⚠️ 항상 지금 데이터로 차이를 다시 계산해서 찾는다. 목록을 캐시해두고 인덱스로 찾으면
+//      그 사이에 데이터가 바뀌었을 때 엉뚱한 것을 고친다(실시간 구독이라 언제든 바뀐다).
+async function applyIsoDiff(kind,bizno,silent){
+  const d=isoOneDiffs().find(function(x){return x.kind===kind&&(x.bizno||'')===bizno;});
+  if(!d||!isoDiffApplicable(d)){ if(!silent){setBadge('이미 반영되었습니다',2000);openIsoSyncModal();} return 0; }
+  let msg='';
+  if(d.kind==='acq')   msg='['+d.co+'] 취득일\n\n  '+d.crm+'  →  '+d.one+'\n\n사후·갱신심사 날짜가 모두 다시 계산됩니다.';
+  if(d.kind==='phase') msg='['+d.co+'] 아래 단계를 완료로 바꿉니다.\n\n  '+d.crm+'\n\n연결된 지원사업이 있으면 그 상태도 완료가 됩니다.';
+  if(d.kind==='no-cert')msg='['+d.co+'] ISO 인증서를 새로 만듭니다.\n\n  발급일 '+d.acq+'\n  규격 '+d.stdIds.length+'개\n\n규격마다 4단계가 생성됩니다.';
+  if(!silent&&!confirm(msg))return 0;
+  try{
+    if(d.kind==='acq'){
+      const certs=certifications.filter(function(c){
+        return c.bizno===bizno&&c.cycleType==='complex'&&c.status!=='제외';});
+      const batch=writeBatch(db);
+      certs.forEach(function(c){
+        const sched=isoPhaseSchedule(getCertMasterInfo(c.certMasterId),d.acq);
+        const i=(typeof c.phaseIndex==='number')?c.phaseIndex:0;
+        const patch={acqDate:d.acq,updatedAt:Date.now()};
+        if(sched[i])patch.expDate=sched[i].date;
+        batch.update(doc(db,'certifications',c.id),patch);
+      });
+      await batch.commit();
+    } else if(d.kind==='phase'){
+      const batch=writeBatch(db);
+      d.certIds.forEach(function(id){batch.update(doc(db,'certifications',id),{status:'완료',updatedAt:Date.now()});});
+      await batch.commit();
+      // 연결된 지원사업(간트) 상태도 목록의 '완료' 버튼과 같게 맞춘다
+      for(const id of d.certIds){
+        const c=certifications.find(function(x){return x.id===id;});
+        if(c)await syncLinkedConsDone(c);
+      }
+    } else if(d.kind==='no-cert'){
+      const comp=companies.find(function(c){return c._id===bizno;});
+      if(!comp)throw new Error('기업을 찾을 수 없습니다');
+      const gid='cycle_'+bizno+'_'+d.acq+'_'+Date.now();
+      for(const s of d.stdIds){
+        await createComplexPhases(s,bizno,comp.name,d.acq,null,gid,d.doneThru);
+      }
+    }
+    if(!silent){setBadge('✅ 반영 완료',2000);openIsoSyncModal();}
+    return 1;
+  }catch(e){ alert('반영 실패: '+e.message); return 0; }
+}
+async function applyAllIsoDiffs(){
+  const list=isoOneDiffs().filter(isoDiffApplicable);
+  if(!list.length){setBadge('반영할 항목이 없습니다',2000);return;}
+  if(!confirm('iso-one 값으로 '+list.length+'건을 반영합니다.\n\n'
+    +list.map(function(x){return '  · ['+x.co+'] '+x.t;}).join('\n')
+    +'\n\n계속하시겠습니까?'))return;
+  let n=0;
+  for(const d of list){ n+=await applyIsoDiff(d.kind,d.bizno||'',true); }
+  setBadge('✅ '+n+'건 반영 완료',2500);
+  openIsoSyncModal();
 }
 
 // 탭1: 갱신 알림 (D-Day 순)
@@ -9734,7 +9824,8 @@ Object.assign(window,{
   setGcalMode,gcalPrev,gcalNext,gcalToday,toggleGcalExternal,
   openCatAddModal,saveCatAdd,deleteCatAdd,setCatRequiresCert,
   setCertTab,renderCertByCert,renderCertByComp,renderCertMaster,renderCertAlert,toggleCycleExpand,openCyclePhaseDoneModal,submitCyclePhaseDone,
-  openIsoSyncModal,   // 배너가 JS 문자열로 만드는 onclick이라 verify.mjs가 못 잡는다 — 반드시 여기 등록
+  // 배너·표를 JS 문자열로 만들어 onclick을 붙이므로 verify.mjs가 못 잡는다 — 반드시 여기 등록
+  openIsoSyncModal,applyIsoDiff,applyAllIsoDiffs,
 
   openCertMasterModal,saveCertMaster,deleteCertMaster,toggleCmCycleFields,addCmPhase,renderCmPhases,
   openCertModal,onCertTypeChange,onCertPhaseChange,saveCert,deleteCert,calcCertExpDate,
