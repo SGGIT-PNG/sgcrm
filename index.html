@@ -640,6 +640,8 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
 
     <!-- PAGE: OVERVIEW -->
     <div class="page-section active" id="page-overview">
+      <!-- 0. [iso-one] 손이 필요한 것 — CRM 미등록 기업 / 심사 임박 -->
+      <div id="iso-todo-banner" style="display:none;margin-bottom:20px"></div>
       <!-- 1. 긴급 갱신 배너 -->
       <div id="cert-banner"></div>
       <!-- 2. 업무 진행 요약 통계 (5개 카드) -->
@@ -2527,6 +2529,8 @@ async function loadAll(){
     try{ await migrateIsoCycle3yr(); }catch(e){console.warn('ISO 3년 보정 스킵:',e);}
     try{ await migrateCycleGroupId(); }catch(e){console.warn('cycleGroupId 보정 스킵:',e);}
     try{ await cleanupOrphanCerts(); }catch(e){console.warn('고아 정리 스킵:',e);}
+    // [iso-one] 심사가 임박한 기업의 업무·ToDo를 만든다. isoAuditId로 중복을 막아 여러 번 돌려도 안전.
+    try{ await createIsoTasks(true); }catch(e){console.warn('ISO 업무 생성 스킵:',e);}
     renderAll(); updateCounts();
     setBadge('✅ 로드 완료',2000);
     startRealtimeSync();
@@ -3042,6 +3046,7 @@ function stHigher(a,b){const o={done:3,ing:2,wait:1,'':0};return o[a]>=o[b]?a:b;
 
 // ── OVERVIEW ──
 function renderOverview(){
+  renderIsoTodoBanner();
   renderCertAlertBanner();
   renderOverviewStats();renderGantt('');renderTodo('');
   renderWork('work-grid');renderClientsTable('cli-head-ov','cli-body-ov','',cliPageOv,CLI_PER_PAGE_OV,'pg-cli-ov',cliGroupFilterOv);
@@ -6074,6 +6079,93 @@ function openIsoSyncModal(){
       }).join('')+'</tbody></table></div>'
     : '<div class="empty"><div class="empty-ico">✅</div><div class="empty-txt">어긋난 항목이 없습니다</div></div>';
   openModal('iso-sync-modal');
+}
+
+// ── [iso-one] 심사 임박 → 업무·ToDo 자동 생성 ────────────────────────────
+//   iso-one에 심사 일정이 있어도 CRM에서 준비 업무를 손으로 만들어야 했다.
+//   차기 심사 마감이 D-90 안에 들면 업무와 ToDo를 만든다.
+const ISO_TASK_DAYS=90;
+function isoUpcomingAudits(days){
+  const lim=(typeof days==='number')?days:ISO_TASK_DAYS;
+  const out=[];
+  (isoAudits||[]).forEach(function(a){
+    if(!a.nextDeadline||!a.bizno||!a.auditId)return;
+    const d=getCertDday(a.nextDeadline);
+    if(d===null||d>lim)return;   // 지난 것(음수)은 포함한다 — 놓친 심사이므로 오히려 급하다
+    out.push({a:a,dday:d});
+  });
+  return out.sort(function(x,y){return x.dday-y.dday;});
+}
+function isoTaskLabel(a){ return 'ISO '+(a.nextAtype||'심사'); }
+// 이미 만든 것이 있으면 다시 만들지 않는다 (isoAuditId로 식별 — 여러 번 돌려도 안전)
+function isoTaskExists(auditId){
+  return {
+    work:workItems.some(function(x){return x.isoAuditId===auditId;}),
+    todo:todos.some(function(x){return x.isoAuditId===auditId;})
+  };
+}
+function isoTasksPending(){
+  return isoUpcomingAudits().filter(function(x){
+    const h=isoTaskExists(x.a.auditId); return !h.work||!h.todo;});
+}
+async function createIsoTasks(silent){
+  const pend=isoTasksPending();
+  if(!pend.length){ if(!silent)setBadge('만들 것이 없습니다',2000); return 0; }
+  if(!silent&&!confirm('심사가 임박한 '+pend.length+'곳의 업무·ToDo를 만듭니다.\n\n'
+    +pend.map(function(x){return '  · D-'+x.dday+'  '+(x.a.companyName||'')+'  '+isoTaskLabel(x.a);}).join('\n')
+    +'\n\n계속하시겠습니까?'))return 0;
+  let n=0;
+  for(const x of pend){
+    const a=x.a;
+    const comp=companies.find(function(c){return c._id===a.bizno;});
+    const nm=comp?comp.name:(a.companyName||'');
+    const has=isoTaskExists(a.auditId);
+    try{
+      if(!has.work){
+        await addDoc(COL.work_items(),{
+          category:'iso',name:isoTaskLabel(a),
+          sub:(a.lead?'심사팀장 '+a.lead+' · ':'')+'마감 '+a.nextDeadline,
+          client:nm,clientBizno:a.bizno,status:'wait',
+          isoAuditId:a.auditId,createdAt:Date.now(),updatedAt:Date.now()});
+      }
+      if(!has.todo){
+        await addDoc(COL.todos(),{
+          text:'['+nm+'] '+isoTaskLabel(a)+' 준비',
+          dueDate:a.nextDeadline,status:'wait',tag:'ISO',
+          isoAuditId:a.auditId,createdAt:Date.now()});
+      }
+      n++;
+    }catch(e){ console.warn('[iso-task] 생성 실패:',nm,e); }
+  }
+  if(n>0)console.log('[CRM] iso-one 심사 업무·ToDo 생성:',n,'곳');
+  if(!silent)setBadge('✅ '+n+'곳 업무·ToDo 생성',2500);
+  return n;
+}
+// 대시보드 배너 — 손이 필요한 것만 모아 보여준다
+function renderIsoTodoBanner(){
+  const el=document.getElementById('iso-todo-banner'); if(!el)return;
+  if(!isoAudits||!isoAudits.length){ el.style.display='none'; return; }
+  const noComp=isoOneDiffs().filter(function(d){return d.kind==='no-company';});
+  const pend=isoTasksPending();
+  if(!noComp.length&&!pend.length){ el.style.display='none'; return; }
+  let h='<div style="background:var(--warn-pale);border:1px solid rgba(234,88,12,.3);border-radius:10px;padding:14px 16px">'
+    +'<div style="font-size:13px;font-weight:600;color:var(--warn);margin-bottom:10px">📌 iso-one — 손이 필요한 항목</div>';
+  if(noComp.length){
+    h+='<div style="font-size:13px;color:var(--text2);margin-bottom:8px">'
+      +'<b>CRM에 없는 기업 '+noComp.length+'곳</b> — 기업 관리에서 먼저 등록해야 심사가 연결됩니다<br>'
+      +'<span style="font-size:12px;color:var(--text3)">'
+      +noComp.map(function(d){return d.co+' ('+d.one+')';}).join(' · ')+'</span></div>';
+  }
+  if(pend.length){
+    h+='<div style="font-size:13px;color:var(--text2);display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
+      +'<span><b>심사 임박 '+pend.length+'곳</b> — 업무·ToDo가 아직 없습니다</span>'
+      +'<button class="btn btn-primary btn-sm" onclick="createIsoTasks()">업무·ToDo 만들기</button>'
+      +'<div style="flex-basis:100%;font-size:12px;color:var(--text3)">'
+      +pend.map(function(x){return 'D-'+x.dday+' '+(x.a.companyName||'')+' '+isoTaskLabel(x.a);}).join(' · ')
+      +'</div></div>';
+  }
+  el.innerHTML=h+'</div>';
+  el.style.display='';
 }
 
 // [2단계] iso-one 값을 CRM에 반영한다.
@@ -9825,7 +9917,7 @@ Object.assign(window,{
   openCatAddModal,saveCatAdd,deleteCatAdd,setCatRequiresCert,
   setCertTab,renderCertByCert,renderCertByComp,renderCertMaster,renderCertAlert,toggleCycleExpand,openCyclePhaseDoneModal,submitCyclePhaseDone,
   // 배너·표를 JS 문자열로 만들어 onclick을 붙이므로 verify.mjs가 못 잡는다 — 반드시 여기 등록
-  openIsoSyncModal,applyIsoDiff,applyAllIsoDiffs,
+  openIsoSyncModal,applyIsoDiff,applyAllIsoDiffs,createIsoTasks,
 
   openCertMasterModal,saveCertMaster,deleteCertMaster,toggleCmCycleFields,addCmPhase,renderCmPhases,
   openCertModal,onCertTypeChange,onCertPhaseChange,saveCert,deleteCert,calcCertExpDate,
