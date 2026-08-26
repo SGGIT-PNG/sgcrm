@@ -9352,6 +9352,32 @@ function gcalSyncCert(cert,action){
     certName:certName,
     expDate:cert.expDate,
     cycleMonths:m.cycleMonths||cert.cycleMonths||null,
+  }).then(function(r){
+    // 만료일과 함께 취득일 마커도 올린다 (아래 설명 참고)
+    return gcalSyncCertIssue(cert,'upsert',companyName,certName).then(function(){return r;});
+  });
+}
+// 인증 취득일 마커 — 만료일만 캘린더에 있으면 '언제 받았는지'를 알 수 없다.
+//   갱신 주기가 3년이라 그 사이에 확인할 방법이 없어 추가했다(사장님 요청).
+//   ISO는 iso-one이 [인증완료]로 이미 올리므로 여기서는 만들지 않는다.
+//   Apps Script의 type="isocert"를 그대로 쓴다 — 초록색, 알림 없음(과거 날짜라 알릴 것이 없다).
+function gcalSyncCertIssue(cert,action,companyName,certName){
+  if(!cert||!cert.id)return Promise.resolve({ok:true,skipped:true});
+  var id='certissue_'+cert.id;
+  if(action==='delete')return sendToGcal('delete','isocert',{id:id});
+  var m=getCertMasterInfo(cert.certMasterId);
+  if(isIsoStdMaster(m))return Promise.resolve({ok:true,skipped:true,iso:true});
+  if(!cert.acqDate)return Promise.resolve({ok:true,skipped:true});
+  var co=companyName||cert.companyName||'';
+  if(!co&&cert.bizno){
+    var c2=companies.find(function(x){return x._id===cert.bizno;});
+    if(c2)co=c2.name;
+  }
+  return sendToGcal('upsert','isocert',{
+    id:id,
+    companyName:co,
+    certName:certName||cert.certName||m.certName||'인증',
+    issueDate:cert.acqDate,
   });
 }
 
@@ -9361,6 +9387,7 @@ function gcalSyncCert(cert,action){
 function gcalDeleteCertEvents(c){
   if(!c)return;
   gcalSyncCert({id:c.id},'delete');
+  gcalSyncCertIssue({id:c.id},'delete');   // 취득일 마커도 함께 지운다
   if(c.cycleType==='complex'&&c.bizno&&c.certMasterId){
     sendToGcal('delete','cert',{id:'phase_'+c.bizno+'_'+c.certMasterId+'_'+(c.phaseIndex||0)});
   }
