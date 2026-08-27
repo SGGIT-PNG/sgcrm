@@ -2952,6 +2952,7 @@ function updateCounts(){
     const now=Date.now();
     const urgent=certifications.filter(c=>{
       if(!c.expDate||c.status==='만료')return false;
+      if(!certCountable(c))return false;   // 끝난 단계·제외는 세지 않는다
       const diff=Math.ceil((new Date(c.expDate)-now)/(1000*60*60*24));
       return diff<=90&&diff>=0;
     }).length;
@@ -3022,6 +3023,20 @@ function certIsActive(c){
   if(c.status==='완료')return true;      // 끝난 심사 = 인증을 받았다는 근거
   const d=getCertDday(c.expDate);
   return d==null||d>=0;                  // 예정일이 남아 있으면 유효
+}
+// 만료로 세어야 하는가 — 통계·배너가 공유하는 단일 판정.
+//   ⚠️ 끝난 심사(완료)와 제외는 만료가 아니다. ISO 사후·갱신심사는 완료하면
+//      예정일이 과거가 되므로, status를 보지 않으면 완료할수록 만료가 늘어난다
+//      (2026-08-27에 대시보드가 '인증 만료 41건'으로 뜬 원인).
+function certIsExpired(c){
+  if(!c||c.status==='제외'||c.status==='완료')return false;
+  if(c.status==='만료')return true;
+  const d=getCertDday(c.expDate);
+  return d!==null&&d<0;
+}
+// 만료·임박 집계에서 아예 빼야 하는가 (끝난 단계·제외)
+function certCountable(c){
+  return !!c&&c.status!=='제외'&&c.status!=='완료';
 }
 function getCompanyDomains(bizno){
   const result={};CAT_IDS.forEach(c=>result[c]='');
@@ -6239,10 +6254,11 @@ function renderCertAlert(){
   const annualList=certifications.filter(c=>getCertMasterInfo(c.certMasterId).reportType==='annual');
 
   // 갱신형 통계
-  const rExpired=renewalList.filter(c=>getCertDday(c.expDate)<0||c.status==='만료').length;
-  const rD30=renewalList.filter(c=>{const d=getCertDday(c.expDate);return d>=0&&d<=30;}).length;
-  const rD90=renewalList.filter(c=>{const d=getCertDday(c.expDate);return d>30&&d<=90;}).length;
-  const rSafe=renewalList.filter(c=>{const d=getCertDday(c.expDate);return d>90;}).length;
+  const rCount=renewalList.filter(certCountable);   // 끝난 단계·제외는 통계에서 뺀다
+  const rExpired=rCount.filter(certIsExpired).length;
+  const rD30=rCount.filter(c=>{const d=getCertDday(c.expDate);return d>=0&&d<=30;}).length;
+  const rD90=rCount.filter(c=>{const d=getCertDday(c.expDate);return d>30&&d<=90;}).length;
+  const rSafe=rCount.filter(c=>{const d=getCertDday(c.expDate);return d>90;}).length;
 
   // 연간신고 통계
   const aMissed=annualList.filter(c=>{const r=annualReports.filter(x=>x.certId===c.id).sort((a,b)=>b.year-a.year)[0];return r&&r.status!=='done'&&new Date(r.dueDate)<new Date();}).length;
@@ -7027,10 +7043,11 @@ function renderCertAlertBanner(){
   }
   var renewalCerts=certifications.filter(function(c){return getCertMasterInfo(c.certMasterId).reportType!=='annual';});
   var annualCerts=certifications.filter(function(c){return getCertMasterInfo(c.certMasterId).reportType==='annual';});
-  var rExpired=renewalCerts.filter(function(c){return getCertDday(c.expDate)<0||c.status==='만료';});
-  var rD30=renewalCerts.filter(function(c){var d=getCertDday(c.expDate);return d>=0&&d<=30;});
-  var rD90=renewalCerts.filter(function(c){var d=getCertDday(c.expDate);return d>30&&d<=90;});
-  var rSafe=renewalCerts.filter(function(c){var d=getCertDday(c.expDate);return d>90;});
+  var rCountable=renewalCerts.filter(certCountable);   // 끝난 단계·제외는 통계에서 뺀다
+  var rExpired=rCountable.filter(certIsExpired);
+  var rD30=rCountable.filter(function(c){var d=getCertDday(c.expDate);return d>=0&&d<=30;});
+  var rD90=rCountable.filter(function(c){var d=getCertDday(c.expDate);return d>30&&d<=90;});
+  var rSafe=rCountable.filter(function(c){var d=getCertDday(c.expDate);return d>90;});
   var aReports=annualCerts.map(function(c){
     var r=annualReports.filter(function(x){return x.certId===c.id;}).sort(function(a,b){return b.year-a.year;})[0];
     return {cert:c,report:r};
@@ -8150,8 +8167,9 @@ function printSummaryReport(){
   var doneWorks=workItems.filter(function(w){return w.status==='done';}).length;
   var ingWorks=workItems.filter(function(w){return w.status==='ing';}).length;
   var totalCerts=certifications.length;
-  var urgentCerts=certifications.filter(function(c){var d=getCertDday(c.expDate);return d>=0&&d<=30;}).length;
-  var expiredCerts=certifications.filter(function(c){return getCertDday(c.expDate)<0||c.status==='만료';}).length;
+  var certCnt=certifications.filter(certCountable);   // 끝난 단계·제외 제외
+  var urgentCerts=certCnt.filter(function(c){var d=getCertDday(c.expDate);return d>=0&&d<=30;}).length;
+  var expiredCerts=certCnt.filter(certIsExpired).length;
   var totalCons=consulting.length;
   var doneCons=consulting.filter(function(c){return c.status==='done';}).length;
   var totalAmt=consulting.reduce(function(s,c){return s+(+c.amount||0);},0);
@@ -8303,7 +8321,7 @@ function printCertReport(){
   html+='</div>';
 
   // 요약
-  var expired=filtered.filter(function(c){return getCertDday(c.expDate)<0;}).length;
+  var expired=filtered.filter(certCountable).filter(certIsExpired).length;
   var d30=filtered.filter(function(c){var d=getCertDday(c.expDate);return d>=0&&d<=30;}).length;
   var safe=filtered.filter(function(c){var d=getCertDday(c.expDate);return d>30;}).length;
   html+='<div class="section"><div class="summary-grid">';
@@ -8895,8 +8913,9 @@ async function downloadExcel(){
       var ingWorks=workItems.filter(function(w){return w.status==='ing';}).length;
       var doneWorks=workItems.filter(function(w){return w.status==='done';}).length;
       var waitWorks=workItems.filter(function(w){return w.status==='wait';}).length;
-      var urgCerts=certifications.filter(function(c){var d=getCertDday(c.expDate);return d>=0&&d<=30;}).length;
-      var expCerts=certifications.filter(function(c){return getCertDday(c.expDate)<0;}).length;
+      var certCnt2=certifications.filter(certCountable);   // 끝난 단계·제외 제외
+      var urgCerts=certCnt2.filter(function(c){var d=getCertDday(c.expDate);return d>=0&&d<=30;}).length;
+      var expCerts=certCnt2.filter(certIsExpired).length;
       var totalCons=consulting.length;
       var doneCons=consulting.filter(function(c){return c.status==='done';}).length;
       var totalAmt=consulting.reduce(function(s,c){return s+(+c.amount||0);},0);
