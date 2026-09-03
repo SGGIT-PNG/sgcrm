@@ -2533,6 +2533,8 @@ async function loadAll(){
     try{ await reconcileWorkFromCerts(); }catch(e){console.warn('인증→업무 반영 스킵:',e);}
     // [iso-one] 심사가 임박한 기업의 업무·ToDo를 만든다. isoAuditId로 중복을 막아 여러 번 돌려도 안전.
     try{ await createIsoTasks(true); }catch(e){console.warn('ISO 업무 생성 스킵:',e);}
+    // 갱신이 임박한 인증(고정주기)의 업무·ToDo를 만든다. certTaskId로 중복을 막아 여러 번 돌려도 안전.
+    try{ await createCertTasks(true); }catch(e){console.warn('인증 갱신 업무 생성 스킵:',e);}
     renderAll(); updateCounts();
     setBadge('✅ 로드 완료',2000);
     startRealtimeSync();
@@ -3099,6 +3101,10 @@ function getCertWorkItems(cat){
 //   인증 관리를 정본으로 보고, 업무 쪽을 맞출 수 있게 표시만 한다 (자동 변경 안 함).
 function certMismatchForWork(w){
   if(!w||w.status==='done'||!w.clientBizno||!w.category)return null;
+  // 갱신 준비 업무(createCertTasks가 만든 것)는 대상이 아니다.
+  //   기존 인증이 아직 유효한 상태에서 다음 갱신을 준비하는 업무이므로,
+  //   유효한 인증이 있다고 '이미 완료됨'으로 보면 갱신 업무가 사라진다.
+  if(w.certTaskId)return null;
   const hit=certifications.filter(c=>c&&c.status!=='제외'&&c.bizno===w.clientBizno
     &&certCategoryOf(c.certMasterId)===w.category&&certIsActive(c));
   if(!hit.length)return null;
@@ -6404,6 +6410,79 @@ async function createIsoTasks(silent){
   }
   if(n>0)console.log('[CRM] iso-one 심사 업무·ToDo 생성:',n,'곳');
   if(!silent)setBadge('✅ '+n+'곳 업무·ToDo 생성',2500);
+  return n;
+}
+// ── 인증 갱신 임박 → 업무·ToDo 자동 생성 ──────────────────────────────
+//   위 createIsoTasks는 **iso-one에서 받아온 ISO 심사만** 담당한다.
+//   CRM에 직접 등록한 벤처·연구소·여성기업 같은 인증은 갱신이 임박해도 아무것도
+//   생기지 않아 사람이 기억해야 했다.
+//   ⚠️ 복합주기(ISO)는 여기서 제외한다 — iso-one 경로가 이미 업무를 만들어
+//      같은 심사에 업무가 두 개 생긴다. ISO는 그쪽이 정본이다.
+const CERT_TASK_DAYS=90;
+function certUpcomingRenewals(days){
+  const lim=(typeof days==='number')?days:CERT_TASK_DAYS;
+  const inactive=getInactiveBiznos();
+  const out=[];
+  certifications.forEach(function(c){
+    if(!c||!c.expDate||!c.bizno)return;
+    if(c.status==='제외'||c.status==='완료')return;
+    if(inactive.has(c.bizno))return;
+    if(c.cycleType==='complex')return;          // ISO → iso-one이 담당
+    const m=getCertMasterInfo(c.certMasterId);
+    if(m.reportType==='annual')return;          // 연간신고는 별도 관리
+    const d=getCertDday(c.expDate);
+    if(d===null||d>lim)return;                  // 지난 것(음수)은 포함 — 놓친 갱신이라 더 급하다
+    out.push({c:c,dday:d,m:m});
+  });
+  return out.sort(function(x,y){return x.dday-y.dday;});
+}
+function certTaskLabel(m){ return (m.certName||'인증')+' 갱신'; }
+// 이미 만든 것이 있으면 다시 만들지 않는다 (certTaskId로 식별 — 여러 번 돌려도 안전)
+function certTaskExists(certId){
+  return {
+    work:workItems.some(function(x){return x.certTaskId===certId;}),
+    todo:todos.some(function(x){return x.certTaskId===certId;})
+  };
+}
+function certTasksPending(){
+  return certUpcomingRenewals().filter(function(x){
+    const h=certTaskExists(x.c.id); return !h.work||!h.todo;});
+}
+async function createCertTasks(silent){
+  const pend=certTasksPending();
+  if(!pend.length){ if(!silent)setBadge('만들 것이 없습니다',2000); return 0; }
+  const nameOf=function(c){
+    const comp=companies.find(function(z){return z._id===c.bizno;});
+    return comp?comp.name:(c.companyName||'');
+  };
+  if(!silent&&!confirm('갱신이 임박한 인증 '+pend.length+'건의 업무·ToDo를 만듭니다.\n\n'
+    +pend.map(function(x){return '  · D-'+x.dday+'  '+nameOf(x.c)+'  '+certTaskLabel(x.m);}).join('\n')
+    +'\n\n계속하시겠습니까?'))return 0;
+  let n=0;
+  for(const x of pend){
+    const c=x.c,m=x.m,nm=nameOf(c);
+    const has=certTaskExists(c.id);
+    const cat=certCategoryOf(c.certMasterId)||'etc';
+    try{
+      if(!has.work){
+        await addDoc(COL.work_items(),{
+          category:cat,name:certTaskLabel(m),
+          sub:'만료 '+c.expDate,
+          client:nm,clientBizno:c.bizno,status:'wait',
+          certTaskId:c.id,createdAt:Date.now(),updatedAt:Date.now()});
+      }
+      if(!has.todo){
+        await addDoc(COL.todos(),{
+          text:'['+nm+'] '+certTaskLabel(m)+' 준비',
+          dueDate:c.expDate,status:'wait',tag:'인증',
+          certTaskId:c.id,createdAt:Date.now()});
+      }
+      n++;
+    }catch(e){ console.warn('[cert-task] 생성 실패:',nm,e); }
+  }
+  if(n>0)console.log('[CRM] 인증 갱신 업무·ToDo 생성:',n,'건',
+    pend.map(function(x){return nameOf(x.c)+' / '+certTaskLabel(x.m)+' (D-'+x.dday+')';}));
+  if(!silent)setBadge('✅ '+n+'건 업무·ToDo 생성',2500);
   return n;
 }
 // 대시보드 배너 — 손이 필요한 것만 모아 보여준다
