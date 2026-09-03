@@ -2529,6 +2529,8 @@ async function loadAll(){
     try{ await migrateIsoCycle3yr(); }catch(e){console.warn('ISO 3년 보정 스킵:',e);}
     try{ await migrateCycleGroupId(); }catch(e){console.warn('cycleGroupId 보정 스킵:',e);}
     try{ await cleanupOrphanCerts(); }catch(e){console.warn('고아 정리 스킵:',e);}
+    // 인증을 받아 끝난 업무를 완료로 맞춘다 (취득일이 업무 생성일보다 나중인 것만)
+    try{ await reconcileWorkFromCerts(); }catch(e){console.warn('인증→업무 반영 스킵:',e);}
     // [iso-one] 심사가 임박한 기업의 업무·ToDo를 만든다. isoAuditId로 중복을 막아 여러 번 돌려도 안전.
     try{ await createIsoTasks(true); }catch(e){console.warn('ISO 업무 생성 스킵:',e);}
     renderAll(); updateCounts();
@@ -3038,6 +3040,119 @@ function certIsExpired(c){
 function certCountable(c){
   return !!c&&c.status!=='제외'&&c.status!=='완료';
 }
+// 인증 연동 업무 항목 생성 (certifications → 분야별). getConsWorkItems의 인증판이다.
+//   그동안 인증 관리에 등록한 인증서는 업무 영역별 현황에 전혀 뜨지 않아,
+//   벤처·연구소·여성기업 같은 항목을 손으로 또 입력해야 했다.
+//   ⚠️ ISO 등 complex는 cycleGroupId로 묶어 사이클 1건으로 표시한다.
+//      단계별 인증서를 그대로 펼치면 한 기업이 4~12줄을 차지한다.
+function getCertWorkItems(cat){
+  const inactive=getInactiveBiznos();
+  const linked={};   // 이미 업무에 연결된 인증서 → 중복 표시 금지
+  const covered={};  // 같은 분야에 그 기업 업무가 이미 있으면 인증을 따로 띄우지 않는다
+                     //   (안 그러면 낡은 수동 업무 + 인증 연동이 두 줄로 겹쳐 보인다)
+  workItems.forEach(w=>{
+    if(w.certId)linked[w.certId]=true;
+    if(w.category===cat&&w.clientBizno)covered[w.clientBizno]=true;
+  });
+  const byKey={};
+  const groups=[];
+  certifications.forEach(c=>{
+    if(!c||c.status==='제외')return;
+    if(!c.bizno||inactive.has(c.bizno))return;
+    if(certCategoryOf(c.certMasterId)!==cat)return;
+    // complex(ISO)는 사이클 단위, 나머지는 인증서 단위
+    const key=(c.cycleType==='complex'&&c.acqDate)
+      ? (c.cycleGroupId||(c.bizno+'|'+c.acqDate))
+      : ('one|'+c.id);
+    if(!byKey[key]){byKey[key]={key:key,certs:[]};groups.push(byKey[key]);}
+    byKey[key].certs.push(c);
+  });
+  return groups.filter(g=>!g.certs.some(c=>linked[c.id])&&!covered[g.certs[0].bizno]).map(g=>{
+    // 대표 인증서 — 아직 안 끝난 것 중 가장 임박한 것 (없으면 첫 번째)
+    const pending=g.certs.filter(c=>c.status!=='완료');
+    const src=pending.length?pending:g.certs;
+    let rep=src[0];
+    src.forEach(c=>{
+      const d=getCertDday(c.expDate),rd=getCertDday(rep.expDate);
+      if(d!=null&&(rd==null||d<rd))rep=c;
+    });
+    const comp=companies.find(x=>x._id===rep.bizno);
+    const m=getCertMasterInfo(rep.certMasterId);
+    // 하나라도 살아있으면 완료(=기본 숨김), 전부 만료면 진행(=갱신 필요하므로 노출)
+    const active=g.certs.some(certIsActive);
+    const dd=getCertDday(rep.expDate);
+    return {
+      _fromCert:true,certId:rep.id,id:'cert_'+g.key,
+      name:(m.certName||rep.certName||'인증'),
+      client:comp?comp.name:(rep.companyName||''),
+      clientBizno:rep.bizno,
+      status:active?'done':'ing',
+      sub:active
+        ?(rep.expDate?('만료 '+rep.expDate+(dd!=null&&dd<=90?' · D-'+dd:'')):'')
+        :'갱신 필요',
+      doneAt:null
+    };
+  });
+}
+// 업무와 어긋난 인증 찾기 — 업무는 미완료인데 같은 분야·기업 인증이 살아있는 경우.
+//   예: 청림테크 벤처기업인증을 인증 관리에서 완료했는데 업무는 처음 입력한 상태 그대로.
+//   인증 관리를 정본으로 보고, 업무 쪽을 맞출 수 있게 표시만 한다 (자동 변경 안 함).
+function certMismatchForWork(w){
+  if(!w||w.status==='done'||!w.clientBizno||!w.category)return null;
+  const hit=certifications.filter(c=>c&&c.status!=='제외'&&c.bizno===w.clientBizno
+    &&certCategoryOf(c.certMasterId)===w.category&&certIsActive(c));
+  if(!hit.length)return null;
+  let rep=hit[0];
+  hit.forEach(c=>{if((c.acqDate||'')>(rep.acqDate||''))rep=c;});
+  return rep;
+}
+// 어긋난 업무를 인증 기준으로 맞춘다 (사용자 확인 후)
+async function syncWorkFromCert(workItemId){
+  const w=workItems.find(x=>x.id===workItemId);if(!w)return;
+  const rep=certMismatchForWork(w);
+  if(!rep){setBadge('맞출 인증이 없습니다',2000);return;}
+  const m=getCertMasterInfo(rep.certMasterId);
+  if(!confirm('['+(w.client||'')+'] '+(w.name||'')+'\n\n'
+    +'인증 관리에 "'+(m.certName||rep.certName||'인증')+'"이(가) 유효한 상태로 등록돼 있습니다.\n'
+    +(rep.acqDate?('취득일 '+rep.acqDate+'\n'):'')
+    +'\n업무도 완료로 맞출까요?'))return;
+  try{
+    await updateDoc(doc(db,'work_items',workItemId),{
+      status:'done',doneAt:Date.now(),certRefId:rep.id,updatedAt:Date.now()});  // 참조만 (certId 아님 — 위 주석 참조)
+    setBadge('✅ 인증 반영 완료',2500);
+  }catch(e){console.error(e);alert('반영 실패');}
+}
+// 인증을 받아 이미 끝난 업무를 자동으로 완료 처리한다 (idempotent — 여러 번 돌려도 안전).
+//   ⚠️ 인증 취득일이 업무 생성일보다 **나중일 때만** 자동으로 바꾼다.
+//      업무를 시작하기 전부터 갖고 있던 인증이면 "갱신 업무가 진행 중"일 수 있어
+//      자동 완료가 오히려 틀린다 → 그 경우는 renderWork의 🏅 배지로 남겨 사람이 판단한다.
+async function reconcileWorkFromCerts(){
+  if(!workItems||!workItems.length||!certifications||!certifications.length)return 0;
+  const targets=[];
+  workItems.forEach(w=>{
+    if(w.status==='done'||!w.clientBizno||!w.createdAt)return;
+    const rep=certMismatchForWork(w);
+    if(!rep||!rep.acqDate)return;
+    const wDay=new Date(w.createdAt).toISOString().slice(0,10);
+    if(rep.acqDate<wDay)return;          // 기존에 갖고 있던 인증 → 자동 처리 안 함
+    targets.push({w:w,cert:rep});
+  });
+  if(!targets.length)return 0;
+  const slice=targets.slice(0,400);      // 배치 상한(500) 안쪽으로 제한
+  const batch=writeBatch(db);
+  slice.forEach(t=>{
+    // ⚠️ certId(소유)가 아니라 certRefId(참조)를 쓴다.
+    //    certId를 붙이면 나중에 업무를 미완료로 되돌릴 때 saveWork가
+    //    "연결된 인증 데이터도 삭제됩니다" 확인을 띄운다. 이 인증서는 업무가 만든 게
+    //    아니라 인증 관리에서 따로 등록한 것이므로 삭제 대상이 되면 안 된다.
+    batch.update(doc(db,'work_items',t.w.id),{
+      status:'done',doneAt:Date.now(),certRefId:t.cert.id,updatedAt:Date.now()});
+  });
+  await batch.commit();
+  console.log('[CRM] 인증 취득으로 업무 자동 완료:',slice.length,'건',
+    slice.map(t=>(t.w.client||'')+' / '+(t.w.name||'')+' ← 취득 '+t.cert.acqDate));
+  return slice.length;
+}
 function getCompanyDomains(bizno){
   const result={};CAT_IDS.forEach(c=>result[c]='');
   consCompanies.filter(cc=>cc.bizno===bizno).forEach(cc=>{
@@ -3110,6 +3225,87 @@ function ganttIsoCells(c,y,m,days,color){
       html+='<td class="cat-bar-td'+cls+'" style="position:relative;cursor:pointer" onclick="event.stopPropagation();openConsultingModal(\''+c.id+'\')">'
         +'<div style="position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:20px;background:'+color+';display:flex;align-items:center;justify-content:center" title="'+(c.title||'')+'">'
         +(label?'<span style="font-size:9px;font-weight:700;color:#FFF">'+label+'</span>':'')+'</div></td>';
+    } else {
+      html+='<td class="cat-bar-td'+cls+'"></td>';
+    }
+  }
+  return html;
+}
+// ── 간트에 표시할 인증 행 ──────────────────────────────────────────────
+//   그동안 간트 뷰에는 지원사업만 있고 인증이 전혀 없었다 (캘린더 뷰에만 있었음).
+//   ⚠️ 표시 대상은 **이 달에 일정이 있는 인증만**. 안 그러면 인증 수십 건이
+//      빈 줄로 쌓여 간트가 못 쓰게 된다.
+//   ⚠️ ISO 등 complex는 cycleGroupId로 한 줄에 묶고 단계마다 마커를 찍는다
+//      (규격 3개짜리가 3줄로 갈라지지 않도록).
+function getGanttCertRows(y,m,days){
+  const inactive=getInactiveBiznos();
+  const rs=dateStr(y,m,1),re=dateStr(y,m,days);
+  const byKey={};
+  certifications.forEach(c=>{
+    if(!c||c.status==='제외'||!c.bizno||inactive.has(c.bizno)||!c.expDate)return;
+    const mst=getCertMasterInfo(c.certMasterId);
+    if(mst.reportType==='annual')return;              // 연간신고형은 별도 관리
+    const key=(c.cycleType==='complex'&&c.acqDate)
+      ? (c.cycleGroupId||(c.bizno+'|'+c.acqDate))
+      : ('one|'+c.id);
+    if(!byKey[key]){
+      const comp=companies.find(x=>x._id===c.bizno);
+      byKey[key]={key:key,bizno:c.bizno,
+        companyName:comp?comp.name:(c.companyName||'미상'),
+        certs:[],marks:{},certName:''};
+    }
+    const row=byKey[key];
+    row.certs.push(c);
+    if(c.expDate>=rs&&c.expDate<=re){
+      // 단계명이 있으면 그것을(1차 사후심사 등), 없으면 만료로 표시
+      const lbl=(c.cycleType==='complex')
+        ? (c.currentPhase||(((c.phaseIndex||0)+1)+'단계'))
+        : '만료';
+      const prev=row.marks[c.expDate];
+      // 같은 날 같은 사이클의 여러 규격은 마커 하나로 묶는다
+      // 날짜 칸이 좁아 긴 이름은 잘린다 → 마커엔 짧게(1차·2차·갱신), 전체는 툴팁으로
+      //   (기존 ganttIsoCells가 '1차'/'2차'만 쓰는 것과 맞춤)
+      const shortLbl=lbl.replace(/사후심사/,'').replace(/심사/,'').trim()||lbl;
+      if(!prev)row.marks[c.expDate]={label:shortLbl,full:lbl,certId:c.id,pending:c.status!=='완료'};
+      else if(c.status!=='완료')prev.pending=true;
+    }
+  });
+  return Object.keys(byKey).map(k=>byKey[k])
+    .filter(r=>Object.keys(r.marks).length)           // 이 달에 일정이 있는 것만
+    .map(r=>{
+      // 규격이 여러 개면 합쳐서 한 이름으로 (예: ISO 9001+14001+45001)
+      const stds=[];
+      r.certs.forEach(c=>{const n=getCertMasterInfo(c.certMasterId).certName||'';
+        if(n&&stds.indexOf(n)===-1)stds.push(n);});
+      r.certName=stds.length>1
+        ? ('ISO '+stds.map(s=>s.replace(/^ISO\s*/i,'')).join('+'))
+        : (stds[0]||'인증');
+      // 상태는 '유효한가'가 아니라 '이 달 일정이 남았는가' 기준.
+      //   일정 화면이므로 아직 안 한 심사가 있으면 진행으로 본다.
+      r.status=Object.keys(r.marks).some(d=>r.marks[d].pending)?'ing':'done';
+      return r;
+    })
+    .sort((a,b)=>(a.companyName||'').localeCompare(b.companyName||''));
+}
+// 인증 행의 날짜 셀 — 예정일에 단계명 마커를 찍는다 (ganttIsoCells와 같은 방식)
+function ganttCertCells(row,y,m,days){
+  const today=new Date();
+  let html='';
+  for(let d=1;d<=days;d++){
+    const ds=dateStr(y,m,d);
+    const dw=new Date(y,m,d).getDay();
+    const isT=y===today.getFullYear()&&m===today.getMonth()&&d===today.getDate();
+    const cls=(dw===6?' sat':dw===0?' sun':'')+(isT?' today-cell':'');
+    const mk=row.marks[ds];
+    if(mk){
+      const bg=mk.pending?'#DC2626':'#94A3B8';       // 남은 일정은 빨강, 끝난 단계는 회색
+      html+='<td class="cat-bar-td'+cls+'" style="position:relative;cursor:pointer" '
+        +'onclick="event.stopPropagation();openCertModal(\''+mk.certId+'\')">'
+        +'<div style="position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:20px;'
+        +'background:'+bg+';display:flex;align-items:center;justify-content:center;border-radius:4px" '
+        +'title="'+escAttr(row.companyName+' · '+row.certName+' · '+(mk.full||mk.label)+' '+ds)+'">'
+        +'<span style="font-size:9px;font-weight:700;color:#FFF;white-space:nowrap;overflow:hidden;padding:0 2px">'
+        +escAttr(mk.label)+'</span></div></td>';
     } else {
       html+='<td class="cat-bar-td'+cls+'"></td>';
     }
@@ -3314,7 +3510,22 @@ function renderGantt(sfx){
       body+=`</tr>`;
     });
   });
-  if(!consulting.length)body=`<tr><td colspan="999" style="text-align:center;padding:30px;color:var(--text4);font-size:14px">+ 대분류 추가 버튼을 눌러 일정을 등록하세요</td></tr>`;
+  // ── 인증·갱신 일정 (이 달에 예정일이 있는 것만) ──
+  const certRows=getGanttCertRows(y,m,days).filter(r=>ganttFilter==='all'||r.status===ganttFilter);
+  if(certRows.length){
+    body+=`<tr class="cat-row"><td class="cat-label-td" style="background:var(--surface2)">
+      <div class="cat-name" style="font-size:12px;color:var(--text3)">🏅 인증·갱신 일정 <span style="font-weight:400;color:var(--text4)">${certRows.length}건</span></div>
+    </td>${ganttEmptyCells(y,m,days,'cat-bar-td')}</tr>`;
+    certRows.forEach(r=>{
+      body+=`<tr class="cat-row${r.status==='done'?' gantt-row-done':''}"><td class="cat-label-td">
+        <div class="cat-name">🏅 ${r.companyName} ${badge(r.status)}
+          <button onclick="event.stopPropagation();openCertModal('${escAttr(r.marks[Object.keys(r.marks)[0]].certId)}')" style="margin-left:6px;padding:2px 8px;background:#F0F0F0;border:1px solid rgba(37,99,235,.4);border-radius:5px;color:var(--blue);font-size:11px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">관리</button>
+        </div>
+        <div style="font-size:11px;color:var(--text4);margin-top:2px">${escAttr(r.certName)}</div>
+      </td>${ganttCertCells(r,y,m,days)}</tr>`;
+    });
+  }
+  if(!consulting.length&&!certRows.length)body=`<tr><td colspan="999" style="text-align:center;padding:30px;color:var(--text4);font-size:14px">+ 대분류 추가 버튼을 눌러 일정을 등록하세요</td></tr>`;
   tableEl.innerHTML=head+body;
   applyGanttFilterCSS();
 }
@@ -3424,14 +3635,39 @@ function collectGanttEvents(rs,re){
       evs.push({start:c.startDate,end:c.endDate,label:(cm.icon||'📅')+' '+(c.title||''),type:'cons',color,click});
     }
   });
-  // 2) 인증 만료일 (연간신고형 제외)
+  // 2) 인증 예정일 — 고정주기는 '만료', 복합주기(ISO)는 단계명(1차 사후심사 등)
+  //    ⚠️ 같은 사이클·같은 날짜의 여러 규격은 **한 줄로 묶는다.**
+  //       예전엔 규격마다 한 줄이라 베베볼 1차 사후심사가 9001·14001·45001 3줄로 떴고,
+  //       라벨도 전부 '만료'여서 인증이 끝나는 것처럼 보였다. (간트 뷰와 같은 규칙)
+  const certEvs={};
   certifications.forEach(c=>{
-    if(!c.expDate||!overlap(c.expDate,c.expDate))return;
+    if(!c||c.status==='제외'||!c.expDate||!overlap(c.expDate,c.expDate))return;
     const m=getCertMasterInfo(c.certMasterId);
     if(m.reportType==='annual')return;
-    const comp=companies.find(x=>x._id===c.bizno);
-    const nm=comp?comp.name:(c.companyName||'미상');
-    evs.push({start:c.expDate,end:c.expDate,label:'🏅 '+nm+' '+(m.certName||'')+' 만료',type:'cert',color:'#DC2626',click:"openCertModal('"+c.id+"')"});
+    const isComplex=c.cycleType==='complex';
+    const key=(isComplex&&c.acqDate)
+      ? ((c.cycleGroupId||(c.bizno+'|'+c.acqDate))+'|'+c.expDate)
+      : ('one|'+c.id);
+    if(!certEvs[key]){
+      const comp=companies.find(x=>x._id===c.bizno);
+      certEvs[key]={date:c.expDate,name:comp?comp.name:(c.companyName||'미상'),certId:c.id,
+        phase:isComplex?(c.currentPhase||(((c.phaseIndex||0)+1)+'단계')):'만료',
+        stds:[],done:true};
+    }
+    const e=certEvs[key];
+    const sn=m.certName||c.certName||'';
+    if(sn&&e.stds.indexOf(sn)===-1)e.stds.push(sn);
+    if(c.status!=='완료')e.done=false;      // 하나라도 안 끝났으면 남은 일정
+  });
+  Object.keys(certEvs).forEach(k=>{
+    const e=certEvs[k];
+    const std=e.stds.length>1
+      ? ('ISO '+e.stds.map(s=>s.replace(/^ISO\s*/i,'')).join('+'))
+      : (e.stds[0]||'인증');
+    evs.push({start:e.date,end:e.date,
+      label:'🏅 '+e.name+' '+std+' '+e.phase,
+      type:'cert',color:e.done?'#94A3B8':'#DC2626',   // 끝난 단계는 회색 (간트와 동일)
+      click:"openCertModal('"+e.certId+"')"});
   });
   // 3) 연간신고 기한 (미완료만)
   annualReports.forEach(r=>{
@@ -4272,7 +4508,8 @@ function renderWork(gridId){
   el.innerHTML=CAT_IDS.map(cat=>{
     const allItems=getWorkItemsByCategory(cat);
     const allCatItems=getConsWorkItems(cat);
-    const allFull=[...allItems,...allCatItems];
+    const allCertItems=getCertWorkItems(cat);
+    const allFull=[...allItems,...allCatItems,...allCertItems];
     const m=CAT_META[cat];
     const isCustom=m.custom===true; // 사용자 추가 분야만 수정 버튼 표시
     const tot=allFull.length,dn=allFull.filter(i=>i.status==='done').length,pct=tot?Math.round(dn/tot*100):0;
@@ -4292,6 +4529,7 @@ function renderWork(gridId){
             ${dot(it.status)}
             <div style="flex:1"><div style="font-size:13px">${it.name}${it.sub?` <span style="font-size:11px;color:var(--text4)">[${it.sub}]</span>`:''}</div>
             ${it.client?`<div style="font-size:11px;color:var(--text3)">${it.client}</div>`:''}</div>
+            ${certMismatchForWork(it)?`<span onclick="event.stopPropagation();syncWorkFromCert('${it.id}')" style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:9px;background:#FEF3C7;color:#92400E;cursor:pointer;white-space:nowrap" title="인증 관리에는 유효한 인증이 등록돼 있습니다. 클릭하면 업무도 완료로 맞춥니다">🏅 인증완료</span>`:''}
             ${badge(it.status)}
             <span onclick="event.stopPropagation();cycleWork('${it.id}')" style="color:var(--text4);font-size:13px;cursor:pointer;opacity:.6" title="상태변경">🔄</span>
           </div>`;
@@ -4304,6 +4542,18 @@ function renderWork(gridId){
               ${dot(it.status)}
               <div style="flex:1"><div style="font-size:13px;color:var(--text3)">${it.client||it.consTitle}</div>
               <div style="font-size:11px;color:var(--text4)">${it.consTitle}</div></div>
+              ${badge(it.status)}
+            </div>`;
+          }).join('')}
+        </div>`:''}
+        ${allCertItems.length?`<div style="border-top:1px solid var(--border);margin:6px 0 4px;padding-top:4px">
+          <div style="font-size:11px;color:var(--text4);padding:0 4px 4px">🏅 인증 연동</div>
+          ${allCertItems.map(it=>{
+            const cls=it.status==='done'?'work-item-done':'work-item-ing';
+            return `<div class="ci work-item ${cls}" onclick="openCertModal('${it.certId}')">
+              ${dot(it.status)}
+              <div style="flex:1"><div style="font-size:13px;color:var(--text3)">${it.client||it.name}</div>
+              <div style="font-size:11px;color:var(--text4)">${it.name}${it.sub?` · ${it.sub}`:''}</div></div>
               ${badge(it.status)}
             </div>`;
           }).join('')}
@@ -9974,7 +10224,7 @@ Object.assign(window,{
   openConsultingModal,saveConsulting,deleteConsulting,addConsCompany,renderConsCompaniesList,updateConsCompanyStatus,removeConsCompany,
   openConsResultModal,saveConsResult,onCrResultChange,
   openTodoModal,saveTodo,cycleTodo,deleteTodoItem,
-  renderWork,openWorkModal,saveWork,confirmDeleteWork,cycleWork,
+  renderWork,openWorkModal,saveWork,confirmDeleteWork,cycleWork,syncWorkFromCert,
   renderClientsPage,setCliPageOv,setCliPageSub,setCliGroupFilter,
   renderStatsPage,setStatsYear,setStatsCat,setStatsCompPage,exportStatsExcel,
   renderHistoryPage,setHistStatus,setHistPage,
