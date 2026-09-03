@@ -9807,6 +9807,29 @@ function gcalSyncIso(t,action){
     return bad.length?bad[0]:{ok:true};
   });
 }
+// ── 이미 보낸 ISO 일정은 다시 보내지 않는다 ──────────────────────────────
+//   onSnapshot(iso_audits)는 **페이지를 열 때마다** 최초 스냅샷을 발행하므로,
+//   예전엔 앱을 열 때마다 기업 수 × 2건(2026-09-03 기준 11곳 = 22건)을
+//   내용이 그대로여도 무조건 재전송했다.
+//   → 구글이 "짧은 시간에 캘린더 이벤트를 너무 많이 만들거나 삭제했습니다"로 막아
+//     일부 일정이 반영되지 않았다.
+//   전송 성공한 내용의 서명을 남겨 **바뀐 기업만** 보낸다.
+//   ⚠️ 이건 사용자 설정이 아니라 "구글에 이미 보냈다"는 전송 캐시라서
+//      app_state가 아니라 localStorage에 둔다. 지워져도 한 번 더 보낼 뿐 안전하다.
+var ISO_GCAL_SENT_KEY='isoGcalSent';
+function isoGcalSentMap(){
+  try{ return JSON.parse(localStorage.getItem(ISO_GCAL_SENT_KEY)||'{}')||{}; }
+  catch(e){ return {}; }
+}
+function isoGcalSig(t){
+  return [t.id,t.companyName,t.certName,t.stdText,t.dueDate,t.issueDate,t._del?1:0].join('|');
+}
+function markIsoGcalSent(t){
+  try{
+    var m=isoGcalSentMap(); m[t.bizno]=isoGcalSig(t);
+    localStorage.setItem(ISO_GCAL_SENT_KEY,JSON.stringify(m));
+  }catch(e){ /* 저장 실패해도 전송 자체는 됐으므로 무시 */ }
+}
 // iso_audits 변동 시(iso-one 동기화 등) 구글 ISO 일정을 자동 갱신(디바운스).
 var _isoGcalTimer=null;
 function scheduleIsoGcalSync(){
@@ -9815,7 +9838,21 @@ function scheduleIsoGcalSync(){
   if(_isoGcalTimer)clearTimeout(_isoGcalTimer);
   _isoGcalTimer=setTimeout(function(){
     _isoGcalTimer=null;
-    isoCalTargets().forEach(function(t){gcalSyncIso(t,'upsert');});
+    var all=isoCalTargets();
+    var sent=isoGcalSentMap();
+    var targets=all.filter(function(t){return sent[t.bizno]!==isoGcalSig(t);});
+    if(!targets.length){
+      console.log('[CRM] ISO 구글 일정 — 변경 없음, 전송 생략 ('+all.length+'곳)');
+      return;
+    }
+    console.log('[CRM] ISO 구글 일정 전송:',targets.length,'곳 (전체 '+all.length+'곳 중)');
+    targets.forEach(function(t){
+      gcalSyncIso(t,'upsert').then(function(r){
+        // 성공한 것만 기록한다 → 실패하면 다음 기회에 다시 보낸다
+        if(r&&r.ok!==false)markIsoGcalSent(t);
+        else console.warn('[CRM] ISO 구글 일정 실패:',t.companyName,r&&r.err);
+      }).catch(function(e){console.warn('[CRM] ISO 구글 일정 실패:',t.companyName,e);});
+    });
   },4000);
 }
 
