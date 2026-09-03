@@ -3192,7 +3192,10 @@ function renderOverview(){
   const cc=document.getElementById('ov-cli-cnt');if(cc)cc.textContent=companies.length+'개';
 }
 function renderOverviewStats(){
-  const allWork=[...workItems,...CAT_IDS.flatMap(c=>getConsWorkItems(c))];
+  // 업무 페이지(renderWork)와 **같은 집합**을 세야 두 화면 숫자가 맞는다.
+  //   인증 연동분을 빠뜨려 대시보드 28건 / 업무 페이지 45건으로 어긋나 있었다.
+  //   getCertWorkItems는 이미 업무로 잡힌 인증을 제외하므로 중복 집계되지 않는다.
+  const allWork=[...workItems,...CAT_IDS.flatMap(c=>[...getConsWorkItems(c),...getCertWorkItems(c)])];
   const waitW=allWork.filter(i=>i.status==='wait').length;
   const ingW=allWork.filter(i=>i.status==='ing').length;
   const doneW=allWork.filter(i=>i.status==='done').length;
