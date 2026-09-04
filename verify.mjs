@@ -94,16 +94,28 @@ if (oaIdx !== -1) {
     'if', 'for', 'while', 'switch', 'return', 'typeof', 'function', 'catch',
   ]);
 
-  // HTML 영역(스크립트 제외)의 인라인 핸들러만 검사
-  const html = content.slice(0, si) + content.slice(content.lastIndexOf('</script>'));
+  // 검사 대상 = ① 정적 HTML 영역 + ② JS가 템플릿 리터럴로 만들어내는 마크업
+  //
+  //   ⚠️ 예전에는 ①만 검사했다. 그런데 이 앱은 render* 함수가 JS 안에서 마크업을
+  //      만들어내므로 onclick 대부분이 ②에 있다. 그래서 2026-09-03에 조건부 렌더
+  //      (`${조건 ? `<span onclick="syncWorkFromCert(...)">` : ''}`) 안의 핸들러가
+  //      export 누락인데도 **검증을 통과**했다. ②를 추가해 그 구멍을 막는다.
+  const staticHtml = content.slice(0, si) + content.slice(content.lastIndexOf('</script>'));
   const missing = new Map();
-  for (const h of html.matchAll(/\bon[a-z]+\s*=\s*"([^"]*)"/g)) {
-    // 핸들러 안의 문자열 리터럴 제거 — this.style.background='rgba(...)' 같은 CSS 오탐 방지
-    const code = h[1].replace(/'[^']*'/g, "''");
-    for (const c of code.matchAll(/(?:^|[^.\w$])([A-Za-z_$][\w$]*)\s*\(/g)) {
-      const name = c[1];
-      if (BUILTIN.has(name) || exported.has(name)) continue;
-      missing.set(name, (missing.get(name) || 0) + 1);
+  for (const source of [staticHtml, js]) {
+    for (const h of source.matchAll(/\bon[a-z]+\s*=\s*"([^"]*)"/g)) {
+      const code = h[1]
+        // 템플릿 보간 `${...}` 안은 JS 표현식이지 인라인 핸들러가 아니다.
+        //   지우지 않으면 escAttr(...) 같은 내부 호출이 오탐으로 잡힌다.
+        //   (핸들러 자체가 `${...}` 안에 있어도, on*= 를 먼저 찾으므로 검사에서 빠지지 않는다)
+        .replace(/\$\{[^{}]*\}/g, "''")
+        // 문자열 리터럴 제거 — this.style.background='rgba(...)' 같은 CSS 오탐 방지
+        .replace(/'[^']*'/g, "''");
+      for (const c of code.matchAll(/(?:^|[^.\w$])([A-Za-z_$][\w$]*)\s*\(/g)) {
+        const name = c[1];
+        if (BUILTIN.has(name) || exported.has(name)) continue;
+        missing.set(name, (missing.get(name) || 0) + 1);
+      }
     }
   }
   if (missing.size) {
