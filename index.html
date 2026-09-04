@@ -2027,13 +2027,15 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
 <div class="ov" id="cert-from-work-modal">
   <div class="modal" style="width:500px">
     <div class="modal-title">
-      <span>🎉 인증 완료! 인증 정보를 등록하세요</span>
+      <span id="cfw-title">🎉 인증 완료! 인증 정보를 등록하세요</span>
       <button class="modal-close" onclick="closeModal('cert-from-work-modal')">×</button>
     </div>
-    <div style="background:var(--ok-pale);border:1px solid #A7F3D0;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--ok)">
+    <div id="cfw-guide" style="background:var(--ok-pale);border:1px solid #A7F3D0;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--ok)">
       ✅ 업무가 완료됐어요! 인증서 취득일과 만료일을 등록하면 갱신 알림을 받을 수 있어요.
     </div>
     <input type="hidden" id="cfw-work-id">
+    <!-- 갱신 모드: 덮어쓸 기존 인증서 id (비어 있으면 신규 등록) -->
+    <input type="hidden" id="cfw-renew-id">
     <div class="frow">
       <div class="fg"><label class="fl">기업명</label>
         <input class="fi" id="cfw-comp-name" readonly style="opacity:.7">
@@ -4759,6 +4761,12 @@ function processNextCertFromCons(){
 
   // cert-from-work 모달 활용 (consId 연결)
   document.getElementById('cfw-work-id').value='cons:'+certFromConsConsId+':'+cc.bizno;
+  // ⚠️ 갱신 모드 해제 — 안 비우면 직전에 열었던 갱신 대상 인증서를 덮어쓴다
+  document.getElementById('cfw-renew-id').value='';
+  var cfwT0=document.getElementById('cfw-title');
+  if(cfwT0)cfwT0.textContent='🎉 인증 완료! 인증 정보를 등록하세요';
+  var cfwG0=document.getElementById('cfw-guide');
+  if(cfwG0)cfwG0.textContent='✅ 업무가 완료됐어요! 인증서 취득일과 만료일을 등록하면 갱신 알림을 받을 수 있어요.';
   document.getElementById('cfw-comp-name').value=comp.name;
   const masterSel=document.getElementById('cfw-master-sel');
   if(masterSel){
@@ -4853,9 +4861,31 @@ function openCertFromWork(workItemId){
   // 해당 카테고리의 관련 cert_master 목록
   const relatedMasters=getRelatedCertMasters(it.category);
 
+  // 갱신 준비 업무(createCertTasks가 만든 것)인가?
+  //   certTaskId가 곧 갱신 대상 인증서 id다. 이 경우 새로 만들지 않고 그 인증서를 덮어쓴다
+  //   (사장님 지시 2026-09-04: 갱신 이력은 남기지 않고 최신 것만 본다).
+  const renewCert=it.certTaskId
+    ? certifications.find(c=>c.id===it.certTaskId&&c.status!=='제외')
+    : null;
+
   // 인증 등록 팝업 표시
   document.getElementById('cfw-work-id').value=workItemId;
+  document.getElementById('cfw-renew-id').value=renewCert?renewCert.id:'';
   document.getElementById('cfw-comp-name').value=comp?.name||it.client||'';
+  // 갱신이면 문구와 안내를 갱신 기준으로 바꾼다 (신규 취득 문구가 그대로 뜨면 오해한다)
+  const cfwTitle=document.getElementById('cfw-title');
+  const cfwGuide=document.getElementById('cfw-guide');
+  if(renewCert){
+    const rm=getCertMasterInfo(renewCert.certMasterId);
+    if(cfwTitle)cfwTitle.textContent='🔄 인증 갱신 — 새 취득일·만료일을 입력하세요';
+    if(cfwGuide)cfwGuide.innerHTML='🔄 <b>'+escAttr(rm.certName||renewCert.certName||'인증')+'</b> 갱신입니다. '
+      +'기존 인증서를 <b>덮어씁니다</b>(이력은 남지 않습니다).<br>'
+      +'<span style="font-size:12px;opacity:.85">현재 등록값 — 취득 '+(renewCert.acqDate||'—')
+      +' · 만료 '+(renewCert.expDate||'—')+'</span>';
+  } else {
+    if(cfwTitle)cfwTitle.textContent='🎉 인증 완료! 인증 정보를 등록하세요';
+    if(cfwGuide)cfwGuide.textContent='✅ 업무가 완료됐어요! 인증서 취득일과 만료일을 등록하면 갱신 알림을 받을 수 있어요.';
+  }
   // 인증 종류 드롭다운 - 해당 카테고리 관련만
   const masterSel=document.getElementById('cfw-master-sel');
   if(masterSel)masterSel.innerHTML=relatedMasters.length
@@ -4979,21 +5009,44 @@ async function saveCertFromWork(){
       // fixed 타입
       const expDate=getDateFields('cfw-exp-y','cfw-exp-m','cfw-exp-d');
       if(!expDate){alert('만료일을 입력해주세요.');return;}
-      const certData={
-        bizno:comp._id,companyName:comp.name,
-        certMasterId:masterId,certName:m.certName,certIcon:m.icon,
-        cycleType:m.cycleType,cycleMonths:m.cycleMonths,
-        currentPhase:'',acqDate,expDate,status:'유효',memo:'',
-        workItemId,createdAt:Date.now(),updatedAt:Date.now()
-      };
-      const certRef=await addDoc(COL.certifications(),certData);
-      firstCertId=certRef.id;
-    }
-    // work_items에 certId 연결 (첫 번째 단계)
-    if(firstCertId){
-      if(!isFromCons){
-        await updateDoc(doc(db,'work_items',workItemId),{certId:firstCertId,updatedAt:Date.now()});
+      // 갱신 모드 — 기존 인증서를 덮어쓴다 (이력을 남기지 않고 최신 것만 본다)
+      //   ⚠️ 인증 종류를 바꿔 저장한 경우는 갱신이 아니라 새 인증이므로 덮어쓰지 않는다.
+      const renewId=document.getElementById('cfw-renew-id')?.value||'';
+      const renewCert=renewId?certifications.find(c=>c.id===renewId):null;
+      if(renewCert&&renewCert.certMasterId===masterId){
+        if(!confirm('['+comp.name+'] '+(m.certName||'인증')+' 갱신\n\n'
+          +'  취득일  '+(renewCert.acqDate||'—')+'  →  '+acqDate+'\n'
+          +'  만료일  '+(renewCert.expDate||'—')+'  →  '+expDate+'\n\n'
+          +'기존 인증서를 덮어씁니다. 이전 값은 남지 않습니다.\n계속하시겠습니까?'))return;
+        await updateDoc(doc(db,'certifications',renewId),{
+          acqDate,expDate,status:'유효',currentPhase:'',updatedAt:Date.now()
+        });
+        firstCertId=renewId;
+      } else {
+        const certData={
+          bizno:comp._id,companyName:comp.name,
+          certMasterId:masterId,certName:m.certName,certIcon:m.icon,
+          cycleType:m.cycleType,cycleMonths:m.cycleMonths,
+          currentPhase:'',acqDate,expDate,status:'유효',memo:'',
+          workItemId,createdAt:Date.now(),updatedAt:Date.now()
+        };
+        const certRef=await addDoc(COL.certifications(),certData);
+        firstCertId=certRef.id;
       }
+    }
+    // work_items 연결 (첫 번째 단계)
+    if(firstCertId&&!isFromCons){
+      const renewedId=document.getElementById('cfw-renew-id')?.value||'';
+      const wasRenew=renewedId&&firstCertId===renewedId;
+      await updateDoc(doc(db,'work_items',workItemId), wasRenew
+        // 갱신인 경우:
+        //  ① certId(소유) 대신 certRefId(참조) — certId를 붙이면 나중에 업무를 미완료로
+        //     되돌릴 때 saveWork가 "연결된 인증 데이터도 삭제됩니다"로 인증서를 지운다.
+        //     이 인증서는 업무가 만든 게 아니라 원래 있던 것이므로 삭제 대상이 아니다.
+        //  ② certTaskId를 비운다 — 남겨두면 certTaskExists가 "이미 업무가 있다"고 봐서
+        //     다음 갱신 주기(3년 뒤)에 새 업무·ToDo가 생기지 않는다.
+        ? {certRefId:firstCertId,certTaskId:null,updatedAt:Date.now()}
+        : {certId:firstCertId,updatedAt:Date.now()});
     }
     closeModal('cert-from-work-modal');
     setBadge('✅ 인증 등록 완료',2000);
