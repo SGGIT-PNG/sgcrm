@@ -718,6 +718,29 @@ ID 체계 통일(`e92e19b`) + 옛 일정 20건 삭제 + 24건 재등록 + 잔재
 
 ## 5. 세션 로그
 
+### 2026-10-05 (클라우드, 오후) — 1단계 기업등록: 드라이브 업체 폴더에서 가져오기
+
+사장님 결정: 로그인·보안 잠금(0단계)은 **보류**, 기업등록부터.
+
+**CRM (`index.html`)**
+- 기업 관리에 **📂 드라이브에서 가져오기** — 업체 폴더 목록을 `미등록 / 이름 일치 / 연결됨`으로 보여주고,
+  고르면 업체카드 「1. 기본정보」로 기업 창을 채운다(저장은 사람이 확인 후). 기존 기업은 **빈 칸만** 채운다.
+  이름이 달라 못 찾은 폴더는 「기존 기업에 연결…」 선택상자로 직접 연결.
+- 기업에 `compNo`(업체번호) `driveFolderId` `driveFolderName` `driveCardId` 추가. 기업 목록에 번호·📂 링크 표시.
+- 함수: `openDriveImport` `loadDriveFolders` `renderDriveImport` `driveImportPick` `parseDriveFolderName` `parseCardBasic`
+  `compNameKeys` `matchDriveFolder` `setCompDriveFields`
+- 이름 짝짓기 시험: CRM 25곳 중 21곳 자동 일치(나머지: 디엔/디앤와이푸드 오타, 에스지솔루션, 수수나, 서봉진).
+- 가짜 Firebase·Apps Script로 브라우저 시험 — 신규 등록·이름 일치 연결·수동 연결·틀린 비밀 문구 모두 정상, 콘솔 오류 0.
+
+**Apps Script v11 (`SG_CRM_Calendar_v8_Code.gs` + `getAppsScriptCode()` 둘 다)**
+- `doGet?action=drive_companies` / `drive_card&folderId=` — 읽기 전용. 「관리 업체 List」 밖 폴더는 거부.
+- 스크립트 속성 **`DRIVE_KEY`**(비밀 문구)가 맞아야 응답. CRM은 이 값을 **브라우저(localStorage)에만** 저장
+  (Firestore가 공개 상태라 §5 규칙의 예외).
+- ⚠️ **사장님 실행 필요**: Code.gs를 v11로 교체 → 스크립트 속성 DRIVE_KEY 추가 → 새 버전 배포(드라이브 권한 승인).
+
+**문서**: `COMPANY_MASTER.md` — 다른 에이전트·웹앱이 `companies`를 읽어 가는 규격.
+
+
 ### 2026-10-05 (클라우드) — 대개편 착수 전 백업 장치 + 분리 설계
 
 **배경** — 사장님 지시로 CRM 대개편 예정: ① 두 대표 공용 업무 캘린더 ② 드라이브 업체 폴더 기반 기업등록 + 각 에이전트에 기업정보 전달

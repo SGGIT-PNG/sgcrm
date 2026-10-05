@@ -1095,6 +1095,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
             <input class="search-inp" id="corp-search" placeholder="기업명, 대표자, 사업자번호, 연락처 검색..." oninput="corpCurrentPage=1;renderCompaniesPage()">
           </div>
           <button class="btn btn-ghost btn-sm" onclick="resetCorpSearch()">초기화</button>
+          <button class="btn btn-ghost" onclick="openDriveImport()" title="드라이브 「관리 업체 List」의 업체 폴더·업체카드로 등록">📂 드라이브에서 가져오기</button>
           <button class="btn btn-primary" onclick="openCompanyModal()">+ 기업 등록</button>
         </div>
         <!-- 2행: 필터 드롭다운 -->
@@ -1169,10 +1170,33 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
 </div>
 
 <!-- MODAL: 기업 등록/수정 -->
+<div class="ov" id="drive-import-modal">
+  <div class="modal" style="width:720px;max-width:96vw">
+    <div class="modal-title"><span>📂 드라이브에서 기업 가져오기</span><button class="modal-close" onclick="closeModal('drive-import-modal')">×</button></div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:10px;line-height:1.6">드라이브 「관리 업체 List」의 업체 폴더를 CRM 기업과 짝짓습니다. 고르면 업체카드 기본정보로 기업 창이 채워지고, <b>확인 후 저장</b>해야 등록됩니다. 드라이브는 읽기만 합니다.</div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+      <input class="fi" id="drive-key-inp" type="password" placeholder="드라이브 비밀 문구 (Apps Script 스크립트 속성 DRIVE_KEY와 같은 값)" style="flex:1" autocomplete="off">
+      <button class="btn btn-primary btn-sm" onclick="saveDriveKeyAndLoad()">불러오기</button>
+    </div>
+    <div id="drive-status" style="font-size:12px;margin-bottom:8px;min-height:16px"></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+      <input class="fi" id="drive-search" placeholder="업체명 검색" oninput="renderDriveImport()" style="flex:1;min-width:140px">
+      <select class="fs" id="drive-filter-sido" onchange="renderDriveImport()" style="width:150px"><option value="">전체 시도</option></select>
+      <select class="fs" id="drive-filter-state" onchange="renderDriveImport()" style="width:150px">
+        <option value="">전체 상태</option><option value="none">미등록</option><option value="same">이름 일치(연결 전)</option><option value="linked">연결됨</option>
+      </select>
+    </div>
+    <div id="drive-summary" style="font-size:12px;color:var(--text3);margin-bottom:6px"></div>
+    <div id="drive-list" style="max-height:52vh;overflow-y:auto;border:1px solid var(--border);border-radius:8px"></div>
+  </div>
+</div>
+
 <div class="ov" id="company-modal">
   <div class="modal">
     <div class="modal-title"><span id="company-modal-title">🏛️ 기업 등록</span><button class="modal-close" onclick="closeModal('company-modal')">×</button></div>
     <input type="hidden" id="comp-edit-bizno">
+    <input type="hidden" id="comp-driveFolderId"><input type="hidden" id="comp-driveFolderName"><input type="hidden" id="comp-driveCardId"><input type="hidden" id="comp-compNo">
+    <div id="comp-drive-info" style="display:none;font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:12px;line-height:1.6"></div>
     <div class="frow">
       <div class="fg"><label class="fl">기업명 *</label><input class="fi" id="comp-name" placeholder="(주)예시회사"></div>
       <div class="fg"><label class="fl">대표자</label><input class="fi" id="comp-ceo" placeholder="홍길동"></div>
@@ -7732,6 +7756,7 @@ function openCompanyModal(bizno){
     if(regionEl)regionEl.value=c.region||'';
     if(revenueEl)revenueEl.value=c.revenue||'';
     if(industryEl)industryEl.value=c.industry||'';
+    setCompDriveFields({driveFolderId:c.driveFolderId,driveFolderName:c.driveFolderName,driveCardId:c.driveCardId,compNo:c.compNo});
     toggleBizDateFields();
     // 업력 자동 계산 표시 (사업개시일 기준)
     setTimeout(calcCompAge,50);
@@ -7774,6 +7799,7 @@ function openCompanyModal(bizno){
     document.getElementById('comp-edit-bizno').value='';
     ['comp-name','comp-ceo','comp-corp-no','comp-bizno','comp-biztype','comp-tel','comp-email','comp-addr','comp-ceo-addr','comp-memo'].forEach(id=>document.getElementById(id).value='');
     ['comp-scale','comp-region','comp-revenue','comp-industry'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    setCompDriveFields(null);
     const ageDisp=document.getElementById('comp-age-display');if(ageDisp){ageDisp.textContent='사업개시일 입력 시 자동 계산';ageDisp.style.color='var(--text3)';}
     ['comp-birth-y','comp-birth-m','comp-birth-d','comp-reg-y','comp-reg-m','comp-reg-d','comp-est-y','comp-est-m','comp-est-d'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
     document.getElementById('comp-bizno-auto').textContent='';
@@ -7820,6 +7846,10 @@ async function saveCompany(){
     region:document.getElementById('comp-region')?.value||'',
     revenue:document.getElementById('comp-revenue')?.value||'',
     industry:document.getElementById('comp-industry')?.value||'',
+    driveFolderId:document.getElementById('comp-driveFolderId')?.value||'',
+    driveFolderName:document.getElementById('comp-driveFolderName')?.value||'',
+    driveCardId:document.getElementById('comp-driveCardId')?.value||'',
+    compNo:document.getElementById('comp-compNo')?.value||'',
     joinDate:editBizno?(companies.find(c=>c._id===editBizno)?.joinDate||new Date().toISOString().slice(0,10)):new Date().toISOString().slice(0,10),
     updatedAt:Date.now()
   };
@@ -7833,6 +7863,244 @@ async function saveCompany(){
     setBadge('⚠️ 저장 실패',4000);
     alert('저장 실패\n\n'+(e&&e.message||e)+'\n\n※ 사업자번호는 이 화면에서 바뀌지 않습니다. 「사업자번호 변경」 패널을 사용하세요.');
   }
+}
+// ── 드라이브 업체 폴더 → 기업등록 (2026-10) ──
+// 드라이브 「관리 업체 List / 시도 / 업체 폴더」를 기업 등록의 출발점으로 쓴다.
+// Apps Script(v11)의 drive_companies·drive_card로 폴더 목록과 업체카드를 읽기만 한다.
+// 비밀 문구(DRIVE_KEY)는 Firestore가 아니라 이 기기 브라우저에만 저장한다.
+//   (§5 규칙의 예외 — Firestore는 아직 누구나 읽을 수 있어서 비밀 값을 둘 수 없다)
+const DRIVE_KEY_LS='sgcrm_drive_key';
+let driveFolders=null;          // [{id,name,sido,updated,cardId,cardName, ...parsed}]
+let driveLoading=false;
+function getDriveKey(){try{return localStorage.getItem(DRIVE_KEY_LS)||'';}catch(e){return '';}}
+function setDriveKey(v){try{v?localStorage.setItem(DRIVE_KEY_LS,v):localStorage.removeItem(DRIVE_KEY_LS);}catch(e){}}
+async function driveCall(params){
+  const s=getGcalSettings();
+  if(!s.webhookUrl)throw new Error('구글 연동 주소(Apps Script)가 없습니다. 「구글 캘린더 연동」에서 먼저 설정하세요.');
+  const key=getDriveKey();
+  if(!key)throw new Error('드라이브 비밀 문구를 입력하세요.');
+  const qs=Object.keys(params).map(k=>k+'='+encodeURIComponent(params[k])).join('&');
+  const url=s.webhookUrl+(s.webhookUrl.indexOf('?')>-1?'&':'?')+qs+'&key='+encodeURIComponent(key);
+  const resp=await fetch(url,{method:'GET',redirect:'follow'});
+  if(!resp.ok)throw new Error('HTTP '+resp.status);
+  const j=await resp.json();
+  if(!j.ok)throw new Error(j.error||'응답 오류');
+  return j;
+}
+// 기업명 비교용: 법인 표기·공백·기호 제거
+function normCompName(n){
+  return String(n||'').replace(/주식회사|유한회사|농업회사법인|영농조합법인|\(주\)|㈜|\(유\)|\(사\)|\s|[()·.,\-_]/g,'').toLowerCase();
+}
+// 시도 폴더 이름 → 기업 지역 선택값 ("5. 전남광주통합"처럼 둘이 섞인 곳은 비워 둔다)
+function sidoToRegion(s){
+  s=String(s||'');
+  if(s.includes('전남광주'))return '';
+  const map=[['서울','서울'],['부산','부산'],['대구','대구'],['인천','인천'],['광주','광주'],['대전','대전'],['울산','울산'],['세종','세종'],['경기','경기'],['강원','강원'],
+    ['충청북','충북'],['충북','충북'],['충청남','충남'],['충남','충남'],['전라북','전북'],['전북','전북'],['전라남','전남'],['전남','전남'],
+    ['경상북','경북'],['경북','경북'],['경상남','경남'],['경남','경남'],['제주','제주']];
+  for(const [k,v] of map)if(s.includes(k))return v;
+  return '';
+}
+// 폴더 이름 "용인_(주)청림테크_김태후대표님" → {city, name, ceo}
+function parseDriveFolderName(fn){
+  const raw=String(fn||'').trim();
+  let ceo='';
+  const ceoM=raw.match(/([가-힣]{2,4})\s*대표(님)?/);
+  if(ceoM)ceo=ceoM[1];
+  const toks=raw.split(/[_\-]/).map(t=>t.trim()).filter(Boolean);
+  const isCorpTok=t=>/\(주\)|㈜|주식회사|\(유\)|유한회사|법인/.test(t);
+  const isPlace=t=>/^[가-힣]{1,4}(시|군|구)?$/.test(t)&&t.length<=4&&!isCorpTok(t);
+  let city='',name='';
+  let rest=toks.slice();
+  if(rest.length>1&&isPlace(rest[0])&&!/대표/.test(rest[0])){city=rest.shift();}
+  let ci=rest.findIndex(isCorpTok);
+  // "(유)농업회사법인_지리산사람들"처럼 법인 표기만 있는 칸이면 다음 칸이 상호
+  if(ci>=0&&!rest[ci].replace(/\(주\)|㈜|주식회사|\(유\)|유한회사|농[업헙]회사법인|영농조합법인|법인/g,'').trim()&&rest[ci+1]){
+    name=(/\(유\)|유한/.test(rest[ci])?'(유)':'(주)')+rest[ci+1];
+  }else{
+    name=ci>=0?rest[ci]:(rest.find(t=>!/대표|팀장|본부장|기획총괄/.test(t))||rest[0]||raw);
+  }
+  name=name.replace(/\((?!주\)|유\))[^)]*\)/g,'').replace(/^[가-힣]{2,4}\s*대표(님)?\s+/,'').replace(/[가-힣]{2,4}\s*대표(님)?$/,'').trim();
+  if(name.startsWith('주식회사')&&name.length>4)name='(주)'+name.slice(4).trim();
+  else if(name.endsWith('주식회사')&&name.length>4)name='(주)'+name.slice(0,-4).trim();
+  const individual=/개인사업자/.test(raw);
+  const closed=/폐업/.test(raw);
+  return {city,name,ceo,individual,closed};
+}
+// 업체카드 「1. 기본정보」 표 → 입력값 제안
+function parseCardBasic(md){
+  const r={};
+  const text=String(md||'');
+  const secIdx=text.search(/\n##\s*1\.\s*기본정보/);
+  const sec=secIdx>=0?text.slice(secIdx,text.indexOf('\n## ',secIdx+5)>0?text.indexOf('\n## ',secIdx+5):undefined):text;
+  sec.split('\n').forEach(line=>{
+    const m=line.match(/^\|\s*([^|]+?)\s*\|\s*(.+?)\s*\|\s*$/);if(!m)return;
+    const k=m[1].replace(/\s/g,'');const v=m[2].trim();
+    if(/^-+$/.test(k)||k==='항목')return;
+    const clean=s=>s.replace(/\[(증빙|채팅|법령)\]/g,'').replace(/⚠/g,'').trim();
+    if(k==='회사명'||k==='상호'||k==='기업명'){
+      const b=v.match(/\d{3}-\d{2}-\d{5}/);if(b)r.bizno=b[0];
+      r.name=clean(v.replace(/\([^)]*\d{3}-\d{2}-\d{5}[^)]*\)/,''));
+    }else if(k==='대표'||k==='대표자'){
+      const n=clean(v).match(/^[가-힣A-Za-z]{2,10}/);if(n)r.ceo=n[0];
+    }else if(k==='소재지'||k==='주소'||k==='본점'){
+      r.addr=clean(v.replace(/\(관할[^)]*\)/,''));
+    }else if(k.startsWith('설립')||k.startsWith('개업')){
+      const ds=v.match(/\d{4}\.\d{1,2}\.\d{1,2}/g);
+      if(ds){const [y,mo,d]=ds[ds.length-1].split('.');r.estDate=y+'-'+p2(+mo)+'-'+p2(+d);}
+    }else if(k==='업종'||k==='업태'){
+      r.biztype=clean(v).replace(/\s*—\s*/,' · ').slice(0,60);
+    }else if(k==='기업규모'||k==='규모'){
+      ['중견기업','대기업','중기업','소기업'].forEach(s=>{if(!r.scale&&v.includes(s))r.scale=s;});
+    }else if(k==='연락처'||k==='전화'){
+      const t=v.match(/0\d{1,2}-?\d{3,4}-?\d{4}/);if(t)r.tel=t[0];
+    }else if(k==='이메일'){
+      const e=v.match(/[\w.+-]+@[\w-]+\.[\w.]+/);if(e)r.email=e[0];
+    }
+  });
+  if(r.biztype){
+    const b=r.biztype;
+    r.industry=/제조/.test(b)?'제조':/소프트웨어|정보통신|IT|플랫폼/.test(b)?'IT':/바이오|의료|제약/.test(b)?'바이오':/건설|부동산/.test(b)?'건설'
+      :/도소매|유통|물류|운송/.test(b)?'유통':/농업|식품|음식/.test(b)?'농업':/에너지|환경|태양광/.test(b)?'에너지':/서비스/.test(b)?'서비스':'';
+  }
+  return r;
+}
+// 같은 회사의 여러 표기: "아이씨피지(ICPG)" ↔ "ICPG", "제이알(JR)컴퍼니" ↔ "JR컴퍼니", "반헤어(BAN HAIR)" ↔ "반헤어"
+function compNameKeys(n){
+  n=String(n||'');
+  const keys=[normCompName(n.replace(/\((?!주\)|유\))[^)]*\)/g,''))];
+  const inner=n.match(/\((?!주\)|유\))([^)]+)\)/);
+  if(inner)keys.push(normCompName(inner[1]));
+  keys.push(normCompName(n.replace(/[가-힣]+\(([A-Za-z0-9 &]+)\)/,'$1')));
+  return [...new Set(keys.filter(k=>k.length>=2))];
+}
+// 폴더 ↔ 기존 기업 짝짓기: 이미 연결된 것 우선, 없으면 이름이 같은 기업
+function matchDriveFolder(f){
+  const linked=companies.find(c=>c.driveFolderId===f.id);
+  if(linked)return {state:'linked',company:linked};
+  const fk=compNameKeys((f.parsed||parseDriveFolderName(f.name)).name);
+  if(fk.length){
+    const same=companies.find(c=>!c.driveFolderId&&compNameKeys(c.name).some(k=>fk.includes(k)));
+    if(same)return {state:'same',company:same};
+  }
+  return {state:'none',company:null};
+}
+async function openDriveImport(){
+  openModal('drive-import-modal');
+  const keyEl=document.getElementById('drive-key-inp');
+  if(keyEl)keyEl.value=getDriveKey();
+  if(!driveFolders&&getDriveKey())await loadDriveFolders();
+  else renderDriveImport();
+}
+async function saveDriveKeyAndLoad(){
+  const v=(document.getElementById('drive-key-inp')?.value||'').trim();
+  setDriveKey(v);
+  driveFolders=null;
+  await loadDriveFolders();
+}
+async function loadDriveFolders(){
+  if(driveLoading)return;
+  driveLoading=true;
+  const st=document.getElementById('drive-status');
+  if(st){st.textContent='🔄 드라이브 업체 폴더를 읽는 중... (10~20초)';st.style.color='var(--text3)';}
+  try{
+    const j=await driveCall({action:'drive_companies'});
+    driveFolders=(j.folders||[]).map(f=>Object.assign({},f,{parsed:parseDriveFolderName(f.name)}));
+    if(st){st.textContent='✅ 업체 폴더 '+driveFolders.length+'개 · 업체카드 '+driveFolders.filter(f=>f.cardId).length+'개';st.style.color='var(--ok)';}
+  }catch(e){
+    if(st){st.textContent='⚠️ '+(e.message||e);st.style.color='var(--danger)';}
+  }
+  driveLoading=false;
+  renderDriveImport();
+}
+function renderDriveImport(){
+  const box=document.getElementById('drive-list');if(!box)return;
+  if(!driveFolders){box.innerHTML='<div style="padding:24px;text-align:center;color:var(--text4);font-size:13px">비밀 문구를 입력하고 「불러오기」를 누르세요.</div>';return;}
+  const q=normCompName(document.getElementById('drive-search')?.value||'');
+  const sido=document.getElementById('drive-filter-sido')?.value||'';
+  const stf=document.getElementById('drive-filter-state')?.value||'';
+  const sidoSel=document.getElementById('drive-filter-sido');
+  if(sidoSel&&sidoSel.options.length<=1){
+    [...new Set(driveFolders.map(f=>f.sido))].sort((a,b)=>parseInt(a)-parseInt(b)).forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sidoSel.appendChild(o);});
+  }
+  const rows=driveFolders.map(f=>Object.assign({},f,{m:matchDriveFolder(f)}))
+    .filter(f=>(!q||normCompName(f.name).includes(q))&&(!sido||f.sido===sido)&&(!stf||f.m.state===stf))
+    .sort((a,b)=>({none:0,same:1,linked:2}[a.m.state]-{none:0,same:1,linked:2}[b.m.state])||(b.updated||'').localeCompare(a.updated||''));
+  const cnt={none:0,same:0,linked:0};driveFolders.forEach(f=>cnt[matchDriveFolder(f).state]++);
+  const sumEl=document.getElementById('drive-summary');
+  if(sumEl)sumEl.innerHTML='미등록 <b>'+cnt.none+'</b> · 이름 일치(연결 전) <b>'+cnt.same+'</b> · 연결됨 <b>'+cnt.linked+'</b>';
+  if(!rows.length){box.innerHTML='<div style="padding:24px;text-align:center;color:var(--text4);font-size:13px">조건에 맞는 폴더가 없습니다.</div>';return;}
+  const chip={none:['미등록','#FEF3C7','#92400E'],same:['이름 일치','#E0F2FE','#075985'],linked:['연결됨','#DCFCE7','#166534']};
+  // 이름이 달라 자동으로 못 찾은 폴더를 기존 기업에 직접 연결 (예: 디엔와이푸드 ↔ 디앤와이푸드)
+  const linkOpts='<option value="">기존 기업에 연결…</option>'+companies.filter(c=>!c.driveFolderId&&c.active!=='N')
+    .sort((a,b)=>a.name.localeCompare(b.name,'ko')).map(c=>'<option value="'+escAttr(c._id)+'">'+escAttr(c.name)+'</option>').join('');
+  box.innerHTML=rows.map(f=>{
+    const c=chip[f.m.state];
+    const btn=f.m.state==='linked'?'열기':f.m.state==='same'?'연결':'등록';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border)">'
+      +'<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;background:'+c[1]+';color:'+c[2]+';white-space:nowrap">'+c[0]+'</span>'
+      +'<div style="flex:1;min-width:0">'
+        +'<div style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escAttr(f.name)+'</div>'
+        +'<div style="font-size:11px;color:var(--text4)">'+escAttr(f.sido)+(f.cardName?' · 📇 '+escAttr(f.cardName):' · 업체카드 없음')
+          +(f.m.company?' · CRM: '+escAttr(f.m.company.name):'')+'</div>'
+      +'</div>'
+      +(f.m.state==='none'?'<select class="fs" style="width:150px;font-size:12px" data-id="'+escAttr(f.id)+'" onchange="if(this.value)driveImportPick(this.dataset.id,this.value)">'+linkOpts+'</select>':'')
+      +'<button class="btn btn-ghost btn-sm" onclick="driveImportPick(this.dataset.id)" data-id="'+escAttr(f.id)+'">'+btn+'</button>'
+      +'</div>';
+  }).join('');
+}
+// 폴더 하나를 골라 기업 등록(또는 기존 기업에 연결) 창을 채운다 — 저장은 사람이 확인 후 「저장」
+async function driveImportPick(folderId,forceBizno){
+  const f=(driveFolders||[]).find(x=>x.id===folderId);if(!f)return;
+  const forced=forceBizno?companies.find(c=>c._id===forceBizno):null;
+  const m=forced?{state:'same',company:forced}:matchDriveFolder(f);
+  const st=document.getElementById('drive-status');
+  if(st){st.textContent='🔄 「'+f.name+'」 업체카드를 읽는 중...';st.style.color='var(--text3)';}
+  let data=null;
+  try{data=(await driveCall({action:'drive_card',folderId})).data;}
+  catch(e){if(st){st.textContent='⚠️ '+(e.message||e);st.style.color='var(--danger)';}return;}
+  if(st){st.textContent='';}
+  const fromName=f.parsed||parseDriveFolderName(f.name);
+  const card=data.card?parseCardBasic(data.card.text):{};
+  const noM=data.card&&data.card.name.match(/^(\d{2,3})_업체카드/);
+  const compNo=noM&&noM[1]!=='00'?noM[1]:'';
+  const sug={
+    name:card.name||fromName.name, ceo:card.ceo||fromName.ceo, bizno:card.bizno||'',
+    addr:card.addr||'', estDate:card.estDate||'', biztype:card.biztype||'', industry:card.industry||'',
+    scale:card.scale||'', tel:card.tel||'', email:card.email||'', region:sidoToRegion(f.sido),
+    bizclass:fromName.individual?'개인':(/\(주\)|㈜|주식회사|\(유\)|법인/.test(card.name||f.name)?'법인':''),
+  };
+  closeModal('drive-import-modal');
+  const existing=m.company;
+  openCompanyModal(existing?existing._id:undefined);
+  // 기존 기업: 빈 칸만 채운다(사람이 넣은 값은 건드리지 않음) / 새 기업: 제안값으로 채운다
+  const onlyEmpty=!!existing;
+  const put=(id,v)=>{const el=document.getElementById(id);if(!el||!v)return;if(onlyEmpty&&el.value)return;el.value=v;};
+  put('comp-name',sug.name);put('comp-ceo',sug.ceo);put('comp-addr',sug.addr);put('comp-biztype',sug.biztype);
+  put('comp-tel',sug.tel);put('comp-email',sug.email);put('comp-scale',sug.scale);put('comp-region',sug.region);put('comp-industry',sug.industry);
+  if(!existing){
+    if(sug.bizno){const b=document.getElementById('comp-bizno');b.value=sug.bizno;checkBizno();}
+    if(sug.bizclass){document.getElementById('comp-bizclass').value=sug.bizclass;toggleBizDateFields();}
+  }
+  if(sug.estDate&&!(onlyEmpty&&getDateFields('comp-est-y','comp-est-m','comp-est-d'))){setDateFields('comp-est-y','comp-est-m','comp-est-d',sug.estDate);calcCompAge();}
+  setCompDriveFields({driveFolderId:f.id,driveFolderName:f.name,driveCardId:data.card?data.card.id:'',compNo:compNo||(existing&&existing.compNo)||''},data);
+  if(existing&&sug.bizno&&existing._id!==sug.bizno.replace(/-/g,'')&&existing._id!==sug.bizno){
+    alert('업체카드의 사업자번호('+sug.bizno+')가 CRM 기업('+existing._id+')과 다릅니다.\n같은 회사가 맞는지 확인하세요. 번호를 바꾸려면 아래 「사업자번호 변경」 패널을 쓰세요.');
+  }
+}
+// 기업 창의 드라이브 연결 정보 (숨김 값 + 안내 줄)
+function setCompDriveFields(v,data){
+  v=v||{};
+  ['driveFolderId','driveFolderName','driveCardId','compNo'].forEach(k=>{const el=document.getElementById('comp-'+k);if(el)el.value=v[k]||'';});
+  const info=document.getElementById('comp-drive-info');if(!info)return;
+  if(!v.driveFolderId){info.style.display='none';info.innerHTML='';return;}
+  const docs=data&&data.basicDocs?data.basicDocs:null;
+  info.style.display='block';
+  info.innerHTML='📂 <b>'+(v.compNo?'['+escAttr(v.compNo)+'] ':'')+escAttr(v.driveFolderName||'드라이브 폴더')+'</b>'
+    +' <a href="https://drive.google.com/drive/folders/'+encodeURIComponent(v.driveFolderId)+'" target="_blank" rel="noopener" style="color:var(--blue)">폴더 열기</a>'
+    +(v.driveCardId?' · <a href="https://drive.google.com/file/d/'+encodeURIComponent(v.driveCardId)+'/view" target="_blank" rel="noopener" style="color:var(--blue)">업체카드</a>':' · 업체카드 없음')
+    +(data?'<div style="margin-top:4px;color:var(--text3)">'+(data.card?'업체카드 기본정보로 채웠습니다. 저장 전에 확인하세요.':'업체카드가 없어 폴더 이름으로만 채웠습니다. 사업자번호 등은 직접 입력하세요.')
+      +(docs?'<br>1.기본공통서류: '+(docs.length?escAttr(docs.slice(0,8).join(', '))+(docs.length>8?' 외 '+(docs.length-8)+'개':''):'없음'):'')+'</div>':'');
 }
 async function deleteCompany(){
   const bizno=document.getElementById('comp-edit-bizno').value;
@@ -8062,7 +8330,7 @@ function renderCompaniesPage(){
     const grpIcon=GROUP_BADGE[c.group]||'🏢';
     const cid=c._id.replace(/'/g,"\'");
     rows+='<tr style="'+(isInactive?'opacity:.5':'')+'">'
-      +'<td><div style="font-size:13px;font-weight:500;cursor:pointer;color:var(--blue)" onclick="openCompanyModal(this.dataset.id)" data-id="'+cid+'" title="클릭하여 수정">'+c.name+'</div>'+(isInactive?'<span style="font-size:11px;color:var(--danger)">비활성</span>':'')+'</td>'
+      +'<td><div style="font-size:13px;font-weight:500;cursor:pointer;color:var(--blue)" onclick="openCompanyModal(this.dataset.id)" data-id="'+cid+'" title="클릭하여 수정">'+(c.compNo?'<span style="font-size:11px;color:var(--text4);font-weight:400">'+c.compNo+' </span>':'')+c.name+(c.driveFolderId?' <a href="https://drive.google.com/drive/folders/'+encodeURIComponent(c.driveFolderId)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="드라이브 업체 폴더" style="text-decoration:none">📂</a>':'')+'</div>'+(isInactive?'<span style="font-size:11px;color:var(--danger)">비활성</span>':'')+'</td>'
       +'<td><span style="font-size:12px">'+grpIcon+' '+(c.group||'일반고객')+'</span></td>'
       +'<td>'+(c.ceo||'—')+'</td>'
       +'<td style="color:var(--text3)">'+(c.region||'—')+'</td>'
@@ -10176,7 +10444,12 @@ function doGet(e){
   try{
     var p=(e&&e.parameter)||{};
     if(p.action==="list")return jsonOut({ok:true,events:listEvents(p.from,p.to)});
-    return jsonOut({ok:true,message:"SG솔루션 CRM 캘린더 연동 정상 v10"});
+    if(p.action==="drive_companies"||p.action==="drive_card"){
+      if(!driveKeyOk(p.key))return jsonOut({ok:false,error:"드라이브 비밀 문구가 맞지 않습니다"});
+      if(p.action==="drive_companies")return jsonOut({ok:true,folders:driveCompanies()});
+      return jsonOut({ok:true,data:driveCard(p.folderId)});
+    }
+    return jsonOut({ok:true,message:"SG솔루션 CRM 캘린더 연동 정상 v11"});
   }catch(err){ return jsonOut({ok:false,error:err.message}); }
 }
 
@@ -10279,7 +10552,97 @@ function deleteEvent(type,id){
 function tagKey(t,id){return"sgcrm_"+t+"_"+id;}
 function saveEventTag(t,id,eid){PropertiesService.getScriptProperties().setProperty(tagKey(t,id),eid);}
 function findEventByTag(t,id){return PropertiesService.getScriptProperties().getProperty(tagKey(t,id));}
-function removeEventTag(t,id){PropertiesService.getScriptProperties().deleteProperty(tagKey(t,id));}`;
+function removeEventTag(t,id){PropertiesService.getScriptProperties().deleteProperty(tagKey(t,id));}
+// ── 드라이브 → CRM: 업체 폴더·업체카드 읽기 (v11, 기업등록용, 읽기 전용) ──
+// 스크립트 속성 DRIVE_KEY(비밀 문구)가 맞아야만 응답한다. Firestore에는 저장하지 않는 값.
+var DRIVE_ROOT_ID="1r56aiSxuFYoR-XR72e_XyvETVqfJxTaX";  // 관리 업체 List
+
+function driveKeyOk(k){
+  var s=PropertiesService.getScriptProperties().getProperty("DRIVE_KEY");
+  return !!s&&!!k&&k===s;
+}
+
+// "8. 경기도" 처럼 숫자+점으로 시작하는 시도 폴더만
+function isSidoName(n){
+  var dot=n.indexOf(".");
+  return dot>0&&!isNaN(Number(n.slice(0,dot)));
+}
+
+// 이력 카드: <번호>_업체카드_<업체명>_YYMMDD-HHMM.md
+function isHistoryCard(nm){
+  var base=nm.slice(-3)===".md"?nm.slice(0,-3):nm;
+  var t=base.slice(-12);
+  return t.charAt(0)==="_"&&t.charAt(7)==="-"&&!isNaN(Number(t.slice(1,7)))&&!isNaN(Number(t.slice(8)));
+}
+
+// 업체 폴더 목록 + 업체카드 위치
+function driveCompanies(){
+  var root=DriveApp.getFolderById(DRIVE_ROOT_ID);
+  var out=[];
+  var sidos=root.getFolders();
+  while(sidos.hasNext()){
+    var sd=sidos.next();var sn=sd.getName();
+    if(!isSidoName(sn))continue;
+    var fs=sd.getFolders();
+    while(fs.hasNext()){
+      var f=fs.next();
+      out.push({id:f.getId(),name:f.getName(),sido:sn,updated:f.getLastUpdated().toISOString()});
+    }
+  }
+  // 카드는 업체 폴더 바로 안, 또는 그 안의 「업체카드」 폴더에 있다
+  var cards={};
+  var it=DriveApp.searchFiles("title contains '_업체카드_' and trashed = false");
+  while(it.hasNext()){
+    var c=it.next();var nm=c.getName();
+    if(isHistoryCard(nm))continue;
+    var ps=c.getParents();
+    while(ps.hasNext()){
+      var p=ps.next();var fid=p.getId();
+      if(p.getName()==="업체카드"){var pp=p.getParents();if(pp.hasNext())fid=pp.next().getId();}
+      cards[fid]={id:c.getId(),name:nm};
+    }
+  }
+  out.forEach(function(o){var c=cards[o.id];if(c){o.cardId=c.id;o.cardName=c.name;}});
+  return out;
+}
+
+function findCardIn(folder){
+  var it=folder.searchFiles("title contains '_업체카드_' and trashed = false");
+  while(it.hasNext()){var c=it.next();if(!isHistoryCard(c.getName()))return c;}
+  return null;
+}
+
+// 업체 폴더가 관리 업체 List 아래에 있는지 (다른 폴더를 읽지 못하게)
+function isUnderRoot(f){
+  for(var i=0;i<4;i++){
+    var ps=f.getParents();
+    if(!ps.hasNext())return false;
+    f=ps.next();
+    if(f.getId()===DRIVE_ROOT_ID)return true;
+  }
+  return false;
+}
+
+// 업체 폴더 하나: 업체카드 본문 + 「1.기본공통서류」 파일 이름
+function driveCard(folderId){
+  if(!folderId)throw new Error("folderId가 없습니다");
+  var f=DriveApp.getFolderById(folderId);
+  if(!isUnderRoot(f))throw new Error("관리 업체 List 밖의 폴더입니다");
+  var card=findCardIn(f);
+  if(!card){var sub=f.getFoldersByName("업체카드");if(sub.hasNext())card=findCardIn(sub.next());}
+  var docs=[];
+  var b=f.getFoldersByName("1.기본공통서류");
+  if(b.hasNext()){
+    var fi=b.next().getFiles();
+    while(fi.hasNext()&&docs.length<50){var x=fi.next();docs.push(x.getName());}
+  }
+  return {
+    folder:{id:f.getId(),name:f.getName(),url:f.getUrl()},
+    card:card?{id:card.getId(),name:card.getName(),text:card.getBlob().getDataAsString("UTF-8")}:null,
+    basicDocs:docs
+  };
+}
+`;
 }
 
 // ── MOBILE ──
@@ -10463,6 +10826,7 @@ loadAll();
 Object.assign(window,{
   navTo,manualSave,closeModal,
   downloadBackup,openRestorePicker,restoreBackupFile,
+  openDriveImport,saveDriveKeyAndLoad,renderDriveImport,driveImportPick,
   fmtBizno,fmtCorpno,fmtTel,consDateCompose,composeApprovedDate,
   toggleMobileDrawer,closeMobileDrawer,mobileNavTo,
   openExcelModal,downloadExcel,updateXlPreview,
