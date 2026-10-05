@@ -732,11 +732,15 @@ ID 체계 통일(`e92e19b`) + 옛 일정 20건 삭제 + 24건 재등록 + 잔재
 - 이름 짝짓기 시험: CRM 25곳 중 21곳 자동 일치(나머지: 디엔/디앤와이푸드 오타, 에스지솔루션, 수수나, 서봉진).
 - 가짜 Firebase·Apps Script로 브라우저 시험 — 신규 등록·이름 일치 연결·수동 연결·틀린 비밀 문구 모두 정상, 콘솔 오류 0.
 
-**Apps Script v11 (`SG_CRM_Calendar_v8_Code.gs` + `getAppsScriptCode()` 둘 다)**
+**드라이브 전용 Apps Script `SG_CRM_Drive.gs` (새 프로젝트 「SG CRM 드라이브」)**
+- 처음엔 캘린더 스크립트를 v11로 확장했으나, 사장님 sgceo 계정 Apps Script 목록에 「SG솔루션 CRM」이
+  **보이지 않아**(캘린더 일정은 sgceo 이름으로 정상 생성 중 — 프로젝트 위치 미확인) **별도 프로젝트로 분리**.
+  캘린더 스크립트·앱 내장 사본은 **v10 그대로 원복**(배포본과 동일).
 - `doGet?action=drive_companies` / `drive_card&folderId=` — 읽기 전용. 「관리 업체 List」 밖 폴더는 거부.
-- 스크립트 속성 **`DRIVE_KEY`**(비밀 문구)가 맞아야 응답. CRM은 이 값을 **브라우저(localStorage)에만** 저장
+- 스크립트 속성 **`DRIVE_KEY`**(비밀 문구)가 맞아야 응답. CRM은 **연결 주소·비밀 문구를 브라우저(localStorage)에만** 저장
   (Firestore가 공개 상태라 §5 규칙의 예외).
-- ⚠️ **사장님 실행 필요**: Code.gs를 v11로 교체 → 스크립트 속성 DRIVE_KEY 추가 → 새 버전 배포(드라이브 권한 승인).
+- ⚠️ **사장님 실행 필요**: sgceo 계정으로 새 프로젝트 → 코드 붙여넣기 → DRIVE_KEY → 웹 앱 배포 → URL을 CRM에 입력.
+- 🔎 미해결: 캘린더 스크립트 「SG솔루션 CRM」의 실제 위치(시트에 붙은 스크립트이거나 다른 소유자일 가능성).
 
 **문서**: `COMPANY_MASTER.md` — 다른 에이전트·웹앱이 `companies`를 읽어 가는 규격.
 
