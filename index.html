@@ -568,6 +568,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
     <div class="mob-drawer-item" onclick="closeMobileDrawer();setTimeout(openExcelModal,200)">📊 엑셀 다운로드</div>
     <div class="mob-drawer-item" onclick="closeMobileDrawer();setTimeout(openReportModal,200)">📄 레포트 출력</div>
     <div class="mob-drawer-item" onclick="closeMobileDrawer();setTimeout(openFinanceModal,200)">📈 재무제표 분석</div>
+    <div class="mob-drawer-item" onclick="closeMobileDrawer();downloadBackup()">🗄️ 데이터 백업 내려받기</div>
 
   </div>
 
@@ -622,6 +623,11 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
     <div onclick="openGcalModal()" id="gcal-sidebar-btn" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:7px;padding:7px 12px;text-align:center;cursor:pointer;font-size:12px;font-weight:500;color:rgba(255,255,255,.7);margin-bottom:6px;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.15)'" onmouseout="this.style.background='rgba(255,255,255,.08)'">🗓️ 구글 캘린더 연동</div>
     <div onclick="openExcelModal()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:7px;padding:7px 12px;text-align:center;cursor:pointer;font-size:12px;font-weight:500;color:rgba(255,255,255,.7);margin-bottom:6px;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.15)'" onmouseout="this.style.background='rgba(255,255,255,.08)'">📊 엑셀 다운로드</div>
     <div onclick="openReportModal()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:7px;padding:7px 12px;text-align:center;cursor:pointer;font-size:12px;font-weight:500;color:rgba(255,255,255,.7);margin-bottom:6px;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.15)'" onmouseout="this.style.background='rgba(255,255,255,.08)'">📄 레포트 출력</div>
+    <div style="display:flex;gap:6px;margin-bottom:6px">
+      <div onclick="downloadBackup()" title="Firestore 전체 데이터를 JSON 파일로 내려받습니다" style="flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:7px;padding:7px 6px;text-align:center;cursor:pointer;font-size:12px;font-weight:500;color:rgba(255,255,255,.7)">🗄️ 백업</div>
+      <div onclick="openRestorePicker()" title="백업 파일 상태로 되돌립니다 (현재 데이터는 먼저 자동 백업)" style="flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:7px;padding:7px 6px;text-align:center;cursor:pointer;font-size:12px;font-weight:500;color:rgba(255,255,255,.7)">↩️ 복원</div>
+      <input type="file" id="backup-file-input" accept=".json,application/json" style="display:none" onchange="restoreBackupFile(this)">
+    </div>
     <div class="sb-save" id="save-badge" onclick="manualSave()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:7px;padding:7px 12px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;color:var(--text2);transition:all .15s;margin-bottom:6px;">💾 저장</div>
     <div class="sb-time" id="live-time-sb"></div>
   </div>
@@ -2920,6 +2926,92 @@ async function manualSave(){
   setBadge('🔄 저장 중...');
   try{await setDoc(COL.app_state(),appStatePayload());setBadge('✅ 저장됨',2000);}
   catch(e){setBadge('⚠️ 실패');}
+}
+
+// ── 데이터 백업·복원 ──
+// 대개편(2026-10) 전후로 "이전 상태로 되돌리기"가 필요할 때를 위한 장치.
+// 백업 = Firestore 전체를 JSON 한 파일로 내려받기 (읽기만 하므로 언제 눌러도 안전)
+// 복원 = 그 파일 상태로 되돌리기 (현재 데이터를 먼저 자동 백업한 뒤 덮어씀)
+const BACKUP_COLS=['companies','consulting','consulting_company','work_items','todos','categories','certifications','cert_master','annual_reports','iso_audits'];
+function backupStamp(){const d=new Date();return d.getFullYear()+p2(d.getMonth()+1)+p2(d.getDate())+'_'+p2(d.getHours())+p2(d.getMinutes());}
+async function collectBackup(){
+  const out={app:'SG솔루션 CRM',project:'sg-crm-f9adc',format:'sgcrm-backup-v1',exportedAt:new Date().toISOString(),collections:{},appState:null};
+  for(const c of BACKUP_COLS){
+    const snap=await getDocs(collection(db,c));
+    out.collections[c]=snap.docs.map(d=>({id:d.id,data:d.data()}));
+  }
+  const st=await getDoc(COL.app_state());
+  out.appState=st.exists()?st.data():null;
+  return out;
+}
+function saveJsonFile(obj,name){
+  const blob=new Blob([JSON.stringify(obj,null,1)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+}
+function backupSummary(b){
+  return BACKUP_COLS.map(c=>c+' '+((b.collections[c]||[]).length)+'건').join(' · ');
+}
+async function downloadBackup(){
+  setBadge('🔄 백업 중...');
+  try{
+    const b=await collectBackup();
+    saveJsonFile(b,'sgcrm_backup_'+backupStamp()+'.json');
+    console.log('[백업] '+backupSummary(b));
+    setBadge('✅ 백업 완료',3000);
+  }catch(e){
+    setBadge('⚠️ 백업 실패',4000);
+    alert('백업 실패\n\n'+(e&&e.message||e));
+  }
+}
+function openRestorePicker(){document.getElementById('backup-file-input')?.click();}
+async function restoreBackupFile(input){
+  const file=input.files&&input.files[0];input.value='';
+  if(!file)return;
+  let b;
+  try{b=JSON.parse(await file.text());}catch(e){alert('백업 파일을 읽을 수 없습니다 (JSON 형식 아님).');return;}
+  if(!b||b.format!=='sgcrm-backup-v1'||!b.collections){alert('SG CRM 백업 파일이 아닙니다.\n「💾 백업 내려받기」로 만든 파일만 복원할 수 있습니다.');return;}
+  // 지금 상태와 비교해 무엇이 바뀌는지 먼저 보여준다
+  let cur;
+  try{setBadge('🔄 비교 중...');cur=await collectBackup();}catch(e){setBadge('⚠️ 실패',3000);alert('현재 데이터 조회 실패\n\n'+(e&&e.message||e));return;}
+  const lines=[];let delTotal=0,putTotal=0;
+  for(const c of BACKUP_COLS){
+    const want=new Map((b.collections[c]||[]).map(x=>[x.id,x]));
+    const have=new Map((cur.collections[c]||[]).map(x=>[x.id,x]));
+    let add=0,chg=0,del=0;
+    want.forEach((x,id)=>{const h=have.get(id);if(!h)add++;else if(JSON.stringify(h.data)!==JSON.stringify(x.data))chg++;});
+    have.forEach((x,id)=>{if(!want.has(id))del++;});
+    delTotal+=del;putTotal+=add+chg;
+    if(add||chg||del)lines.push('· '+c+': 되살림 '+add+' / 되돌림 '+chg+' / 삭제 '+del);
+  }
+  setBadge('💾 저장');
+  if(!lines.length){alert('백업 파일과 현재 데이터가 같습니다. 복원할 것이 없습니다.');return;}
+  const when=(b.exportedAt||'').replace('T',' ').slice(0,16);
+  if(!confirm('백업 시점('+when+' UTC) 상태로 되돌립니다.\n\n'+lines.join('\n')+'\n\n· 복원 전에 지금 데이터를 자동으로 한 번 더 백업(내려받기)합니다.\n· 구글 캘린더 일정은 바뀌지 않습니다.\n\n계속할까요?'))return;
+  if(!confirm('정말 복원할까요? 백업 이후에 입력한 내용은 사라집니다.'))return;
+  try{
+    saveJsonFile(cur,'sgcrm_backup_'+backupStamp()+'_복원직전.json');
+    setBadge('🔄 복원 중...');
+    const ops=[];
+    for(const c of BACKUP_COLS){
+      const want=new Map((b.collections[c]||[]).map(x=>[x.id,x]));
+      (cur.collections[c]||[]).forEach(x=>{if(!want.has(x.id))ops.push({t:'del',ref:doc(db,c,x.id)});});
+      want.forEach((x,id)=>ops.push({t:'set',ref:doc(db,c,id),data:x.data}));
+    }
+    for(let i=0;i<ops.length;i+=400){   // 배치 한도(500) 아래로 분할
+      const batch=writeBatch(db);
+      ops.slice(i,i+400).forEach(o=>o.t==='del'?batch.delete(o.ref):batch.set(o.ref,o.data));
+      await batch.commit();
+    }
+    if(b.appState)await setDoc(COL.app_state(),b.appState);
+    console.log('[복원] '+file.name+' → '+putTotal+'건 기록, '+delTotal+'건 삭제');
+    setBadge('✅ 복원 완료',3000);
+    alert('복원했습니다. 화면을 새로고침합니다.');
+    location.reload();
+  }catch(e){
+    setBadge('⚠️ 복원 실패',4000);
+    alert('복원 중 오류\n\n'+(e&&e.message||e)+'\n\n복원 직전 데이터는 방금 내려받은 「_복원직전」 파일에 있습니다.');
+  }
 }
 
 // ── NAVIGATION ──
@@ -10370,6 +10462,7 @@ loadAll();
 // ── GLOBAL EXPORTS ──
 Object.assign(window,{
   navTo,manualSave,closeModal,
+  downloadBackup,openRestorePicker,restoreBackupFile,
   fmtBizno,fmtCorpno,fmtTel,consDateCompose,composeApprovedDate,
   toggleMobileDrawer,closeMobileDrawer,mobileNavTo,
   openExcelModal,downloadExcel,updateXlPreview,
