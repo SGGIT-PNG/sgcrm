@@ -1,5 +1,5 @@
 /**
- * SG CRM 드라이브 연결 — 업체 폴더·업체카드 읽기 전용 (v1, 2026-10)
+ * SG CRM 드라이브 연결 — 업체 폴더·업체카드·사업자등록증 읽기 (v2, 2026-10)
  *
  * 하는 일: 드라이브 「관리 업체 List」의 업체 폴더 목록과 업체카드 내용을 CRM 기업등록 화면에 넘겨준다.
  *         읽기만 한다. 드라이브의 파일·폴더를 만들거나 고치거나 지우지 않는다.
@@ -16,6 +16,12 @@
  *  5. 나온 「웹 앱 URL」(…/exec)을 복사 → CRM 「드라이브에서 가져오기」 창의 「드라이브 연결 주소」에 붙여넣기
  *     비밀 문구도 같은 값으로 입력
  *
+ * v2 추가 — 사업자등록증 읽기(action=biz_cert):
+ *   업체 폴더(하위 3단계까지)에서 이름에 「사업자등록증」이 든 PDF·JPG·PNG를 찾아 구글 드라이브 OCR로 글자를 읽는다.
+ *   ⚠️ 왼쪽 「서비스 +」에서 **Drive API**를 추가해야 한다(식별자 Drive). 추가 후 「새 버전」으로 재배포.
+ *   OCR은 임시 구글 문서를 만들어 글자를 꺼낸 뒤 그 임시 문서를 바로 휴지통으로 보낸다. 원본 파일은 건드리지 않는다.
+ *   같은 파일은 6시간 동안 결과를 기억해 다시 읽지 않는다.
+ *
  * 비밀 문구를 두는 이유: CRM에는 아직 로그인이 없다. 주소만 알아서는 업체카드(사업자번호·매출 등)를
  *   읽지 못하게 한다. 주소와 비밀 문구는 Firestore가 아니라 각 기기 브라우저에만 저장된다.
  */
@@ -29,7 +35,8 @@ function doGet(e){
     if(!driveKeyOk(p.key))return jsonOut({ok:false,error:"드라이브 비밀 문구가 맞지 않습니다"});
     if(p.action==="drive_companies")return jsonOut({ok:true,folders:driveCompanies()});
     if(p.action==="drive_card")return jsonOut({ok:true,data:driveCard(p.folderId)});
-    return jsonOut({ok:true,message:"SG CRM 드라이브 연결 정상 v1"});
+    if(p.action==="biz_cert")return jsonOut({ok:true,data:bizCert(p.folderId)});
+    return jsonOut({ok:true,message:"SG CRM 드라이브 연결 정상 v2"});
   }catch(err){
     return jsonOut({ok:false,error:err.message});
   }
@@ -120,5 +127,56 @@ function driveCard(folderId){
     folder:{id:f.getId(),name:f.getName(),url:f.getUrl()},
     card:card?{id:card.getId(),name:card.getName(),text:card.getBlob().getDataAsString("UTF-8")}:null,
     basicDocs:docs
+  };
+}
+
+// ── v2: 사업자등록증 찾기 + OCR ──
+var CERT_TYPES={"application/pdf":1,"application/haansoftpdf":1,"image/jpeg":1,"image/png":1};
+// 신청서·합치기 같은 묶음 파일은 뒤로 미룬다
+function certScore(f){
+  var n=f.getName();var s=0;
+  if(n.indexOf("합치기")>-1||n.indexOf("신청서")>-1||n.indexOf("계획서")>-1)s-=100;
+  if(n.indexOf("OCR")>-1)s+=5;               // 이미 글자층이 있는 PDF
+  if(f.getMimeType().indexOf("pdf")>-1)s+=3;  // 사진보다 PDF가 정확
+  return s;
+}
+function findBizCerts(folder,depth,out){
+  var it=folder.searchFiles("title contains '사업자등록증' and trashed = false");
+  while(it.hasNext()){var f=it.next();if(CERT_TYPES[f.getMimeType()])out.push(f);}
+  if(depth<=0)return out;
+  var subs=folder.getFolders();
+  while(subs.hasNext()){var sf=subs.next();if(sf.getName()==="_카드이력")continue;findBizCerts(sf,depth-1,out);}
+  return out;
+}
+function ocrText(file){
+  var cache=CacheService.getScriptCache();
+  var ck="ocr_"+file.getId()+"_"+file.getLastUpdated().getTime();
+  var hit=cache.get(ck);if(hit)return hit;
+  var blob=file.getBlob();
+  if(file.getMimeType()==="application/haansoftpdf")blob.setContentType("application/pdf");
+  var docId;
+  if(Drive.Files.insert){   // Drive API v2
+    docId=Drive.Files.insert({title:"_sgcrm_ocr_tmp",mimeType:"application/vnd.google-apps.document"},blob,{ocr:true,ocrLanguage:"ko"}).id;
+  }else{                    // Drive API v3
+    docId=Drive.Files.create({name:"_sgcrm_ocr_tmp",mimeType:"application/vnd.google-apps.document"},blob,{ocrLanguage:"ko"}).id;
+  }
+  var text="";
+  try{ text=DocumentApp.openById(docId).getBody().getText(); }
+  finally{ DriveApp.getFileById(docId).setTrashed(true); }
+  if(text.length<90000)cache.put(ck,text,21600);
+  return text;
+}
+function bizCert(folderId){
+  if(!folderId)throw new Error("folderId가 없습니다");
+  var f=DriveApp.getFolderById(folderId);
+  if(!isUnderRoot(f))throw new Error("관리 업체 List 밖의 폴더입니다");
+  var list=findBizCerts(f,3,[]);
+  if(!list.length)return {file:null,text:"",candidates:[]};
+  list.sort(function(a,b){return (certScore(b)-certScore(a))||(b.getLastUpdated().getTime()-a.getLastUpdated().getTime());});
+  var best=list[0];
+  return {
+    file:{id:best.getId(),name:best.getName(),updated:best.getLastUpdated().toISOString()},
+    text:ocrText(best),
+    candidates:list.slice(0,8).map(function(x){return x.getName();})
   };
 }
