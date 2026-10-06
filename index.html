@@ -2493,7 +2493,6 @@ async function loadAll(){
       calWeekAnchor=d.calWeekAnchor||'';
       gcalSettings=d.gcalSettings||{};
       todoRules=Object.assign({},TODO_RULES_DEFAULT,d.todoRules||{});
-      voiceDismissed=Array.isArray(d.voiceDismissed)?d.voiceDismissed:[];
     }
     // 구글 캘린더 설정 이전: localStorage → Firestore (idempotent, 최초 1회만 동작)
     // 예전엔 브라우저마다 따로 저장돼 PC·폰에서 각각 입력해야 했음
@@ -2959,7 +2958,6 @@ function appStatePayload(){
     calWeekAnchor,
     gcalSettings,
     todoRules,
-    voiceDismissed,
     updatedAt:Date.now(),
   };
 }
@@ -4590,7 +4588,6 @@ async function deleteConsulting(){
 const TODO_RULES_DEFAULT={stallDays:14,soonDays:3,horizonDays:30,leadDays:14};
 let todoRules=Object.assign({},TODO_RULES_DEFAULT);   // app_state에 저장 (appStatePayload)
 const TODO_SRC={manual:'손 입력',voice:'음성 일정',cert:'인증 갱신',iso:'ISO',annual:'연간신고',lead:'잠재고객',card:'업체카드',secretary:'비서'};
-let voiceDismissed=[];   // 받은함에서 「무시」한 구글 일정 ID (app_state에 저장, 최근 300개)
 let todoFilter={bizno:'',category:'',source:''};
 let todoShowDone=false;
 const TODO_ME_LS='sgcrm_me';
@@ -4737,7 +4734,6 @@ function renderTodo(sfx){
         +'<button class="btn btn-ghost btn-sm" onclick="todoEditRules()" title="놓친 일 판단 기준">기준: 멈춤 '+todoRules.stallDays+'일 · 임박 '+todoRules.soonDays+'일 · 앞으로 '+todoRules.horizonDays+'일 · 잠재고객 '+todoRules.leadDays+'일</button>'
       +'</div>'
     +'</div>'
-    +'<div id="todo-voice">'+todoVoiceHtml()+'</div>'
     +'<div class="todo-wrap4">'+TODO_COLS.map(c=>
       '<div class="todo-col" style="background:'+c.bg+'">'
         +'<div class="todo-col-hd"><span style="color:'+c.color+'">●</span>'+c.label+'<span style="margin-left:auto;font-family:\'JetBrains Mono\',monospace;font-size:12px;color:'+c.color+';font-weight:700">'+g[c.k].length+'</span></div>'
@@ -4748,7 +4744,7 @@ function renderTodo(sfx){
       +(todoShowDone?'<div class="todo-wrap4" style="margin-top:8px">'+(doneRecent.map(todoCardHtml).join('')||'<div style="font-size:13px;color:var(--text4)">없음</div>')+'</div>':'')
     +'</div>';
   todoQuickHint();
-  if(getDriveUrl()&&getDriveKey()&&!voiceState.loading&&Date.now()-voiceState.at>5*60000)todoVoiceLoad();
+  if(getDriveUrl()&&getDriveKey()&&!voiceMove.busy&&Date.now()-voiceMove.at>2*60000)todoVoiceMove();
 }
 function todoSetFilter(k,v){todoFilter[k]=v;renderTodo('sub');}
 function todoEditRules(){
@@ -4761,77 +4757,18 @@ function todoEditRules(){
   saveAppState();renderTodo('sub');renderTodo('');
 }
 
-// ── 📥 음성 일정 받은함 — 제미나이로 sgceo 기본 캘린더에 넣은 「할일」 일정 → 할 일 (확인 후 추가) ──
-//   드라이브 스크립트(v5) action=voice_inbox 로 읽는다. 캘린더는 읽기만 한다.
-let voiceState={at:0,loading:false,err:'',marked:[],others:[],sel:{},showOthers:false};
-function voiceCleanTitle(t){return String(t||'').replace(/\[?\s*할\s*일\s*\]?\s*[:：\-]?\s*/,' ').replace(/\s{2,}/g,' ').trim()||String(t||'');}
-function voiceTaken(id){return voiceDismissed.includes(id)||todos.some(t=>t.source==='voice'&&t.sourceRef===id);}
-async function todoVoiceLoad(){
-  if(voiceState.loading)return;
-  voiceState.loading=true;voiceState.err='';todoVoiceRender();
+// ── 음성 「할일」 일정 → 할 일 (드라이브 스크립트 v5가 옮기고 캘린더에서 지운다) ──
+//   스크립트가 10분마다 알아서 옮기지만, 할 일 화면을 열 때도 한 번 불러 바로 들어오게 한다(2분에 한 번까지).
+//   옮겨진 할 일은 Firestore 실시간 구독으로 화면에 나타난다.
+let voiceMove={at:0,busy:false};
+async function todoVoiceMove(){
+  voiceMove.busy=true;voiceMove.at=Date.now();
   try{
-    const j=await driveCall({action:'voice_inbox'});
-    if(!j.data)throw new Error('드라이브 스크립트가 옛 버전입니다 — SG_CRM_Drive.gs v5로 교체 후 「새 버전」으로 다시 배포하세요');
-    voiceState.marked=j.data.marked||[];voiceState.others=j.data.others||[];
-    voiceState.marked.forEach(e=>{if(voiceState.sel[e.id]===undefined)voiceState.sel[e.id]=true;});
-  }catch(e){voiceState.err='음성 받은함: '+e.message;}
-  voiceState.at=Date.now();voiceState.loading=false;todoVoiceRender();
-}
-function todoVoiceRender(){const el=document.getElementById('todo-voice');if(el)el.innerHTML=todoVoiceHtml();}
-function todoVoiceRow(e){
-  const id=escAttr(e.id);const clean=voiceCleanTitle(e.title);const co=todoFindCompany(clean);
-  return '<label style="display:flex;gap:8px;align-items:center;font-size:13px;padding:3px 0">'
-    +'<input type="checkbox"'+(voiceState.sel[e.id]?' checked':'')+' data-id="'+id+'" onchange="todoVoiceToggle(this.dataset.id,this.checked)">'
-    +'<span style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:var(--text3);flex-shrink:0">'+e.date.slice(5)+(e.time?' '+e.time:'')+'</span>'
-    +'<span style="flex:1">'+escAttr(clean)+'</span>'
-    +(co?'<span class="todo-chip" style="background:#EEF2FF;color:#3730A3">🏢 '+escAttr(co.name)+'</span>':'')
-    +'<button class="btn btn-ghost btn-sm todo-btn" data-id="'+id+'" onclick="event.preventDefault();todoVoiceDismiss(this.dataset.id)" title="할 일로 만들지 않고 받은함에서 숨깁니다">무시</button>'
-    +'</label>';
-}
-function todoVoiceHtml(){
-  if(!getDriveUrl()||!getDriveKey())return '';
-  const vs=voiceState;
-  const marked=vs.marked.filter(e=>!voiceTaken(e.id));
-  const others=vs.others.filter(e=>!voiceTaken(e.id));
-  if(!vs.at&&!vs.loading)return '';
-  if(!marked.length&&!others.length&&!vs.err&&!vs.loading)return '';
-  const nSel=marked.concat(others).filter(e=>vs.sel[e.id]).length;
-  return '<div style="background:#F5F3FF;border:1px solid #DDD6FE;border-radius:10px;padding:10px 14px;margin-bottom:14px">'
-    +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
-      +'<span style="font-size:13px;font-weight:600;color:#6D28D9">📥 음성 일정 받은함 '+marked.length+'</span>'
-      +'<span style="font-size:12px;color:var(--text3)">제미나이로 캘린더에 넣은 「할일」 일정 — 고른 것만 할 일로 옮깁니다</span>'
-      +'<span style="flex:1"></span>'
-      +(vs.loading?'<span style="font-size:12px;color:var(--text3)">불러오는 중…</span>':'<button class="btn btn-ghost btn-sm todo-btn" onclick="todoVoiceLoad()">새로고침</button>')
-      +(nSel?'<button class="btn btn-primary btn-sm" onclick="todoVoiceApply()">고른 '+nSel+'건 할 일로 추가</button>':'')
-    +'</div>'
-    +(vs.err?'<div style="font-size:12px;color:var(--danger);margin-top:6px">'+escAttr(vs.err)+'</div>':'')
-    +(marked.length?'<div style="margin-top:6px">'+marked.map(todoVoiceRow).join('')+'</div>':'')
-    +(others.length?'<div style="margin-top:6px"><div onclick="todoVoiceToggleOthers()" style="cursor:pointer;font-size:12px;color:var(--text3)">'
-      +(vs.showOthers?'▾':'▸')+' 기타 새 일정 '+others.length+'건 (「할일」 표시어 없이 최근 2주 안에 만든 일정)</div>'
-      +(vs.showOthers?others.map(todoVoiceRow).join(''):'')+'</div>':'')
-    +'</div>';
-}
-function todoVoiceToggle(id,on){voiceState.sel[id]=on;todoVoiceRender();}
-function todoVoiceToggleOthers(){voiceState.showOthers=!voiceState.showOthers;todoVoiceRender();}
-function todoVoiceDismiss(id){
-  if(!voiceDismissed.includes(id))voiceDismissed=voiceDismissed.concat([id]).slice(-300);
-  delete voiceState.sel[id];saveAppState();todoVoiceRender();
-}
-async function todoVoiceApply(){
-  const pick=voiceState.marked.concat(voiceState.others).filter(e=>voiceState.sel[e.id]&&!voiceTaken(e.id));
-  if(!pick.length)return;
-  let n=0;
-  for(const e of pick){
-    const p=parseQuickTodo(voiceCleanTitle(e.title));
-    const data={text:p.text,status:'wait',dueDate:e.date,source:'voice',sourceRef:e.id,
-      memo:'음성 일정 '+e.date+(e.time?' '+e.time:'')+(e.location?' · '+e.location:''),
-      createdBy:getTodoMe()||'',createdAt:Date.now(),updatedAt:Date.now()};
-    if(p.company){data.bizno=p.company._id;data.companyName=p.company.name;}
-    try{await addDoc(COL.todos(),data);delete voiceState.sel[e.id];n++;}
-    catch(err){alert('저장 실패: '+err.message);break;}
-  }
-  setBadge('📥 음성 일정 '+n+'건 할 일로 추가',2500);
-  todoVoiceRender();
+    const j=await driveCall({action:'voice_move'});
+    const n=j.data&&j.data.moved||0;
+    if(n)setBadge('🎙️ 음성 할 일 '+n+'건 들어옴',3000);
+  }catch(e){console.warn('[음성 할 일] 옮기기 건너뜀:',e.message);}
+  voiceMove.busy=false;
 }
 function todoToggleDone(){todoShowDone=!todoShowDone;renderTodo('sub');}
 // 버튼 방식 상태 변경 — 예전엔 카드를 누르면 상태가 돌아가 실수로 바뀌기 쉬웠다
@@ -11674,7 +11611,7 @@ Object.assign(window,{
   openConsResultModal,saveConsResult,onCrResultChange,
   openTodoModal,saveTodo,cycleTodo,deleteTodoItem,
   todoSetStatus,todoPostpone,todoQuickHint,todoQuickSave,todoSetFilter,todoEditRules,todoToggleDone,setTodoMe,
-  todoLinkSuggest,todoFromLead,todoLeadContacted,todoVoiceLoad,todoVoiceToggle,todoVoiceToggleOthers,todoVoiceDismiss,todoVoiceApply,todoCardImport,todoCardToggle,todoCardApply,createAnnualTasks,
+  todoLinkSuggest,todoFromLead,todoLeadContacted,todoCardImport,todoCardToggle,todoCardApply,createAnnualTasks,
   renderWork,openWorkModal,saveWork,confirmDeleteWork,cycleWork,syncWorkFromCert,
   renderClientsPage,setCliPageOv,setCliPageSub,setCliGroupFilter,
   renderStatsPage,setStatsYear,setStatsCat,setStatsCompPage,exportStatsExcel,

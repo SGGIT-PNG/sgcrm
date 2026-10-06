@@ -1,8 +1,9 @@
 /**
- * SG CRM 드라이브 연결 — 업체 폴더·업체카드·사업자등록증 읽기 + 음성 일정 받은함 (v5, 2026-10)
+ * SG CRM 드라이브 연결 — 업체 폴더·업체카드·사업자등록증 읽기 + 음성 「할일」 자동 옮기기 (v5, 2026-10)
  *
  * 하는 일: 드라이브 「관리 업체 List」의 업체 폴더 목록과 업체카드 내용을 CRM 기업등록 화면에 넘겨준다.
- *         읽기만 한다. 드라이브의 파일·폴더를 만들거나 고치거나 지우지 않는다.
+ *         드라이브는 읽기만 한다(파일·폴더를 만들거나 고치거나 지우지 않는다).
+ *         예외(v5): 「할일」 표시 캘린더 일정은 CRM 할 일로 옮긴 뒤 캘린더에서 지운다.
  *         캘린더 연동 스크립트(SG솔루션 CRM)와는 별개의 프로젝트다 — 캘린더 쪽은 건드리지 않는다.
  *
  * 처음 설치 (sgceo@sgsolutionss.com 계정으로):
@@ -23,11 +24,13 @@
  *   같은 파일은 6시간 동안 결과를 기억해 다시 읽지 않는다.
  *   v4: 파일 이름이 「사업자 등록증」(띄어쓰기)·「사업자등록증명」이어도 찾는다.
  *
- * v5 추가 — 음성 일정 받은함(action=voice_inbox):
- *   제미나이 음성으로 sgceo 기본 캘린더에 넣은 일정 중 제목에 「할일」(또는 「할 일」)이 든 것을 CRM 할 일 화면
- *   「📥 음성 받은함」에 보여 준다. 표시어 없는 최근 일정은 「기타 새 일정」으로 접어서 보여 준다.
- *   CRM이 캘린더로 보낸 일정([ToDo]·[인증만료] 등)은 빼고, 캘린더는 읽기만 한다.
- *   설치: 코드 교체 → 저장 → 「배포 관리」에서 기존 배포를 **새 버전**으로 수정 → 캘린더 권한 허용 창이 뜨면 허용.
+ * v5 추가 — 음성 「할일」 일정 → CRM 할 일 자동 옮기기 (action=voice_move + 10분 트리거):
+ *   제미나이 음성으로 sgceo 기본 캘린더에 넣은 일정 중 제목에 「할일」(또는 「할 일」)이 든 것을
+ *   CRM 할 일(todos)로 저장하고, 저장이 확인되면 **캘린더에서 그 일정을 지운다**(구글 캘린더 휴지통에서 복구 가능).
+ *   기업명이 제목에 있으면 CRM 기업과 자동 연결. CRM이 보낸 일정([ToDo] 등)과 반복 일정은 건드리지 않는다.
+ *   CRM 할 일 화면을 열 때도 한 번 돌린다(10분을 기다리지 않게).
+ *   설치(1회): 코드 교체 → 저장 → 함수 선택에서 **setupVoiceTrigger** 실행 → 권한 허용(캘린더·외부 요청)
+ *             → 「배포 관리」에서 기존 배포를 **새 버전**으로 수정.
  *
  * 비밀 문구를 두는 이유: CRM에는 아직 로그인이 없다. 주소만 알아서는 업체카드(사업자번호·매출 등)를
  *   읽지 못하게 한다. 주소와 비밀 문구는 Firestore가 아니라 각 기기 브라우저에만 저장된다.
@@ -43,7 +46,7 @@ function doGet(e){
     if(p.action==="drive_companies")return jsonOut({ok:true,folders:driveCompanies()});
     if(p.action==="drive_card")return jsonOut({ok:true,data:driveCard(p.folderId)});
     if(p.action==="biz_cert")return jsonOut({ok:true,data:bizCert(p.folderId)});
-    if(p.action==="voice_inbox")return jsonOut({ok:true,data:voiceInbox()});
+    if(p.action==="voice_move")return jsonOut({ok:true,data:moveVoiceTodos()});
     return jsonOut({ok:true,message:"SG CRM 드라이브 연결 정상 v5"});
   }catch(err){
     return jsonOut({ok:false,error:err.message});
@@ -202,27 +205,104 @@ function bizCert(folderId){
   };
 }
 
-// ── v5: 음성 일정 받은함 ──
+// ── v5: 음성 「할일」 일정 → CRM 할 일로 옮기기 (옮긴 뒤 캘린더 일정은 삭제) ──
 // CRM이 캘린더로 보내는 일정 제목 (캘린더 연동 스크립트 CRM_TITLE_RE와 같게 유지)
 var CRM_TITLE_RE=/^\[(인증만료|인증완료|연간신고|지원사업|ToDo|ISO심사)\]/;
 var VOICE_MARK_RE=/할\s*일/;
 var TZ="Asia/Seoul";
+var FS_PROJECT="sg-crm-f9adc";
+var FS_KEY="AIzaSyD7EoihxcX9zIbr1n4NiXK_qlWpv8p5gRk";   // CRM index.html과 같은 웹 API 키(공개값)
+var FS_BASE="https://firestore.googleapis.com/v1/projects/"+FS_PROJECT+"/databases/(default)/documents/";
 function fmtD(d){return Utilities.formatDate(d,TZ,"yyyy-MM-dd");}
-// 표시어 있는 일정: 지난 30일 ~ 앞으로 180일 / 기타: 최근 14일 안에 만든 일정
-function voiceInbox(){
-  var cal=CalendarApp.getDefaultCalendar();
-  var now=new Date();
-  var from=new Date(now.getTime()-30*86400000),to=new Date(now.getTime()+180*86400000);
-  var recent=now.getTime()-14*86400000;
-  var marked=[],others=[];
-  cal.getEvents(from,to).forEach(function(ev){
-    var t=ev.getTitle()||"";
-    if(!t||CRM_TITLE_RE.test(t))return;
-    var allDay=ev.isAllDayEvent();var st=ev.getStartTime();
-    var o={id:ev.getId(),title:t,date:fmtD(st),time:allDay?"":Utilities.formatDate(st,TZ,"HH:mm"),
-           created:ev.getDateCreated().getTime(),location:ev.getLocation()||""};
-    if(VOICE_MARK_RE.test(t))marked.push(o);
-    else if(o.created>=recent)others.push(o);
+function cleanVoiceTitle(t){
+  var c=String(t||"").replace(/\[?\s*할\s*일\s*\]?\s*[:：\-]?\s*/," ").replace(/\s{2,}/g," ").trim();
+  return c||String(t||"");
+}
+// 기업명 짝짓기 — CRM normCompName·compNameKeys와 같은 규칙
+function normCompName(n){
+  return String(n||"").replace(/주식회사|유한회사|농업회사법인|영농조합법인|\(주\)|㈜|\(유\)|\(사\)|\s|[()·.,\-_]/g,"").toLowerCase();
+}
+function compNameKeys(n){
+  n=String(n||"");
+  var keys=[normCompName(n.replace(/\((?!주\)|유\))[^)]*\)/g,""))];
+  var inner=n.match(/\((?!주\)|유\))([^)]+)\)/);
+  if(inner)keys.push(normCompName(inner[1]));
+  keys.push(normCompName(n.replace(/[가-힣]+\(([A-Za-z0-9 &]+)\)/,"$1")));
+  return keys.filter(function(k,i){return k.length>=2&&keys.indexOf(k)===i;});
+}
+function findCompany(text,comps){
+  var nt=normCompName(text),best=null,len=0;
+  comps.forEach(function(c){
+    if(c.active==="N")return;
+    compNameKeys(c.name).forEach(function(k){if(k.length>len&&nt.indexOf(k)>-1){best=c;len=k.length;}});
   });
-  return {marked:marked,others:others.slice(0,60)};
+  return best;
+}
+function listCompanies(){
+  var out=[],tok="";
+  do{
+    var j=JSON.parse(UrlFetchApp.fetch(FS_BASE+"companies?pageSize=300&key="+FS_KEY+(tok?"&pageToken="+tok:"")).getContentText());
+    (j.documents||[]).forEach(function(d){
+      var f=d.fields||{};
+      out.push({id:d.name.split("/").pop(),name:(f.name&&f.name.stringValue)||"",active:(f.active&&f.active.stringValue)||""});
+    });
+    tok=j.nextPageToken||"";
+  }while(tok);
+  return out;
+}
+// 같은 일정은 늘 같은 문서 ID → 두 번 돌아도 한 건만 생긴다 (이미 있으면 409)
+function voiceDocId(evId){
+  return "voice_"+Utilities.computeDigest(Utilities.DigestAlgorithm.MD5,evId).map(function(b){return ("0"+(b&255).toString(16)).slice(-2);}).join("");
+}
+function writeTodo(evId,data){
+  var fields={};
+  Object.keys(data).forEach(function(k){
+    var v=data[k];
+    fields[k]=typeof v==="number"?{integerValue:String(v)}:{stringValue:String(v)};
+  });
+  var r=UrlFetchApp.fetch(FS_BASE+"todos?documentId="+voiceDocId(evId)+"&key="+FS_KEY,
+    {method:"post",contentType:"application/json",payload:JSON.stringify({fields:fields}),muteHttpExceptions:true});
+  var code=r.getResponseCode();
+  if(code===200||code===409)return true;           // 409 = 전에 이미 옮김
+  throw new Error("할 일 저장 실패 HTTP "+code+": "+r.getContentText().slice(0,200));
+}
+// 지난 30일 ~ 앞으로 180일 중 제목에 「할일」이 든 일정 → 할 일로 저장 → 저장이 확인된 것만 캘린더에서 삭제
+//   반복 일정은 시리즈 전체가 지워질 수 있어 건너뛴다. 지운 일정은 구글 캘린더 휴지통에서 되살릴 수 있다.
+function moveVoiceTodos(){
+  var lock=LockService.getScriptLock();
+  if(!lock.tryLock(20000))return {moved:0,skipped:"다른 실행 중"};
+  try{
+    var cal=CalendarApp.getDefaultCalendar();
+    var now=new Date();
+    var evs=cal.getEvents(new Date(now.getTime()-30*86400000),new Date(now.getTime()+180*86400000)).filter(function(ev){
+      var t=ev.getTitle()||"";
+      return t&&!CRM_TITLE_RE.test(t)&&VOICE_MARK_RE.test(t)&&!ev.isRecurringEvent();
+    });
+    if(!evs.length)return {moved:0,items:[]};
+    var comps=listCompanies();
+    var items=[];
+    evs.forEach(function(ev){
+      var allDay=ev.isAllDayEvent(),st=ev.getStartTime();
+      var date=fmtD(st),time=allDay?"":Utilities.formatDate(st,TZ,"HH:mm"),loc=ev.getLocation()||"";
+      var text=cleanVoiceTitle(ev.getTitle());
+      var co=findCompany(text,comps);
+      var nowMs=Date.now();
+      var data={text:text,status:"wait",dueDate:date,source:"voice",sourceRef:ev.getId(),
+        memo:"음성 일정 "+date+(time?" "+time:"")+(loc?" · "+loc:""),createdBy:"음성",
+        createdAt:nowMs,updatedAt:nowMs};
+      if(co){data.bizno=co.id;data.companyName=co.name;}
+      writeTodo(ev.getId(),data);
+      ev.deleteEvent();
+      items.push(date+(time?" "+time:"")+" "+text);
+    });
+    console.log("[음성 할 일] 옮김 "+items.length+"건: "+items.join(" / "));
+    return {moved:items.length,items:items};
+  }finally{lock.releaseLock();}
+}
+function voiceTrigger(){moveVoiceTodos();}          // 10분 트리거가 부르는 함수
+// 10분마다 자동 옮기기 트리거 설치 (여러 번 실행해도 하나만 남는다)
+function setupVoiceTrigger(){
+  ScriptApp.getProjectTriggers().forEach(function(t){if(t.getHandlerFunction()==="voiceTrigger")ScriptApp.deleteTrigger(t);});
+  ScriptApp.newTrigger("voiceTrigger").timeBased().everyMinutes(10).create();
+  Logger.log("음성 할 일 자동 옮기기 설치 완료 — 10분마다. 지금 한 번 실행: "+JSON.stringify(moveVoiceTodos()));
 }
