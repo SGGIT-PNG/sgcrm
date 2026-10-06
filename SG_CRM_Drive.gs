@@ -32,6 +32,8 @@
  *   v5.1: 제미나이에 「할 일」이라고 말하면 캘린더가 아니라 **구글 Tasks**에 저장된다 → Tasks의 끝나지 않은 할 일도
  *         전부 CRM 할 일로 옮기고 Tasks에서 지운다. ⚠️ 왼쪽 「서비스 +」에서 **Tasks API**(식별자 Tasks) 추가 필요.
  *         (하위 할 일이 달린 할 일·하위 할 일은 건너뜀)
+ *   v5.3: action=cal_list — CRM 일정관리에 sgceo 기본 캘린더 일정을 보여 준다(읽기만).
+ *         예전 캘린더 스크립트(「SG솔루션 CRM」)의 목록 기능을 대신한다. 그 스크립트의 위치를 찾지 못해 여기로 옮김.
  *   v5.2: 실행 로그를 console.log로(편집기 「실행 로그」 창에 확실히 보이게), voiceDiag 오류도 로그로.
  *   설치(1회): 코드 교체 → 저장 → 함수 선택에서 **setupVoiceTrigger** 실행 → 권한 허용(캘린더·외부 요청)
  *             → 「배포 관리」에서 기존 배포를 **새 버전**으로 수정.
@@ -51,7 +53,8 @@ function doGet(e){
     if(p.action==="drive_card")return jsonOut({ok:true,data:driveCard(p.folderId)});
     if(p.action==="biz_cert")return jsonOut({ok:true,data:bizCert(p.folderId)});
     if(p.action==="voice_move")return jsonOut({ok:true,data:moveVoiceTodos()});
-    return jsonOut({ok:true,message:"SG CRM 드라이브 연결 정상 v5.2"});
+    if(p.action==="cal_list")return jsonOut({ok:true,events:calList(p.from,p.to)});
+    return jsonOut({ok:true,message:"SG CRM 드라이브 연결 정상 v5.3"});
   }catch(err){
     return jsonOut({ok:false,error:err.message});
   }
@@ -362,4 +365,29 @@ function setupVoiceTrigger(){
   ScriptApp.newTrigger("voiceTrigger").timeBased().everyMinutes(10).create();
   console.log("음성 할 일 자동 옮기기 설치 완료 — 10분마다.");
   console.log("지금 한 번 실행: "+JSON.stringify(moveVoiceTodos()));
+}
+
+// ── v5.3: CRM 일정관리용 구글 일정 목록 (읽기만) ──
+// from/to: 'YYYY-MM-DD' (둘 다 포함). CRM이 보낸 일정([ToDo]·[인증만료] 등)은 CRM이 직접 그리므로 뺀다.
+function calList(from,to){
+  var cal=CalendarApp.getDefaultCalendar();
+  var s=from?new Date(from+"T00:00:00+09:00"):new Date();
+  var t=to?new Date(to+"T00:00:00+09:00"):new Date(s.getTime()+62*86400000);
+  if(isNaN(s.getTime())||isNaN(t.getTime()))throw new Error("날짜 형식 오류 (YYYY-MM-DD)");
+  if(t.getTime()-s.getTime()>400*86400000)throw new Error("조회 기간이 너무 깁니다");
+  t=new Date(t.getTime()+86400000);          // 종료일 포함
+  return cal.getEvents(s,t).filter(function(ev){
+    return !CRM_TITLE_RE.test(ev.getTitle()||"");
+  }).map(function(ev){
+    var allDay=ev.isAllDayEvent(),st=ev.getStartTime(),en=ev.getEndTime();
+    var endIncl=allDay?new Date(en.getTime()-86400000):en;   // 올데이 종료는 다음날 0시 → 하루 빼기
+    if(endIncl.getTime()<st.getTime())endIncl=st;
+    return {
+      id:ev.getId(),title:ev.getTitle()||"(제목 없음)",allDay:allDay,
+      start:fmtD(st),end:fmtD(endIncl),
+      startTime:allDay?"":Utilities.formatDate(st,TZ,"HH:mm"),
+      endTime:allDay?"":Utilities.formatDate(en,TZ,"HH:mm"),
+      location:ev.getLocation()||""
+    };
+  });
 }

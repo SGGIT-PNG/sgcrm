@@ -3794,12 +3794,22 @@ async function loadGcalExternal(rs,re){
   gcalExternal.loading=true;gcalExternal.error='';
   updateGcalExtStatus();
   try{
-    var url=s.webhookUrl+(s.webhookUrl.indexOf('?')>-1?'&':'?')
-      +'action=list&from='+encodeURIComponent(rs)+'&to='+encodeURIComponent(re);
-    var resp=await fetch(url,{method:'GET',redirect:'follow'});
-    if(!resp.ok)throw new Error('HTTP '+resp.status);
-    var j=await resp.json();
-    if(!j.ok)throw new Error(j.error||'응답 오류');
+    var j;
+    // 2026-10-06: 드라이브 스크립트(v5.3, sgceo)로 읽는 것을 먼저 쓴다 — 예전 캘린더 스크립트의 목록 조회가 응답하지 않아서.
+    //   드라이브 연결이 없는 기기이거나 옛 버전이면 예전 웹훅으로.
+    if(getDriveUrl()&&getDriveKey()){
+      try{ j=await driveCall({action:'cal_list',from:rs,to:re}); if(!j.events)j=null; }
+      catch(e1){ console.warn('[구글 일정] 드라이브 스크립트 조회 실패 — 예전 웹훅으로:',e1.message); j=null; }
+    }
+    if(!j){
+      if(!s.webhookUrl)throw new Error('드라이브 연결 또는 구글 캘린더 연동 주소가 필요합니다');
+      var url=s.webhookUrl+(s.webhookUrl.indexOf('?')>-1?'&':'?')
+        +'action=list&from='+encodeURIComponent(rs)+'&to='+encodeURIComponent(re);
+      var resp=await fetch(url,{method:'GET',redirect:'follow'});
+      if(!resp.ok)throw new Error('HTTP '+resp.status);
+      j=await resp.json();
+      if(!j.ok)throw new Error(j.error||'응답 오류');
+    }
     gcalExternal.events=j.events||[];
   }catch(err){
     gcalExternal.events=[];
@@ -4768,7 +4778,7 @@ const TODO_VIEW_LS='sgcrm_todo_view';
 let todoView=(function(){try{return localStorage.getItem(TODO_VIEW_LS)||'today';}catch(e){return 'today';}})();
 let todoBriefOpen=false,todoLaterOpen=false,todoWeekOffset=0,todoDragId='';
 function todoSetView(v){todoView=v;try{localStorage.setItem(TODO_VIEW_LS,v);}catch(e){}renderTodo('sub');}
-function todoToggleBrief(){todoBriefOpen=!todoBriefOpen;renderTodo('sub');}
+function todoToggleBrief(){todoBriefOpen=!todoBriefOpen;renderTodo('sub');renderTodo('');}
 function todoToggleLater(){todoLaterOpen=!todoLaterOpen;renderTodo('sub');}
 function todoWeekMove(n){todoWeekOffset=n===0?0:todoWeekOffset+n;renderTodo('sub');}
 // 글 앞의 [기업명]은 기업 칸에 따로 보이므로 목록에서는 뺀다
@@ -4976,15 +4986,13 @@ function renderTodo(sfx){
   const cnt=document.getElementById('ov-todo-cnt');
   if(cnt)cnt.textContent='놓친 일 '+g.miss.length+' · 진행 '+g.ing.length+' · 해야 '+g.todo.length;
   if(!sfx){
-    // 대시보드: 네 칸 숫자 + 놓친 일 상위 5개
+    // 대시보드: 할 일 화면과 같은 모양 — 접힌 브리핑 + 놓친 일 상위 5줄 + 지금 하는 일
     grid.className='';
-    grid.innerHTML='<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:10px">'
-      +TODO_COLS.map(c=>'<div onclick="navTo(\'todo\')" style="cursor:pointer;background:'+c.bg+';border:1px solid var(--border);border-radius:10px;padding:10px 12px">'
-        +'<div style="font-size:12px;color:var(--text3)">'+c.label+'</div><div style="font-size:22px;font-weight:700;color:'+c.color+'">'+g[c.k].length+'</div></div>').join('')
-      +'</div>'
-      +(g.miss.length?'<div style="display:grid;gap:6px">'+g.miss.slice(0,5).map(todoCardHtml).join('')+'</div>'
-        +(g.miss.length>5?'<div style="font-size:12px;color:var(--text3);margin-top:6px;cursor:pointer" onclick="navTo(\'todo\')">놓친 일 '+(g.miss.length-5)+'건 더 보기 →</div>':'')
-        :'<div style="font-size:13px;color:var(--text4);padding:6px">놓치고 있는 일이 없습니다.</div>');
+    const more=g.miss.length>5?'<button class="tdl-fold" onclick="navTo(\'todo\')">놓친 일 '+(g.miss.length-5)+'건 더 보기 →</button>':'';
+    grid.innerHTML=todoBriefHtml(g)
+      +todoSectionHtml('놓치고 있는 일','오늘 안에 결정 — 하거나, 날짜를 다시 잡거나','#991B1B','#FEF2F2',g.miss.slice(0,5),'놓치고 있는 일이 없습니다')+more
+      +(g.ing.length?todoSectionHtml('지금 하는 일','','#92400E','#FFFBEB',g.ing.slice(0,5),''):'')
+      +'<button class="tdl-fold" onclick="navTo(\'todo\')">할 일 전체 보기 (해야 할 일 '+g.todo.length+' · 앞으로 '+g.later.length+') →</button>';
     return;
   }
   grid.className='';
