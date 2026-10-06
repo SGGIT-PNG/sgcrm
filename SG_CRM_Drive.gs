@@ -324,7 +324,9 @@ function listGoogleTasks(){
   (Tasks.Tasklists.list({maxResults:100}).items||[]).forEach(function(l){
     var tok,all=[];
     do{
-      var r=Tasks.Tasks.list(l.id,{showCompleted:false,showHidden:false,maxResults:100,pageToken:tok});
+      var opt={showCompleted:false,showHidden:false,maxResults:100};
+      if(tok)opt.pageToken=tok;          // undefined를 넘기면 "undefined" 글자로 전송돼 오류가 날 수 있다
+      var r=Tasks.Tasks.list(l.id,opt);
       (r.items||[]).forEach(function(t){all.push(t);});
       tok=r.nextPageToken;
     }while(tok);
@@ -334,10 +336,25 @@ function listGoogleTasks(){
   });
   return out;
 }
+// 점검용 — 옮기지 않고 무엇이 보이는지만 실행 로그에 적는다
+function voiceDiag(){
+  Logger.log("계정: "+Session.getEffectiveUser().getEmail());
+  Logger.log("Tasks API: "+(typeof Tasks==="undefined"?"꺼져 있음(서비스 + 에서 추가)":"켜짐"));
+  if(typeof Tasks!=="undefined"){
+    (Tasks.Tasklists.list({maxResults:100}).items||[]).forEach(function(l){
+      var r=Tasks.Tasks.list(l.id,{showCompleted:false,maxResults:100});
+      Logger.log("목록 「"+l.title+"」: "+(r.items||[]).map(function(t){return t.title+(t.due?" ("+t.due.slice(0,10)+")":"")+(t.parent?" [하위]":"");}).join(" / "));
+    });
+  }
+  Logger.log("옮길 대상(Tasks): "+listGoogleTasks().length+"건");
+  var r=UrlFetchApp.fetch(FS_BASE+"todos?pageSize=1&key="+FS_KEY,{muteHttpExceptions:true});
+  Logger.log("CRM 읽기: HTTP "+r.getResponseCode());
+}
 function voiceTrigger(){moveVoiceTodos();}          // 10분 트리거가 부르는 함수
 // 10분마다 자동 옮기기 트리거 설치 (여러 번 실행해도 하나만 남는다)
 function setupVoiceTrigger(){
   ScriptApp.getProjectTriggers().forEach(function(t){if(t.getHandlerFunction()==="voiceTrigger")ScriptApp.deleteTrigger(t);});
   ScriptApp.newTrigger("voiceTrigger").timeBased().everyMinutes(10).create();
-  Logger.log("음성 할 일 자동 옮기기 설치 완료 — 10분마다. 지금 한 번 실행: "+JSON.stringify(moveVoiceTodos()));
+  Logger.log("음성 할 일 자동 옮기기 설치 완료 — 10분마다.");
+  Logger.log("지금 한 번 실행: "+JSON.stringify(moveVoiceTodos()));
 }
