@@ -1,5 +1,5 @@
 /**
- * SG CRM 드라이브 연결 — 업체 폴더·업체카드·사업자등록증 읽기 + 음성 일정 받은함 + 아침 할 일 메일 (v5, 2026-10)
+ * SG CRM 드라이브 연결 — 업체 폴더·업체카드·사업자등록증 읽기 + 음성 일정 받은함 (v5, 2026-10)
  *
  * 하는 일: 드라이브 「관리 업체 List」의 업체 폴더 목록과 업체카드 내용을 CRM 기업등록 화면에 넘겨준다.
  *         읽기만 한다. 드라이브의 파일·폴더를 만들거나 고치거나 지우지 않는다.
@@ -23,15 +23,11 @@
  *   같은 파일은 6시간 동안 결과를 기억해 다시 읽지 않는다.
  *   v4: 파일 이름이 「사업자 등록증」(띄어쓰기)·「사업자등록증명」이어도 찾는다.
  *
- * v5 추가 — 음성 일정 받은함(action=voice_inbox) + 아침 할 일 메일:
- *   ① 제미나이 음성으로 sgceo 기본 캘린더에 넣은 일정 중 제목에 「할일」(또는 「할 일」)이 든 것을 CRM 할 일 화면
- *      「📥 음성 받은함」에 보여 준다. 표시어 없는 최근 일정은 「기타 새 일정」으로 접어서 보여 준다.
- *      CRM이 캘린더로 보낸 일정([ToDo]·[인증만료] 등)은 빼고, 캘린더는 읽기만 한다.
- *   ② morningMail — 평일 아침 CRM 할 일을 읽어 놓친 일·진행 중·이번 주 마감·음성 받은함을 메일로 보낸다.
- *      보낼 것이 없는 날은 보내지 않는다(월요일은 주간 요약으로 항상 보냄).
- *   설치(1회): 코드 교체 → 저장 → 위쪽 함수 선택에서 **setupMorningMail** 실행 → 권한 허용(캘린더·메일·외부 요청)
- *             → 「배포 관리」에서 기존 배포를 **새 버전**으로 수정. 바로 받아 보려면 **testMorningMail** 실행.
- *   받는 사람: 스크립트 속성 MAIL_TO (쉼표로 여러 명). 비우면 스크립트 주인(sgceo)에게만.
+ * v5 추가 — 음성 일정 받은함(action=voice_inbox):
+ *   제미나이 음성으로 sgceo 기본 캘린더에 넣은 일정 중 제목에 「할일」(또는 「할 일」)이 든 것을 CRM 할 일 화면
+ *   「📥 음성 받은함」에 보여 준다. 표시어 없는 최근 일정은 「기타 새 일정」으로 접어서 보여 준다.
+ *   CRM이 캘린더로 보낸 일정([ToDo]·[인증만료] 등)은 빼고, 캘린더는 읽기만 한다.
+ *   설치: 코드 교체 → 저장 → 「배포 관리」에서 기존 배포를 **새 버전**으로 수정 → 캘린더 권한 허용 창이 뜨면 허용.
  *
  * 비밀 문구를 두는 이유: CRM에는 아직 로그인이 없다. 주소만 알아서는 업체카드(사업자번호·매출 등)를
  *   읽지 못하게 한다. 주소와 비밀 문구는 Firestore가 아니라 각 기기 브라우저에만 저장된다.
@@ -229,128 +225,4 @@ function voiceInbox(){
     else if(o.created>=recent)others.push(o);
   });
   return {marked:marked,others:others.slice(0,60)};
-}
-
-// ── v5: 아침 할 일 메일 ──
-var FS_PROJECT="sg-crm-f9adc";
-var FS_KEY="AIzaSyD7EoihxcX9zIbr1n4NiXK_qlWpv8p5gRk";   // CRM index.html과 같은 웹 API 키(공개값)
-var CRM_URL="https://sggit-png.github.io/sgcrm/";
-function fsVal(v){
-  if(!v)return null;
-  if("stringValue" in v)return v.stringValue;
-  if("integerValue" in v)return Number(v.integerValue);
-  if("doubleValue" in v)return v.doubleValue;
-  if("booleanValue" in v)return v.booleanValue;
-  if("nullValue" in v)return null;
-  if("timestampValue" in v)return v.timestampValue;
-  if("arrayValue" in v)return (v.arrayValue.values||[]).map(fsVal);
-  if("mapValue" in v){var o={},f=v.mapValue.fields||{};for(var k in f)o[k]=fsVal(f[k]);return o;}
-  return null;
-}
-function fsList(col){
-  var out=[],tok="";
-  do{
-    var url="https://firestore.googleapis.com/v1/projects/"+FS_PROJECT+"/databases/(default)/documents/"+col+"?pageSize=300&key="+FS_KEY+(tok?"&pageToken="+tok:"");
-    var j=JSON.parse(UrlFetchApp.fetch(url).getContentText());
-    (j.documents||[]).forEach(function(d){var o=fsVal({mapValue:{fields:d.fields||{}}});o._id=d.name.split("/").pop();out.push(o);});
-    tok=j.nextPageToken||"";
-  }while(tok);
-  return out;
-}
-function fsGet(path){
-  var r=UrlFetchApp.fetch("https://firestore.googleapis.com/v1/projects/"+FS_PROJECT+"/databases/(default)/documents/"+path+"?key="+FS_KEY,{muteHttpExceptions:true});
-  if(r.getResponseCode()!==200)return {};
-  return fsVal({mapValue:{fields:JSON.parse(r.getContentText()).fields||{}}});
-}
-function daysBetween(a,b){return Math.round((new Date(b)-new Date(a))/86400000);}
-// CRM todoBucket()과 같은 규칙
-function bucketOf(t,today,R){
-  if(t.status==="done")return {col:"done"};
-  var due=t.dueDate||"",dl=due?daysBetween(today,due):null;
-  if(due&&dl<0)return {col:"miss",reason:"마감 "+(-dl)+"일 지남"};
-  var touched=t.statusAt||t.createdAt||0;
-  var idle=touched?Math.floor((Date.now()-touched)/86400000):0;
-  if(t.status==="ing"&&touched&&idle>=R.stallDays)return {col:"miss",reason:idle+"일째 그대로"};
-  if(t.status!=="ing"&&due&&dl<=R.soonDays)return {col:"miss",reason:"D-"+dl+" · 아직 시작 안 함"};
-  if(t.status==="ing")return {col:"ing",idle:idle,dl:dl};
-  return {col:due&&dl>R.horizonDays?"later":"todo",dl:dl};
-}
-function buildMorning(){
-  var today=fmtD(new Date());
-  var cfg=fsGet("app_state/config");
-  var R={stallDays:14,soonDays:3,horizonDays:30,leadDays:14};
-  if(cfg.todoRules)for(var k in R)if(typeof cfg.todoRules[k]==="number")R[k]=cfg.todoRules[k];
-  var todos=fsList("todos"),comps=fsList("companies");
-  var miss=[],ing=[],week=[],noDue=[];
-  todos.forEach(function(t){
-    var b=bucketOf(t,today,R);
-    if(b.col==="miss")miss.push({t:t,r:b.reason});
-    else if(b.col==="ing")ing.push({t:t,idle:b.idle});
-    if(b.col!=="done"&&t.dueDate&&b.col!=="miss"&&daysBetween(today,t.dueDate)<=7)week.push(t);
-    if(b.col!=="done"&&!t.dueDate)noDue.push(t);
-  });
-  // 잠재고객 후속 (CRM todoLeadItems와 같은 규칙)
-  comps.forEach(function(c){
-    if(c.group!=="잠재고객"||c.active==="N")return;
-    var mine=todos.filter(function(t){return t.bizno===c._id;});
-    if(mine.some(function(t){return t.status!=="done";}))return;
-    var last=c.lastContactAt||0;
-    mine.forEach(function(t){last=Math.max(last,t.doneAt||0,t.updatedAt||0,t.createdAt||0);});
-    if(!last)last=c.createdAt||0;
-    if(!last)return;
-    var d=Math.floor((Date.now()-last)/86400000);
-    if(d>=R.leadDays)miss.push({t:{text:"["+c.name+"] 후속 연락"},r:"잠재고객 · 마지막 기록 "+d+"일 전"});
-  });
-  ing.sort(function(a,b){return b.idle-a.idle;});
-  week.sort(function(a,b){return a.dueDate<b.dueDate?-1:1;});
-  // 음성 받은함: 표시어 일정 중 아직 할 일로 안 옮기고 무시하지도 않은 것
-  var taken={};todos.forEach(function(t){if(t.source==="voice"&&t.sourceRef)taken[t.sourceRef]=1;});
-  (cfg.voiceDismissed||[]).forEach(function(id){taken[id]=1;});
-  var voice=voiceInbox().marked.filter(function(e){return !taken[e.id];});
-  return {today:today,miss:miss,ing:ing,week:week,noDue:noDue,voice:voice};
-}
-function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
-function morningHtml(m){
-  var sec=function(title,color,rows){
-    return '<h3 style="margin:18px 0 6px;font-size:15px;color:'+color+'">'+title+'</h3>'
-      +(rows.length?'<ul style="margin:0;padding-left:18px;line-height:1.7">'+rows.join("")+'</ul>':'<div style="color:#888;font-size:13px">없음</div>');
-  };
-  // 글에 이미 기업명이 있으면 [기업]을 앞에 또 붙이지 않는다
-  var lab=function(t){
-    var x=t.text||"",short=String(t.companyName||"").replace(/주식회사|\(주\)|㈜/g,"").trim();
-    return esc(x.charAt(0)==="["||!short||x.indexOf(short)>-1?x:"["+short+"] "+x);
-  };
-  var h='<div style="font-family:sans-serif;font-size:14px;color:#222;max-width:640px">';
-  h+=sec("🔴 놓치고 있는 일 ("+m.miss.length+")","#DC2626",m.miss.map(function(x){return "<li>"+lab(x.t)+' — <b style="color:#DC2626">'+esc(x.r)+"</b></li>";}));
-  h+=sec("🟡 지금 하는 일 ("+m.ing.length+") — 손댄 지 오래된 순","#D97706",m.ing.map(function(x){return "<li>"+lab(x.t)+" — "+x.idle+"일째"+(x.t.dueDate?" · 마감 "+x.t.dueDate:"")+"</li>";}));
-  h+=sec("🔵 7일 안 마감 ("+m.week.length+")","#2563EB",m.week.map(function(t){return "<li>"+t.dueDate+" "+lab(t)+"</li>";}));
-  if(m.voice.length)h+=sec("📥 음성으로 들어온 일정 ("+m.voice.length+") — CRM 할 일 화면에서 옮길지 확인","#7C3AED",m.voice.map(function(e){return "<li>"+e.date+(e.time?" "+e.time:"")+" "+esc(e.title)+"</li>";}));
-  if(m.noDue.length)h+=sec("⚠️ 마감일 없는 할 일 ("+m.noDue.length+") — 날짜를 넣어야 놓친 일 판단이 됩니다","#64748B",m.noDue.slice(0,10).map(function(t){return "<li>"+lab(t)+"</li>";}));
-  h+='<p style="margin-top:20px"><a href="'+CRM_URL+'" style="background:#2563EB;color:#fff;padding:8px 14px;border-radius:6px;text-decoration:none">CRM 할 일 열기</a></p>';
-  h+='<p style="color:#999;font-size:12px">SG CRM 드라이브 스크립트가 평일 아침 자동으로 보냅니다. 받는 사람은 스크립트 속성 MAIL_TO로 바꿉니다.</p></div>';
-  return h;
-}
-function morningRecipients(){
-  var p=PropertiesService.getScriptProperties().getProperty("MAIL_TO");
-  return (p&&p.trim())||Session.getEffectiveUser().getEmail();
-}
-function sendMorning(force){
-  var dow=Number(Utilities.formatDate(new Date(),TZ,"u"));   // 1=월 … 7=일
-  if(!force&&dow>=6)return "주말 — 보내지 않음";
-  var m=buildMorning();
-  var monday=dow===1;
-  if(!force&&!monday&&!m.miss.length&&!m.week.length&&!m.voice.length)return "보낼 것 없음 — 보내지 않음";
-  var md=Utilities.formatDate(new Date(),TZ,"M/d");
-  var wd=["","월","화","수","목","금","토","일"][dow];
-  var subj="[SG 할 일] "+md+"("+wd+") 놓친 일 "+m.miss.length+" · 진행 "+m.ing.length+" · 7일 안 마감 "+m.week.length+(m.voice.length?" · 음성 "+m.voice.length:"")+(monday?" — 주간 요약":"");
-  MailApp.sendEmail({to:morningRecipients(),subject:subj,htmlBody:morningHtml(m),name:"SG CRM 비서"});
-  return "보냄: "+subj;
-}
-function morningMail(){Logger.log(sendMorning(false));}       // 트리거가 부르는 함수
-function testMorningMail(){Logger.log(sendMorning(true));}    // 지금 바로 한 통 받아 보기
-// 평일 아침 8시 트리거 설치 (여러 번 실행해도 하나만 남는다)
-function setupMorningMail(){
-  ScriptApp.getProjectTriggers().forEach(function(t){if(t.getHandlerFunction()==="morningMail")ScriptApp.deleteTrigger(t);});
-  ScriptApp.newTrigger("morningMail").timeBased().everyDays(1).atHour(8).inTimezone(TZ).create();
-  Logger.log("아침 메일 트리거 설치 완료 — 매일 8시(주말은 건너뜀), 받는 사람: "+morningRecipients());
 }
