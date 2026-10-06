@@ -8232,11 +8232,13 @@ function parseBizCert(text){
   r.corp=/법\s*인\s*사\s*업\s*자|법\s*인\s*명/.test(t);
   const name=grab('법인명(단체명)')||grab('법인명')||grab('상호');
   if(name)r.name=name.replace(/^[:\s]+/,'').trim();
-  const ceo=(grab('대표자')||grab('성명')).match(/[가-힣]{2,5}/);
-  if(ceo)r.ceo=ceo[0];
-  const od=grab('개업연월일').match(/(\d{4})\s*[년.\-]\s*(\d{1,2})\s*[월.\-]\s*(\d{1,2})/);
+  const NOT_NAME=/^(대표|유형|사업자|법인|단체|생년|개업|소재|국세|세무|과세|일반|간이|등록|상호|성명|공동|발급)/;
+  const ceoTxt=grab('대표자',true)||grab('성명',true);
+  const ceo=(ceoTxt.match(/[가-힣]{2,5}/g)||[]).find(w=>!NOT_NAME.test(w));
+  if(ceo)r.ceo=ceo;
+  const od=grab('개업연월일',true).match(/(\d{4})\s*[년.\-]\s*(\d{1,2})\s*[월.\-]\s*(\d{1,2})/);
   if(od)r.estDate=od[1]+'-'+p2(+od[2])+'-'+p2(+od[3]);
-  const cn=(grab('법인등록번호')||'').match(/\d{6}\s*-\s*\d{7}/);
+  const cn=(grab('법인등록번호',true)||'').match(/\d{6}\s*-\s*\d{7}/);
   if(cn)r.corpNo=cn[0].replace(/\s/g,'');
   const addr=grab('사업장소재지',true);
   if(addr)r.addr=addr.replace(/\s*\(\s*\)\s*$/,'').trim().slice(0,120);
@@ -8244,7 +8246,7 @@ function parseBizCert(text){
   const kind=grab('사업의종류',true);
   const up=(grab('업태',true)||'').trim(), jm=(grab('종목',true)||'').trim();
   const bt=[up,jm].filter(Boolean).join(' / ')||kind;
-  if(bt)r.biztype=bt.replace(/\s+/g,' ').slice(0,80);
+  if(bt)r.biztype=bt.split(/국세청|세무서|발\s*급\s*사\s*유|공동사업자|20\d\d\s*년/)[0].replace(/\s+/g,' ').trim().slice(0,80);
   const em=t.match(/[\w.+-]+@[\w-]+\.[\w.]+/);if(em)r.email=em[0];
   if(r.biztype){
     const b=r.biztype;
@@ -8279,6 +8281,13 @@ async function compFillFromBizCert(){
   if(!d.file){if(msgEl){msgEl.textContent='⚠️ 폴더(하위 포함)에서 이름에 「사업자등록증」이 든 파일을 찾지 못했습니다.';msgEl.style.color='var(--danger)';}return;}
   const r=parseBizCert(d.text);
   const editBizno=document.getElementById('comp-edit-bizno').value;
+  const curName=document.getElementById('comp-name').value;
+  if(r.name&&curName&&!compNameKeys(r.name).some(k=>compNameKeys(curName).some(n=>n.includes(k)||k.includes(n)))){
+    if(!confirm('읽은 등록증의 상호가 「'+r.name+'」입니다.\n지금 기업(「'+curName+'」)과 다른 회사 서류일 수 있습니다.\n파일: '+d.file.name+'\n\n그래도 채울까요?')){
+      if(msgEl){msgEl.textContent='채우지 않았습니다 — 폴더에 다른 회사 등록증('+d.file.name+')이 있습니다.';msgEl.style.color='var(--danger)';}
+      return;
+    }
+  }
   const ids={name:'comp-name',ceo:'comp-ceo',corpNo:'comp-corp-no',addr:'comp-addr',biztype:'comp-biztype',email:'comp-email',industry:'comp-industry'};
   const cur={};Object.keys(ids).forEach(k=>cur[k]=document.getElementById(ids[k])?.value||'');
   cur.estDate=getDateFields('comp-est-y','comp-est-m','comp-est-d');
@@ -8348,12 +8357,16 @@ async function bizCertBulkRead(){
         row.file=d.file.name;
         const r=parseBizCert(d.text);
         const f=bizCertFill(r,c);row.fill=f.fill;row.diff=f.diff;
+        // 같은 폴더에 다른 회사 등록증이 섞여 있는 경우(예: 센세이션 폴더의 스탠다즈 등록증) — 자동 선택하지 않는다
+        const nameKeys=compNameKeys(c.name).concat(compNameKeys((parseDriveFolderName(c.driveFolderName||'')).name));
+        row.otherCo=!!(r.name&&c.name&&!compNameKeys(r.name).some(k=>nameKeys.some(n=>n.includes(k)||k.includes(n))));
         if(r.bizno&&c._id.startsWith('TEMP-')){
           if(companies.find(x=>x._id===r.bizno))row.note='⚠️ '+r.bizno+' 이미 다른 기업으로 등록됨(중복 확인)';
           else row.newBizno=r.bizno;
         }else if(r.bizno&&c._id.replace(/-/g,'')!==r.bizno.replace(/-/g,''))row.note='⚠️ 등록증 번호 '+r.bizno+' ≠ CRM';
         if(!r.bizno&&!Object.keys(f.fill).length)row.note='글자를 거의 읽지 못함(사진 품질 확인)';
-        row.sel=!!(Object.keys(row.fill).length||row.newBizno);
+        row.sel=!!(Object.keys(row.fill).length||row.newBizno)&&!row.otherCo;
+        if(row.otherCo)row.note='⚠️ 등록증 상호 「'+r.name+'」가 기업명과 다릅니다 — 다른 회사 서류일 수 있어 선택하지 않았습니다';
       }
     }catch(e){row.note='⚠️ '+(e.message||e);}
     bizCertRows.push(row);

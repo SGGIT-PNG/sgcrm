@@ -1,5 +1,5 @@
 /**
- * SG CRM 드라이브 연결 — 업체 폴더·업체카드·사업자등록증 읽기 (v2, 2026-10)
+ * SG CRM 드라이브 연결 — 업체 폴더·업체카드·사업자등록증 읽기 (v3, 2026-10)
  *
  * 하는 일: 드라이브 「관리 업체 List」의 업체 폴더 목록과 업체카드 내용을 CRM 기업등록 화면에 넘겨준다.
  *         읽기만 한다. 드라이브의 파일·폴더를 만들거나 고치거나 지우지 않는다.
@@ -36,7 +36,7 @@ function doGet(e){
     if(p.action==="drive_companies")return jsonOut({ok:true,folders:driveCompanies()});
     if(p.action==="drive_card")return jsonOut({ok:true,data:driveCard(p.folderId)});
     if(p.action==="biz_cert")return jsonOut({ok:true,data:bizCert(p.folderId)});
-    return jsonOut({ok:true,message:"SG CRM 드라이브 연결 정상 v2"});
+    return jsonOut({ok:true,message:"SG CRM 드라이브 연결 정상 v3"});
   }catch(err){
     return jsonOut({ok:false,error:err.message});
   }
@@ -132,9 +132,19 @@ function driveCard(folderId){
 
 // ── v2: 사업자등록증 찾기 + OCR ──
 var CERT_TYPES={"application/pdf":1,"application/haansoftpdf":1,"image/jpeg":1,"image/png":1};
-// 신청서·합치기 같은 묶음 파일은 뒤로 미룬다
-function certScore(f){
-  var n=f.getName();var s=0;
+// 비교용: 법인 표기·공백·기호 제거
+function normName(n){
+  return String(n||"").replace(/주식회사|유한회사|농업회사법인|\(주\)|㈜|\(유\)|\s|[()·.,_-]/g,"").toLowerCase();
+}
+// 폴더 이름의 상호 후보 낱말 ("전주_(주)센세이션" → ["전주","센세이션"])
+function folderWords(folderName){
+  return String(folderName||"").split(/[_-]/).map(normName).filter(function(w){return w.length>=2&&w.indexOf("대표")<0;});
+}
+// 파일 고르기 점수: 폴더 업체명이 파일 이름에 있으면 우선, 신청서·합치기 같은 묶음 파일은 뒤로
+//   (v3: 센세이션 폴더에 같이 있던 스탠다즈 등록증을 잘못 고른 문제 수정)
+function certScore(f,words){
+  var n=f.getName();var s=0;var nn=normName(n);
+  if(words&&words.some(function(w){return nn.indexOf(w)>-1;}))s+=50;
   if(n.indexOf("합치기")>-1||n.indexOf("신청서")>-1||n.indexOf("계획서")>-1)s-=100;
   if(n.indexOf("OCR")>-1)s+=5;               // 이미 글자층이 있는 PDF
   if(f.getMimeType().indexOf("pdf")>-1)s+=3;  // 사진보다 PDF가 정확
@@ -172,7 +182,8 @@ function bizCert(folderId){
   if(!isUnderRoot(f))throw new Error("관리 업체 List 밖의 폴더입니다");
   var list=findBizCerts(f,3,[]);
   if(!list.length)return {file:null,text:"",candidates:[]};
-  list.sort(function(a,b){return (certScore(b)-certScore(a))||(b.getLastUpdated().getTime()-a.getLastUpdated().getTime());});
+  var words=folderWords(f.getName());
+  list.sort(function(a,b){return (certScore(b,words)-certScore(a,words))||(b.getLastUpdated().getTime()-a.getLastUpdated().getTime());});
   var best=list[0];
   return {
     file:{id:best.getId(),name:best.getName(),updated:best.getLastUpdated().toISOString()},
