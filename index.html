@@ -309,6 +309,62 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
 .todo-wrap4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:start;}
 .todo-chip{display:inline-block;font-size:11px;padding:1px 7px;border-radius:9px;background:#F1F5F9;color:var(--text2);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
 .todo-btn{padding:1px 8px!important;font-size:11px!important;}
+/* 할 일 화면 (오늘·기업별·주간) */
+.tdl-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+.tdl-tabs{display:flex;gap:4px;background:#E5E7EB;padding:4px;border-radius:10px;}
+.tdl-tabs button{border:0;background:transparent;color:#4B5563;font-size:13px;font-weight:500;font-family:inherit;padding:7px 16px;border-radius:7px;cursor:pointer;}
+.tdl-tabs button.on{background:#fff;color:#111827;box-shadow:0 1px 2px rgba(0,0,0,.08);}
+.tdl-tools{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;}
+.tdl-quick{display:flex;gap:8px;align-items:center;}
+.tdl-quick .fi{flex:1;min-width:0;}
+.tdl-mic{width:38px;height:38px;flex-shrink:0;border-radius:50%;border:1px solid var(--border2);background:var(--surface);color:#1E3A8A;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.tdl-mic.on{background:#B91C1C;border-color:#B91C1C;color:#fff;}
+.tdl-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.tdl-filters .fs{width:150px;}
+.tdl-brief{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;}
+.tdl-brief-hd{width:100%;display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:11px 16px;border:0;background:none;font-family:inherit;font-size:13px;color:var(--text);cursor:pointer;text-align:left;}
+.tdl-brief-n{font-weight:600;}
+.tdl-brief-body{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 24px;padding:4px 16px 14px;font-size:13px;line-height:1.7;color:var(--text2);}
+.tdl-sec{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px;}
+.tdl-sec-hd{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;padding:10px 16px;font-size:13px;}
+.tdl-sec-hd span{font-size:12px;opacity:.85;}
+.tdl-row{display:grid;grid-template-columns:24px minmax(0,1fr) 170px 140px 150px;gap:12px;align-items:center;padding:10px 16px;border-top:1px solid #F3F4F6;}
+.tdl-done .tdl-link{color:var(--text3);text-decoration:line-through;}
+.tdl-chk{width:18px;height:18px;cursor:pointer;margin:0;}
+.tdl-text{min-width:0;display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+.tdl-link{border:0;background:none;padding:0;font-size:14px;font-weight:500;font-family:inherit;color:var(--text);cursor:pointer;text-align:left;}
+.tdl-link:hover{text-decoration:underline;}
+.tdl-memo{width:100%;font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tdl-co{border:0;background:none;padding:0;font-family:inherit;font-size:13px;color:#3730A3;cursor:pointer;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tdl-none{color:var(--text4);cursor:default;}
+.tdl-why{font-size:12px;font-weight:600;}
+.tdl-act{display:flex;gap:4px;justify-content:flex-end;align-items:center;}
+.tdl-x{border:0;background:none;color:var(--text4);font-size:16px;cursor:pointer;padding:0 4px;}
+.tdl-empty{padding:14px 16px;font-size:13px;color:var(--text3);border-top:1px solid #F3F4F6;}
+.tdl-fold{border:0;background:none;font-family:inherit;font-size:13px;color:var(--text3);cursor:pointer;padding:4px 2px;margin-bottom:10px;}
+.tdl-cotable{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.tdl-co-hd,.tdl-co-row{display:grid;grid-template-columns:240px 110px minmax(0,1fr) 130px;gap:14px;padding:12px 18px;align-items:start;}
+.tdl-co-hd{background:#F9FAFB;font-size:12px;font-weight:700;color:var(--text3);border-bottom:1px solid var(--border);}
+.tdl-co-row{border-top:1px solid #F3F4F6;font-size:14px;}
+.tdl-co-none{background:#FAFAFA;}
+.tdl-week{display:grid;grid-template-columns:180px repeat(7,minmax(0,1fr));gap:8px;min-height:340px;}
+.tdl-day{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px;min-width:0;}
+.tdl-day h3,.tdl-tray h3{margin:0 0 2px;font-size:13px;font-weight:700;color:var(--text2);}
+.tdl-tray h3 span{font-weight:400;font-size:12px;color:var(--text3);}
+.tdl-today{border:2px solid #1D4ED8;background:#EFF6FF;padding:9px;}
+.tdl-weekend{background:#F3F4F6;}
+.tdl-wcard{background:#fff;border:1px solid var(--border2);border-radius:8px;padding:7px 9px;font-size:13px;cursor:grab;line-height:1.4;}
+.tdl-wcard .tdl-memo{white-space:normal;}
+.tdl-tray{background:var(--surface);border:1px dashed var(--border2);border-radius:12px;padding:12px 14px;margin-top:10px;}
+.tdl-m-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:10px;}
+.tdl-m-stats div{border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;}
+.tdl-m-stats span{font-size:11px;color:var(--text2);}
+.tdl-m-stats b{font-size:20px;}
+.tdl-m-hd{font-size:12px;font-weight:700;margin:10px 4px 6px;}
+.tdl-m-row{display:flex;gap:12px;align-items:center;background:var(--surface);border-radius:12px;padding:12px 14px;margin-bottom:8px;min-height:44px;}
+.tdl-m-row .tdl-chk{width:22px;height:22px;flex-shrink:0;}
+.tdl-m-body{flex:1;min-width:0;border:0;background:none;padding:0;text-align:left;font-family:inherit;display:flex;flex-direction:column;gap:2px;color:var(--text);font-size:15px;cursor:pointer;}
+.tdl-m-body b{font-weight:500;}
 .todo-item{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;cursor:pointer;transition:all .15s;box-shadow:var(--shadow);}
 .todo-item:hover{border-color:var(--accent);}
 
@@ -387,6 +443,15 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
   .frow{flex-direction:column!important;gap:8px!important;}
   .todo-wrap{grid-template-columns:1fr!important;}
   .todo-wrap4{grid-template-columns:1fr!important;}
+  .tdl-week{grid-template-columns:1fr!important;min-height:0;}
+  .tdl-co-hd{display:none!important;}
+  .tdl-co-row{grid-template-columns:1fr auto!important;}
+  .tdl-co-row>div:nth-child(3){grid-column:1/-1;}
+  .tdl-co-row>div:nth-child(4){display:none;}
+  .tdl-top{margin-bottom:8px;}
+  .tdl-tabs{width:100%;}
+  .tdl-tabs button{flex:1;padding:9px 0;}
+  .tdl-mic{width:44px;height:44px;}
 
   /* 카드 패딩 축소 */
   .card{padding:10px!important;border-radius:8px!important;}
@@ -2414,7 +2479,7 @@ const ST = {
 };
 const PAGE_TITLES={
   overview:'전체 현황',gantt:'일정관리',
-  todo:'할 일 — 놓친 일·지금·해야·앞으로',work:'업무 영역별 진행 현황',
+  todo:'할 일',work:'업무 영역별 진행 현황',
   clients:'기업별 진행 분야 현황',cert:'📋 인증·갱신 관리',
   stats:'누적 통계 데이터',history:'📁 완료 업무 이력',companies:'기업 관리',matching:'🎯 지원사업 매칭'
 };
@@ -4689,6 +4754,214 @@ function todoCardHtml(t){
     +'<div style="display:flex;gap:4px;flex-wrap:wrap">'+btns+'</div>'
     +'</div>';
 }
+// ── 할 일 화면 보기 (2026-10-06 시안 B·C·D·G·H 반영) ──
+//   [오늘] 급한 순서 한 줄 목록 + 맨 위 접힌 브리핑   [기업별] 고객사 한 줄씩   [주간] 요일 칸 + 날짜 없는 할 일(끌어다 놓기)
+//   휴대폰(768px 이하)은 숫자 3개 + 큰 체크 목록 + 🎙️ 음성 입력
+const TODO_VIEW_LS='sgcrm_todo_view';
+let todoView=(function(){try{return localStorage.getItem(TODO_VIEW_LS)||'today';}catch(e){return 'today';}})();
+let todoBriefOpen=false,todoLaterOpen=false,todoWeekOffset=0,todoDragId='';
+function todoSetView(v){todoView=v;try{localStorage.setItem(TODO_VIEW_LS,v);}catch(e){}renderTodo('sub');}
+function todoToggleBrief(){todoBriefOpen=!todoBriefOpen;renderTodo('sub');}
+function todoToggleLater(){todoLaterOpen=!todoLaterOpen;renderTodo('sub');}
+function todoWeekMove(n){todoWeekOffset=n===0?0:todoWeekOffset+n;renderTodo('sub');}
+// 글 앞의 [기업명]은 기업 칸에 따로 보이므로 목록에서는 뺀다
+function todoText(t){
+  const x=String(t.text||'');
+  return t.bizno&&/^\[[^\]]+\]\s*/.test(x)?x.replace(/^\[[^\]]+\]\s*/,''):x;
+}
+function todoCoShort(t){return String(t.companyName||'').replace(/주식회사\s*|\(주\)\s*|㈜\s*/g,'').trim();}
+function todoOpen(){return todos.filter(t=>t.status!=='done'&&todoPassFilter(t));}
+function todoDayStr(d){return dateStr(d.getFullYear(),d.getMonth(),d.getDate());}
+function todoBriefData(g){
+  const today=todoToday();
+  const open=todoOpen();
+  const week=open.filter(t=>t.dueDate&&todoBucket(t).col!=='miss'&&todoDaysFrom(today,t.dueDate)<=7);
+  const noDue=open.filter(t=>!t.dueDate);
+  const since=Date.now()-24*3600000;
+  const fresh=todos.filter(t=>(t.createdAt||0)>=since&&todoSource(t)!=='manual');
+  return {miss:g.miss,week,noDue,fresh};
+}
+function todoBriefHtml(g){
+  const b=todoBriefData(g);
+  const line=(arr,fmt)=>arr.length?arr.slice(0,6).map(fmt).join(' · ')+(arr.length>6?' 외 '+(arr.length-6)+'건':''):'없음';
+  const nm=t=>t.lead?escAttr(t.companyName)+' 후속 연락':escAttr((todoCoShort(t)?todoCoShort(t)+' — ':'')+todoText(t));
+  return '<div class="tdl-brief">'
+    +'<button class="tdl-brief-hd" onclick="todoToggleBrief()" aria-expanded="'+todoBriefOpen+'">'
+      +'<span style="font-weight:700">오늘 브리핑</span>'
+      +'<span class="tdl-brief-n" style="color:#B91C1C">결정할 일 '+b.miss.length+'</span>'
+      +'<span class="tdl-brief-n" style="color:#1D4ED8">7일 안 마감 '+b.week.length+'</span>'
+      +'<span class="tdl-brief-n" style="color:#92400E">날짜 없음 '+b.noDue.length+'</span>'
+      +'<span class="tdl-brief-n" style="color:#6D28D9">새로 들어옴 '+b.fresh.length+'</span>'
+      +'<span style="margin-left:auto;color:var(--text3)">'+(todoBriefOpen?'접기 ▴':'펼치기 ▾')+'</span>'
+    +'</button>'
+    +(todoBriefOpen?'<div class="tdl-brief-body">'
+      +'<div><b style="color:#991B1B">오늘 결정</b> — 하거나, 날짜를 다시 잡거나<br>'+line(b.miss,t=>nm(t)+(t._reason?' <span style="color:#B91C1C">('+escAttr(t._reason)+')</span>':''))+'</div>'
+      +'<div><b style="color:#1E40AF">7일 안 마감</b><br>'+line(b.week,t=>t.dueDate.slice(5).replace('-','/')+' '+nm(t))+'</div>'
+      +'<div><b style="color:#92400E">날짜가 없어 놓치기 쉬운 일</b><br>'+line(b.noDue,nm)+'</div>'
+      +'<div><b style="color:#6D28D9">새로 들어온 것</b> (최근 24시간 · 음성·자동 생성)<br>'+line(b.fresh,t=>nm(t)+' <span style="color:var(--text3)">'+escAttr(TODO_SRC[todoSource(t)]||'')+'</span>')+'</div>'
+    +'</div>':'')
+  +'</div>';
+}
+// 한 줄 (오늘 목록)
+function todoRowHtml(t){
+  if(t.lead){
+    const bz=escAttr(t.bizno);
+    return '<div class="tdl-row">'
+      +'<span></span>'
+      +'<div class="tdl-text">후속 연락</div>'
+      +'<button class="tdl-co" data-b="'+bz+'" onclick="openCompanyModal(this.dataset.b)">'+escAttr(t.companyName)+'</button>'
+      +'<div class="tdl-why" style="color:#B91C1C">잠재고객 · '+t.days+'일 무소식</div>'
+      +'<div class="tdl-act"><button class="btn btn-ghost btn-sm todo-btn" data-b="'+bz+'" onclick="todoFromLead(this.dataset.b)">할 일로</button>'
+        +'<button class="btn btn-ghost btn-sm todo-btn" data-b="'+bz+'" onclick="todoLeadContacted(this.dataset.b)">연락함</button></div>'
+    +'</div>';
+  }
+  const id=escAttr(t.id);
+  const b=todoBucket(t);
+  const done=t.status==='done';
+  const whyColor=b.col==='miss'?'#B91C1C':(t.dueDate?'var(--text2)':'#92400E');
+  const why=b.col==='done'?(t.doneAt?new Date(t.doneAt).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})+' 완료':'완료')
+    :(b.reason||(t.dueDate?t.dueDate.slice(5).replace('-','/'):'날짜 없음'));
+  const chips=(t.priority==='high'?'<span class="todo-chip" style="background:#FEE2E2;color:#B91C1C">중요</span>':'')
+    +(t.status==='ing'?'<span class="todo-chip" style="background:#FEF3C7;color:#92400E">진행</span>':'')
+    +(todoSource(t)!=='manual'?'<span class="todo-chip">'+escAttr(TODO_SRC[todoSource(t)]||'')+'</span>':'');
+  return '<div class="tdl-row'+(done?' tdl-done':'')+'">'
+    +'<input type="checkbox" class="tdl-chk" aria-label="완료" data-id="'+id+'"'+(done?' checked':'')+' onchange="todoSetStatus(this.dataset.id,this.checked?\'done\':\'wait\')">'
+    +'<div class="tdl-text"><button class="tdl-link" data-id="'+id+'" onclick="openTodoModal(null,this.dataset.id)">'+escAttr(todoText(t))+'</button>'+chips
+      +(t.memo?'<div class="tdl-memo">'+escAttr(t.memo.slice(0,80))+'</div>':'')+'</div>'
+    +(t.bizno?'<button class="tdl-co" data-b="'+escAttr(t.bizno)+'" onclick="openCompanyModal(this.dataset.b)">'+escAttr(t.companyName||t.bizno)+'</button>':'<span class="tdl-co tdl-none">기업 없음</span>')
+    +'<div class="tdl-why" style="color:'+whyColor+'">'+escAttr(why)+'</div>'
+    +'<div class="tdl-act">'+(done?'':
+      (t.status!=='ing'?'<button class="btn btn-ghost btn-sm todo-btn" data-id="'+id+'" onclick="todoSetStatus(this.dataset.id,\'ing\')">시작</button>':'')
+      +'<button class="btn btn-ghost btn-sm todo-btn" data-id="'+id+'" onclick="todoPostpone(this.dataset.id)">'+(t.dueDate?'미루기':'날짜')+'</button>')
+      +'<button class="tdl-x" data-id="'+id+'" onclick="deleteTodoItem(this.dataset.id)" aria-label="삭제" title="삭제">×</button></div>'
+  +'</div>';
+}
+function todoSectionHtml(title,sub,color,bg,list,emptyText){
+  return '<section class="tdl-sec">'
+    +'<div class="tdl-sec-hd" style="background:'+bg+';color:'+color+'"><b>'+title+' '+list.length+'</b>'+(sub?'<span>'+sub+'</span>':'')+'</div>'
+    +(list.length?list.map(todoRowHtml).join(''):'<div class="tdl-empty">'+emptyText+'</div>')
+  +'</section>';
+}
+function todoTodayHtml(g){
+  const weekAgo=Date.now()-7*86400000;
+  const doneRecent=g.done.filter(t=>(t.doneAt||t.updatedAt||t.createdAt||0)>=weekAgo);
+  return todoSectionHtml('놓치고 있는 일','오늘 안에 결정 — 하거나, 날짜를 다시 잡거나','#991B1B','#FEF2F2',g.miss,'놓치고 있는 일이 없습니다')
+    +(g.ing.length?todoSectionHtml('지금 하는 일','','#92400E','#FFFBEB',g.ing,''):'')
+    +todoSectionHtml('해야 할 일',todoRules.horizonDays+'일 안 · 날짜 없음','#1E40AF','#EFF6FF',g.todo,'없음')
+    +'<button class="tdl-fold" onclick="todoToggleLater()">'+(todoLaterOpen?'▾':'▸')+' 앞으로 할 일 '+g.later.length+'건 · 최근 7일 완료 '+doneRecent.length+'건</button>'
+    +(todoLaterOpen?(g.later.length?todoSectionHtml('앞으로 할 일',todoRules.horizonDays+'일 넘게 남음','#374151','#F3F4F6',g.later,''):'')
+      +(doneRecent.length?todoSectionHtml('최근 7일 완료','','#065F46','#ECFDF5',doneRecent,''):''):'');
+}
+// 기업별: 열린 할 일을 기업으로 묶고, 상태가 나쁜 기업이 위로
+function todoCompanyHtml(g){
+  const map=new Map();
+  const add=(key,name,t,col)=>{if(!map.has(key))map.set(key,{key,name,items:[],miss:0,ing:0,due:'',last:0});const r=map.get(key);r.items.push(t);if(col==='miss')r.miss++;if(t.status==='ing')r.ing++;
+    if(t.dueDate&&(!r.due||t.dueDate<r.due))r.due=t.dueDate;r.last=Math.max(r.last,todoTouched(t)||0);};
+  ['miss','ing','todo','later'].forEach(col=>g[col].forEach(t=>{
+    if(t.lead)add(t.bizno,t.companyName,t,col);
+    else if(t.bizno)add(t.bizno,t.companyName||t.bizno,t,col);
+    else add('',' 기업 연결 없음',t,col);
+  }));
+  const rows=[...map.values()].sort((a,b)=>(a.key==='')-(b.key==='')||b.miss-a.miss||(a.due||'9999').localeCompare(b.due||'9999')||a.name.localeCompare(b.name,'ko'));
+  if(!rows.length)return '<div class="tdl-empty" style="background:var(--surface);border:1px solid var(--border);border-radius:12px">열린 할 일이 없습니다</div>';
+  return '<div class="tdl-cotable"><div class="tdl-co-hd"><div>기업</div><div>상태</div><div>열린 할 일</div><div style="text-align:right">가장 가까운 마감</div></div>'
+    +rows.map(r=>{
+      const st=r.miss?['멈춤·놓침','#991B1B','#FEE2E2']:r.ing?['진행','#92400E','#FEF3C7']:['대기','#1E40AF','#DBEAFE'];
+      const days=r.last?Math.floor((Date.now()-r.last)/86400000):null;
+      return '<div class="tdl-co-row'+(r.key===''?' tdl-co-none':'')+'">'
+        +'<div>'+(r.key?'<button class="tdl-link" style="font-weight:700;font-size:15px" data-b="'+escAttr(r.key)+'" onclick="openCompanyModal(this.dataset.b)">'+escAttr(r.name)+'</button>':'<b style="color:var(--text2)">기업 연결 없음</b>')
+          +'<div class="tdl-memo">'+(r.key?(days!==null?'마지막 손댄 날 '+days+'일 전':''):'「🔗 기업 연결 제안」으로 정리')+'</div></div>'
+        +'<div><span class="todo-chip" style="background:'+st[2]+';color:'+st[1]+';font-weight:700">'+st[0]+'</span></div>'
+        +'<div style="display:grid;gap:4px">'+r.items.map(t=>t.lead?'<div>후속 연락 <span style="color:#B91C1C;font-size:12px;font-weight:700">· 잠재고객 '+t.days+'일 무소식</span></div>'
+          :'<div><button class="tdl-link" data-id="'+escAttr(t.id)+'" onclick="openTodoModal(null,this.dataset.id)">'+escAttr(todoText(t))+'</button>'
+            +(t._reason?' <span style="color:'+(todoBucket(t).col==='miss'?'#B91C1C':'var(--text3)')+';font-size:12px;font-weight:700">· '+escAttr(t._reason)+'</span>':'')+'</div>').join('')+'</div>'
+        +'<div style="text-align:right;font-size:13px;color:'+(r.due?(r.due<todoToday()?'#B91C1C':'var(--text2)'):'#92400E')+'">'+(r.due?r.due.slice(5).replace('-','/'):'날짜 없음')+'</div>'
+      +'</div>';
+    }).join('')+'</div>';
+}
+// 주간: 월~일 칸 + 지난 마감 + 날짜 없는 할 일. 카드를 칸에 끌어다 놓으면 마감이 바뀐다(휴대폰은 「날짜」 버튼)
+function todoWeekHtml(){
+  const today=todoToday();
+  const base=new Date(today);const dow=(base.getDay()+6)%7;
+  base.setDate(base.getDate()-dow+todoWeekOffset*7);
+  const days=[...Array(7)].map((_,i)=>{const d=new Date(base);d.setDate(base.getDate()+i);return d;});
+  const open=todoOpen();
+  const card=t=>'<div class="tdl-wcard" draggable="true" data-id="'+escAttr(t.id)+'" ondragstart="todoDragStart(event,this.dataset.id)" onclick="openTodoModal(null,this.dataset.id)" title="끌어서 다른 날로 옮기기">'
+    +(t.companyName?'<div class="tdl-memo">'+escAttr(todoCoShort(t))+'</div>':'')+escAttr(todoText(t))
+    +(t.status==='ing'?' <span class="todo-chip" style="background:#FEF3C7;color:#92400E">진행</span>':'')+'</div>';
+  const drop=ds=>' ondragover="event.preventDefault()" ondrop="todoDropDay(event,\''+ds+'\')"';
+  const overdue=open.filter(t=>t.dueDate&&t.dueDate<today);
+  const noDue=open.filter(t=>!t.dueDate);
+  const wd=['월','화','수','목','금','토','일'];
+  const label=days[0].getMonth()+1+'월 '+days[0].getDate()+'일 – '+(days[6].getMonth()+1)+'월 '+days[6].getDate()+'일';
+  return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">'
+      +'<button class="btn btn-ghost btn-sm" onclick="todoWeekMove(-1)" aria-label="지난 주">◀</button>'
+      +'<b style="font-size:14px">'+label+'</b>'
+      +'<button class="btn btn-ghost btn-sm" onclick="todoWeekMove(1)" aria-label="다음 주">▶</button>'
+      +(todoWeekOffset?'<button class="btn btn-ghost btn-sm" onclick="todoWeekMove(0)">이번 주</button>':'')
+      +'<span style="font-size:12px;color:var(--text3)">카드를 요일 칸으로 끌어다 놓으면 마감일이 바뀝니다</span>'
+    +'</div>'
+    +'<div class="tdl-week">'
+      +'<section class="tdl-day" style="background:#FEF2F2"><h3 style="color:#991B1B">지난 마감 '+overdue.length+'</h3>'
+        +overdue.map(t=>card(t).replace('class="tdl-wcard"','class="tdl-wcard" style="border-color:#FECACA"')+'<div class="tdl-memo" style="color:#B91C1C;margin:-4px 0 4px">'+t.dueDate.slice(5).replace('-','/')+' · '+(-todoDaysFrom(today,t.dueDate))+'일 지남</div>').join('')+'</section>'
+      +days.map((d,i)=>{const ds=todoDayStr(d);const its=open.filter(t=>t.dueDate===ds&&ds>=today);const isT=ds===today;const past=ds<today;
+        return '<section class="tdl-day'+(isT?' tdl-today':'')+(i>=5?' tdl-weekend':'')+'"'+(past?'':drop(ds))+'><h3>'+wd[i]+' '+d.getDate()+(isT?' · 오늘':'')+'</h3>'+its.map(card).join('')+'</section>';}).join('')
+    +'</div>'
+    +'<section class="tdl-tray"'+drop('')+'><h3>날짜 없는 할 일 '+noDue.length+' <span>— 날짜가 없으면 「멈춤」으로만 잡혀 늦게 알게 됩니다. 요일 칸으로 끌어다 놓으세요</span></h3>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap">'+(noDue.map(card).join('')||'<span class="tdl-memo">없음</span>')+'</div></section>';
+}
+function todoDragStart(ev,id){todoDragId=id;try{ev.dataTransfer.setData('text/plain',id);ev.dataTransfer.effectAllowed='move';}catch(e){}}
+async function todoDropDay(ev,ds){
+  ev.preventDefault();
+  let id='';try{id=ev.dataTransfer.getData('text/plain');}catch(e){}
+  id=id||todoDragId;todoDragId='';
+  const t=todos.find(x=>x.id===id);if(!t||(t.dueDate||'')===ds)return;
+  const upd={dueDate:ds,updatedAt:Date.now(),statusAt:Date.now()};
+  try{await updateDoc(doc(db,'todos',id),upd);gcalSyncTodo(Object.assign({},t,upd),'upsert');}
+  catch(e){alert('저장 실패: '+e.message);}
+}
+// 🎙️ 음성 입력 — 브라우저 음성 인식(크롬·사파리)으로 빠른 입력 칸을 채운다. 저장은 사람이 확인하고 「추가」
+let todoRec=null;
+function todoVoiceInput(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){alert('이 브라우저는 음성 입력을 지원하지 않습니다.\n휴대폰 키보드의 🎤 마이크 버튼으로 말해도 됩니다.');return;}
+  const btn=document.getElementById('todo-mic');
+  if(todoRec){try{todoRec.stop();}catch(e){}return;}
+  const rec=new SR();rec.lang='ko-KR';rec.interimResults=true;rec.maxAlternatives=1;
+  todoRec=rec;if(btn)btn.classList.add('on');
+  rec.onresult=e=>{
+    const txt=[...e.results].map(r=>r[0].transcript).join('');
+    const inp=document.getElementById('todo-quick');if(inp){inp.value=txt;todoQuickHint();}
+  };
+  rec.onerror=e=>{if(e.error==='not-allowed')alert('마이크 권한이 꺼져 있습니다. 브라우저 설정에서 허용해 주세요.');};
+  rec.onend=()=>{todoRec=null;const b=document.getElementById('todo-mic');if(b)b.classList.remove('on');const inp=document.getElementById('todo-quick');if(inp)inp.focus();};
+  try{rec.start();}catch(e){todoRec=null;if(btn)btn.classList.remove('on');}
+}
+// 휴대폰 화면 (H)
+function todoMobileHtml(g){
+  const b=todoBriefData(g);
+  const list=[].concat(g.miss.map(t=>['miss',t]),g.ing.map(t=>['ing',t]),g.todo.map(t=>['todo',t]));
+  let last='';
+  const head={miss:['놓치고 있는 일','#991B1B'],ing:['지금 하는 일','#92400E'],todo:['해야 할 일','#1E40AF']};
+  return '<div class="tdl-m-stats">'
+      +'<div style="background:#FEF2F2"><span>놓친 일</span><b style="color:#B91C1C">'+g.miss.length+'</b></div>'
+      +'<div style="background:#EFF6FF"><span>해야 할 일</span><b style="color:#1D4ED8">'+(g.todo.length+g.ing.length)+'</b></div>'
+      +'<div style="background:#F3F4F6"><span>7일 안 마감</span><b>'+b.week.length+'</b></div>'
+    +'</div>'
+    +list.map(([col,t])=>{
+      const h=col!==last?'<div class="tdl-m-hd" style="color:'+head[col][1]+'">'+head[col][0]+'</div>':'';last=col;
+      if(t.lead)return h+'<div class="tdl-m-row"><span></span><div><div class="tdl-memo">'+escAttr(t.companyName)+'</div><b>후속 연락</b><div style="color:#B91C1C;font-size:12px;font-weight:700">잠재고객 · '+t.days+'일 무소식</div></div></div>';
+      const id=escAttr(t.id);
+      return h+'<div class="tdl-m-row">'
+        +'<input type="checkbox" class="tdl-chk" aria-label="완료" data-id="'+id+'" onchange="todoSetStatus(this.dataset.id,this.checked?\'done\':\'wait\')">'
+        +'<button class="tdl-m-body" data-id="'+id+'" onclick="openTodoModal(null,this.dataset.id)">'
+          +(t.companyName?'<span class="tdl-memo">'+escAttr(todoCoShort(t))+'</span>':'')
+          +'<b>'+escAttr(todoText(t))+'</b>'
+          +(t._reason?'<span style="color:'+(col==='miss'?'#B91C1C':'var(--text3)')+';font-size:12px;font-weight:700">'+escAttr(t._reason)+'</span>':'')
+        +'</button></div>';
+    }).join('')
+    +(list.length?'':'<div class="tdl-empty">열린 할 일이 없습니다</div>');
+}
 function renderTodo(sfx){
   const s=sfx?'-'+sfx:'';
   const grid=document.getElementById('todo-grid'+s);if(!grid)return;
@@ -4709,41 +4982,38 @@ function renderTodo(sfx){
   }
   grid.className='';
   const me=getTodoMe();
-  const weekAgo=Date.now()-7*86400000;
-  const doneRecent=g.done.filter(t=>(t.doneAt||t.updatedAt||t.createdAt||0)>=weekAgo);
+  const mob=isMobile();
   const unlinked=todoLinkCandidates().length;
   const coOpts='<option value="">전체 기업</option>'+[...new Set(todos.filter(t=>t.bizno).map(t=>t.bizno))].map(b=>{const c=companies.find(x=>x._id===b);return {b,n:c?c.name:(todos.find(t=>t.bizno===b)||{}).companyName||b};})
     .sort((a,b)=>a.n.localeCompare(b.n,'ko')).map(o=>'<option value="'+escAttr(o.b)+'"'+(todoFilter.bizno===o.b?' selected':'')+'>'+escAttr(o.n)+'</option>').join('');
   const catOpts='<option value="">전체 분야</option>'+CAT_IDS.map(k=>'<option value="'+k+'"'+(todoFilter.category===k?' selected':'')+'>'+CAT_META[k].icon+' '+escAttr(CAT_META[k].name)+'</option>').join('');
   const srcOpts='<option value="">전체 출처</option>'+Object.keys(TODO_SRC).map(k=>'<option value="'+k+'"'+(todoFilter.source===k?' selected':'')+'>'+TODO_SRC[k]+'</option>').join('');
+  const tabs=[['today','오늘'],['company','기업별'],['week','주간']];
+  const view=tabs.some(x=>x[0]===todoView)?todoView:'today';
+  const body=view==='company'?todoCompanyHtml(g):view==='week'?todoWeekHtml():(mob?todoMobileHtml(g):todoBriefHtml(g)+todoTodayHtml(g));
   grid.innerHTML=
-    '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px;display:grid;gap:8px">'
-      +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
-        +'<input class="fi" id="todo-quick" placeholder="빠른 입력 — 예: 하이퍼다인 서류 독촉 10/10   (Enter로 저장, 기업·날짜는 자동 인식)" style="flex:1;min-width:240px" oninput="todoQuickHint()" onkeydown="if(event.key===\'Enter\'&&!event.isComposing){event.preventDefault();todoQuickSave();}">'
-        +'<button class="btn btn-primary btn-sm" onclick="todoQuickSave()">추가</button>'
-        +'<button class="btn btn-ghost btn-sm" onclick="openTodoModal(\'wait\')">자세히 추가</button>'
-      +'</div>'
-      +'<div id="todo-quick-hint" style="font-size:12px;color:var(--text3);min-height:16px"></div>'
-      +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px">'
-        +'<select class="fs" style="width:150px" onchange="todoSetFilter(\'bizno\',this.value)">'+coOpts+'</select>'
-        +'<select class="fs" style="width:150px" onchange="todoSetFilter(\'category\',this.value)">'+catOpts+'</select>'
-        +'<select class="fs" style="width:130px" onchange="todoSetFilter(\'source\',this.value)">'+srcOpts+'</select>'
-        +'<span style="flex:1"></span>'
+    '<div class="tdl-top">'
+      +'<div class="tdl-tabs" role="tablist">'+tabs.map(([k,l])=>'<button role="tab" aria-selected="'+(view===k)+'" class="'+(view===k?'on':'')+'" onclick="todoSetView(\''+k+'\')">'+l+'</button>').join('')+'</div>'
+      +(mob?'':'<div class="tdl-tools">'
         +(unlinked?'<button class="btn btn-ghost btn-sm" onclick="todoLinkSuggest()" title="글자 속 기업명으로 연결 후보를 찾습니다">🔗 기업 연결 제안 '+unlinked+'</button>':'')
-        +'<span style="color:var(--text3)">작성자</span><select class="fs" style="width:110px" onchange="setTodoMe(this.value)"><option value="">선택</option>'
-          +['정석진','김학미'].map(n=>'<option'+(me===n?' selected':'')+'>'+n+'</option>').join('')+'</select>'
-        +'<button class="btn btn-ghost btn-sm" onclick="todoEditRules()" title="놓친 일 판단 기준">기준: 멈춤 '+todoRules.stallDays+'일 · 임박 '+todoRules.soonDays+'일 · 앞으로 '+todoRules.horizonDays+'일 · 잠재고객 '+todoRules.leadDays+'일</button>'
-      +'</div>'
+        +'<label style="color:var(--text3)">작성자 <select class="fs" style="width:100px" onchange="setTodoMe(this.value)"><option value="">선택</option>'
+          +['정석진','김학미'].map(n=>'<option'+(me===n?' selected':'')+'>'+n+'</option>').join('')+'</select></label>'
+        +'<button class="btn btn-ghost btn-sm" onclick="todoEditRules()" title="놓친 일 판단 기준 바꾸기">기준 '+todoRules.stallDays+'·'+todoRules.soonDays+'·'+todoRules.horizonDays+'·'+todoRules.leadDays+'일</button>'
+      +'</div>')
     +'</div>'
-    +'<div class="todo-wrap4">'+TODO_COLS.map(c=>
-      '<div class="todo-col" style="background:'+c.bg+'">'
-        +'<div class="todo-col-hd"><span style="color:'+c.color+'">●</span>'+c.label+'<span style="margin-left:auto;font-family:\'JetBrains Mono\',monospace;font-size:12px;color:'+c.color+';font-weight:700">'+g[c.k].length+'</span></div>'
-        +'<div style="display:grid;gap:8px">'+(g[c.k].map(todoCardHtml).join('')||'<div style="font-size:13px;color:var(--text4);padding:8px 6px">없음</div>')+'</div>'
-      +'</div>').join('')+'</div>'
-    +'<div style="margin-top:14px"><div onclick="todoToggleDone()" style="cursor:pointer;font-size:13px;color:var(--text3)">'
-      +(todoShowDone?'▾':'▸')+' 최근 7일 완료 '+doneRecent.length+'건'+(todoShowDone?'':' (펼치기)')+'</div>'
-      +(todoShowDone?'<div class="todo-wrap4" style="margin-top:8px">'+(doneRecent.map(todoCardHtml).join('')||'<div style="font-size:13px;color:var(--text4)">없음</div>')+'</div>':'')
-    +'</div>';
+    +'<div class="tdl-quick">'
+      +'<input class="fi" id="todo-quick" placeholder="'+(mob?'할 일 적기 — 기업·날짜 자동 인식':'빠른 입력 — 예: 하이퍼다인 서류 독촉 10/10   (Enter로 저장, 기업·날짜는 자동 인식)')+'" oninput="todoQuickHint()" onkeydown="if(event.key===\'Enter\'&&!event.isComposing){event.preventDefault();todoQuickSave();}">'
+      +'<button id="todo-mic" class="tdl-mic" onclick="todoVoiceInput()" aria-label="말로 할 일 넣기" title="말로 할 일 넣기"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>'
+      +'<button class="btn btn-primary btn-sm" onclick="todoQuickSave()">추가</button>'
+      +(mob?'':'<button class="btn btn-ghost btn-sm" onclick="openTodoModal(\'wait\')">자세히 추가</button>')
+    +'</div>'
+    +'<div id="todo-quick-hint" style="font-size:12px;color:var(--text3);min-height:16px;margin:4px 2px 10px"></div>'
+    +(mob?'':'<div class="tdl-filters">'
+      +'<select class="fs" onchange="todoSetFilter(\'bizno\',this.value)" aria-label="기업">'+coOpts+'</select>'
+      +'<select class="fs" onchange="todoSetFilter(\'category\',this.value)" aria-label="분야">'+catOpts+'</select>'
+      +'<select class="fs" onchange="todoSetFilter(\'source\',this.value)" aria-label="출처">'+srcOpts+'</select>'
+    +'</div>')
+    +body;
   todoQuickHint();
   if(getDriveUrl()&&getDriveKey()&&!voiceMove.busy&&Date.now()-voiceMove.at>2*60000)todoVoiceMove();
 }
@@ -11632,7 +11902,7 @@ Object.assign(window,{
   openConsultingModal,saveConsulting,deleteConsulting,addConsCompany,renderConsCompaniesList,updateConsCompanyStatus,removeConsCompany,
   openConsResultModal,saveConsResult,onCrResultChange,
   openTodoModal,saveTodo,cycleTodo,deleteTodoItem,
-  todoSetStatus,todoPostpone,todoQuickHint,todoQuickSave,todoSetFilter,todoEditRules,todoToggleDone,setTodoMe,
+  todoSetStatus,todoPostpone,todoSetView,todoToggleBrief,todoToggleLater,todoWeekMove,todoDragStart,todoDropDay,todoVoiceInput,todoQuickHint,todoQuickSave,todoSetFilter,todoEditRules,todoToggleDone,setTodoMe,
   todoLinkSuggest,todoFromLead,todoLeadContacted,todoCardImport,todoCardToggle,todoCardApply,createAnnualTasks,
   renderWork,openWorkModal,saveWork,confirmDeleteWork,cycleWork,syncWorkFromCert,
   renderClientsPage,setCliPageOv,setCliPageSub,setCliGroupFilter,
