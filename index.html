@@ -1182,6 +1182,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
       <input class="fi" id="drive-key-inp" type="password" placeholder="드라이브 비밀 문구 (스크립트 속성 DRIVE_KEY와 같은 값)" style="flex:1" autocomplete="off">
       <button class="btn btn-primary btn-sm" onclick="saveDriveKeyAndLoad()">불러오기</button>
+      <button class="btn btn-ghost btn-sm" onclick="copyDriveScript()" title="Apps Script 「SG CRM 드라이브」에 붙여 넣을 최신 코드를 복사합니다">📋 스크립트 코드 복사</button>
     </div>
     <div id="drive-status" style="font-size:12px;margin-bottom:8px;min-height:16px"></div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
@@ -10866,6 +10867,26 @@ async function testGcalConnection(){
   }
 }
 
+// 드라이브 스크립트(SG_CRM_Drive.gs) 최신본을 클립보드로 — 편집기에서 Ctrl+A → Ctrl+V
+//   CRM과 같은 저장소의 파일을 읽으므로 main에 올린 것과 항상 같다. (로컬 파일로 열면 GitHub 원본에서 읽음)
+async function copyDriveScript(){
+  const srcs=['SG_CRM_Drive.gs','https://raw.githubusercontent.com/SGGIT-PNG/sgcrm/main/SG_CRM_Drive.gs'];
+  let code='';
+  for(const u of srcs){
+    try{const r=await fetch(u,{cache:'no-store'});if(r.ok){code=await r.text();if(code.indexOf('function doGet')>-1)break;code='';}}catch(e){}
+  }
+  if(!code){alert('스크립트 코드를 불러오지 못했습니다. 인터넷 연결을 확인하세요.');return;}
+  const ver=(code.match(/정상 (v[\d.]+)/)||[])[1]||'';
+  try{
+    await navigator.clipboard.writeText(code);
+    alert('📋 드라이브 스크립트 '+ver+' 코드를 복사했습니다 ('+code.split('\n').length+'줄).\n\nApps Script 「SG CRM 드라이브」 편집기에서\nCtrl+A → Ctrl+V → 저장(Ctrl+S) 하세요.\n\n코드가 바뀐 경우 「배포 → 배포 관리 → 새 버전」으로 다시 배포해야 CRM에 반영됩니다.');
+  }catch(e){
+    // 클립보드 권한이 막힌 브라우저: 새 창에 코드를 띄워 직접 복사
+    const w=window.open('','_blank');
+    if(w){w.document.title='SG_CRM_Drive.gs';const pre=w.document.createElement('pre');pre.textContent=code;w.document.body.appendChild(pre);}
+    else alert('클립보드 복사가 막혔습니다. 브라우저 팝업을 허용한 뒤 다시 눌러 주세요.');
+  }
+}
 function copyGcalScript(){
   var code=getAppsScriptCode();
   navigator.clipboard.writeText(code).then(function(){
@@ -11579,6 +11600,7 @@ loadAll();
 
 // ── GLOBAL EXPORTS ──
 Object.assign(window,{
+  copyDriveScript,
   navTo,manualSave,closeModal,
   downloadBackup,openRestorePicker,restoreBackupFile,
   openDriveImport,saveDriveKeyAndLoad,renderDriveImport,driveImportPick,
