@@ -7917,25 +7917,34 @@ function sidoToRegion(s){
 // 폴더 이름 "용인_(주)청림테크_김태후대표님" → {city, name, ceo}
 function parseDriveFolderName(fn){
   const raw=String(fn||'').trim();
-  let ceo='';
-  const ceoM=raw.match(/([가-힣]{2,4})\s*대표(님)?/);
-  if(ceoM)ceo=ceoM[1];
+  // 대표 이름은 마지막 「○○○대표」를 쓴다 ("순천_국가대표_성광배대표" → 성광배, 국가 아님)
+  const ceoAll=[...raw.matchAll(/([가-힣]{2,4})\s*대표(님)?(?![가-힣])/g)];
+  const ceoTok=t=>/^[가-힣]{2,4}\s*대표(님)?(\(.*\))?$/.test(t);
   const toks=raw.split(/[_\-]/).map(t=>t.trim()).filter(Boolean);
   const isCorpTok=t=>/\(주\)|㈜|주식회사|\(유\)|유한회사|법인/.test(t);
-  const isPlace=t=>/^[가-힣]{1,4}(시|군|구)?$/.test(t)&&t.length<=4&&!isCorpTok(t);
+  // 「○○대표」 칸이 둘 이상이면 마지막만 사람 이름 ("순천_국가대표_성광배대표"의 국가대표는 상호)
+  let lastCeoTok=-1;toks.forEach((t,k)=>{if(ceoTok(t))lastCeoTok=k;});
+  const isRole=t=>(ceoTok(t)&&toks.indexOf(t)===lastCeoTok)||/팀장|본부장|기획총괄/.test(t);
+  // 지명은 「뒤에 상호가 될 칸이 남을 때만」 떼어 낸다 ("이수기계_박주희대표"의 이수기계는 지명이 아니라 상호)
+  const isPlace=t=>/^[가-힣]{1,4}(시|군|구)?$/.test(t)&&!isCorpTok(t)&&!/대표/.test(t);
   let city='',name='';
   let rest=toks.slice();
-  if(rest.length>1&&isPlace(rest[0])&&!/대표/.test(rest[0])){city=rest.shift();}
+  if(rest.length>1&&isPlace(rest[0])&&rest.slice(1).some(t=>!isRole(t)))city=rest.shift();
   let ci=rest.findIndex(isCorpTok);
   // "(유)농업회사법인_지리산사람들"처럼 법인 표기만 있는 칸이면 다음 칸이 상호
   if(ci>=0&&!rest[ci].replace(/\(주\)|㈜|주식회사|\(유\)|유한회사|농[업헙]회사법인|영농조합법인|법인/g,'').trim()&&rest[ci+1]){
     name=(/\(유\)|유한/.test(rest[ci])?'(유)':'(주)')+rest[ci+1];
   }else{
-    name=ci>=0?rest[ci]:(rest.find(t=>!/대표|팀장|본부장|기획총괄/.test(t))||rest[0]||raw);
+    name=ci>=0?rest[ci]:(rest.find(t=>!isRole(t))||rest[0]||raw);
   }
-  name=name.replace(/\((?!주\)|유\))[^)]*\)/g,'').replace(/^[가-힣]{2,4}\s*대표(님)?\s+/,'').replace(/[가-힣]{2,4}\s*대표(님)?$/,'').trim();
+  const before=name;
+  name=name.replace(/\((?!주\)|유\))[^)]*\)/g,'').replace(/^[가-힣]{2,4}\s*대표(님)?\s+/,'').replace(/\s+[가-힣]{2,4}\s*대표(님)?$/,'').replace(/_[가-힣]{2,4}대표(님)?$/,'').trim();
+  if(!name)name=before.replace(/\((?!주\)|유\))[^)]*\)/g,'').trim()||raw;
   if(name.startsWith('주식회사')&&name.length>4)name='(주)'+name.slice(4).trim();
   else if(name.endsWith('주식회사')&&name.length>4)name='(주)'+name.slice(0,-4).trim();
+  // 대표: 상호 칸 안의 "국가대표" 같은 낱말은 대표 이름으로 보지 않는다
+  let ceo='';
+  for(let k=ceoAll.length-1;k>=0;k--){const c=ceoAll[k][1];if(!name.includes(c+'대표')&&!name.includes(c)){ceo=c;break;}}
   const individual=/개인사업자/.test(raw);
   const closed=/폐업/.test(raw);
   return {city,name,ceo,individual,closed};
