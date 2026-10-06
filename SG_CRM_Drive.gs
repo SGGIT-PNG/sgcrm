@@ -29,6 +29,9 @@
  *   CRM 할 일(todos)로 저장하고, 저장이 확인되면 **캘린더에서 그 일정을 지운다**(구글 캘린더 휴지통에서 복구 가능).
  *   기업명이 제목에 있으면 CRM 기업과 자동 연결. CRM이 보낸 일정([ToDo] 등)과 반복 일정은 건드리지 않는다.
  *   CRM 할 일 화면을 열 때도 한 번 돌린다(10분을 기다리지 않게).
+ *   v5.1: 제미나이에 「할 일」이라고 말하면 캘린더가 아니라 **구글 Tasks**에 저장된다 → Tasks의 끝나지 않은 할 일도
+ *         전부 CRM 할 일로 옮기고 Tasks에서 지운다. ⚠️ 왼쪽 「서비스 +」에서 **Tasks API**(식별자 Tasks) 추가 필요.
+ *         (하위 할 일이 달린 할 일·하위 할 일은 건너뜀)
  *   설치(1회): 코드 교체 → 저장 → 함수 선택에서 **setupVoiceTrigger** 실행 → 권한 허용(캘린더·외부 요청)
  *             → 「배포 관리」에서 기존 배포를 **새 버전**으로 수정.
  *
@@ -47,7 +50,7 @@ function doGet(e){
     if(p.action==="drive_card")return jsonOut({ok:true,data:driveCard(p.folderId)});
     if(p.action==="biz_cert")return jsonOut({ok:true,data:bizCert(p.folderId)});
     if(p.action==="voice_move")return jsonOut({ok:true,data:moveVoiceTodos()});
-    return jsonOut({ok:true,message:"SG CRM 드라이브 연결 정상 v5"});
+    return jsonOut({ok:true,message:"SG CRM 드라이브 연결 정상 v5.1"});
   }catch(err){
     return jsonOut({ok:false,error:err.message});
   }
@@ -278,9 +281,24 @@ function moveVoiceTodos(){
       var t=ev.getTitle()||"";
       return t&&!CRM_TITLE_RE.test(t)&&VOICE_MARK_RE.test(t)&&!ev.isRecurringEvent();
     });
-    if(!evs.length)return {moved:0,items:[]};
+    var tasks=listGoogleTasks();
+    if(!evs.length&&!tasks.length)return {moved:0,items:[]};
     var comps=listCompanies();
     var items=[];
+    // ① 구글 Tasks(할 일 목록) — 제미나이에 「할 일」이라고 말하면 캘린더 일정이 아니라 여기로 저장된다
+    tasks.forEach(function(x){
+      var text=cleanVoiceTitle(x.task.title);
+      var co=findCompany(text,comps);
+      var nowMs=Date.now();
+      var due=x.task.due?String(x.task.due).slice(0,10):"";
+      var data={text:text,status:"wait",dueDate:due,source:"voice",sourceRef:"task:"+x.task.id,
+        memo:"음성 할 일(구글 Tasks)"+(x.task.notes?" · "+x.task.notes:""),createdBy:"음성",createdAt:nowMs,updatedAt:nowMs};
+      if(co){data.bizno=co.id;data.companyName=co.name;}
+      writeTodo("task:"+x.task.id,data);
+      Tasks.Tasks.remove(x.listId,x.task.id);
+      items.push((due?due+" ":"")+text+" (Tasks)");
+    });
+    // ② 캘린더 일정 중 제목에 「할일」이 든 것
     evs.forEach(function(ev){
       var allDay=ev.isAllDayEvent(),st=ev.getStartTime();
       var date=fmtD(st),time=allDay?"":Utilities.formatDate(st,TZ,"HH:mm"),loc=ev.getLocation()||"";
@@ -298,6 +316,23 @@ function moveVoiceTodos(){
     console.log("[음성 할 일] 옮김 "+items.length+"건: "+items.join(" / "));
     return {moved:items.length,items:items};
   }finally{lock.releaseLock();}
+}
+// 구글 Tasks의 끝나지 않은 할 일 전부 (고급 서비스 「Tasks API」를 켜야 동작, 꺼져 있으면 건너뜀)
+function listGoogleTasks(){
+  if(typeof Tasks==="undefined")return [];
+  var out=[];
+  (Tasks.Tasklists.list({maxResults:100}).items||[]).forEach(function(l){
+    var tok,all=[];
+    do{
+      var r=Tasks.Tasks.list(l.id,{showCompleted:false,showHidden:false,maxResults:100,pageToken:tok});
+      (r.items||[]).forEach(function(t){all.push(t);});
+      tok=r.nextPageToken;
+    }while(tok);
+    // 하위 할 일이 있는 할 일은 지우면 하위까지 사라지므로 옮기지 않는다
+    var parents={};all.forEach(function(t){if(t.parent)parents[t.parent]=1;});
+    all.forEach(function(t){if(t.title&&t.status!=="completed"&&!t.parent&&!parents[t.id])out.push({listId:l.id,task:t});});
+  });
+  return out;
 }
 function voiceTrigger(){moveVoiceTodos();}          // 10분 트리거가 부르는 함수
 // 10분마다 자동 옮기기 트리거 설치 (여러 번 실행해도 하나만 남는다)
