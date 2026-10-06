@@ -9,7 +9,7 @@
 
 | 항목 | 값 |
 |---|---|
-| 정본 파일 | **`<repo>/index.html`** — 단일 HTML 파일 (2026-07-31 기준 **8,442줄**) |
+| 정본 파일 | **`<repo>/index.html`** — 단일 HTML 파일 (2026-10-06 기준 **11610줄**) |
 | 저장소 | https://github.com/SGGIT-PNG/sgcrm (branch `main`) |
 | 배포 | **GitHub Pages** — `main`에 push하면 즉시 배포됨 |
 | Firebase | 프로젝트 **`sg-crm-f9adc`** (Firestore, Seoul) |
