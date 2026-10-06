@@ -1,5 +1,5 @@
 /**
- * SG CRM 드라이브 연결 — 업체 폴더·업체카드·사업자등록증 읽기 (v3, 2026-10)
+ * SG CRM 드라이브 연결 — 업체 폴더·업체카드·사업자등록증 읽기 (v4, 2026-10)
  *
  * 하는 일: 드라이브 「관리 업체 List」의 업체 폴더 목록과 업체카드 내용을 CRM 기업등록 화면에 넘겨준다.
  *         읽기만 한다. 드라이브의 파일·폴더를 만들거나 고치거나 지우지 않는다.
@@ -21,6 +21,7 @@
  *   ⚠️ 왼쪽 「서비스 +」에서 **Drive API**를 추가해야 한다(식별자 Drive). 추가 후 「새 버전」으로 재배포.
  *   OCR은 임시 구글 문서를 만들어 글자를 꺼낸 뒤 그 임시 문서를 바로 휴지통으로 보낸다. 원본 파일은 건드리지 않는다.
  *   같은 파일은 6시간 동안 결과를 기억해 다시 읽지 않는다.
+ *   v4: 파일 이름이 「사업자 등록증」(띄어쓰기)·「사업자등록증명」이어도 찾는다.
  *
  * 비밀 문구를 두는 이유: CRM에는 아직 로그인이 없다. 주소만 알아서는 업체카드(사업자번호·매출 등)를
  *   읽지 못하게 한다. 주소와 비밀 문구는 Firestore가 아니라 각 기기 브라우저에만 저장된다.
@@ -36,7 +37,7 @@ function doGet(e){
     if(p.action==="drive_companies")return jsonOut({ok:true,folders:driveCompanies()});
     if(p.action==="drive_card")return jsonOut({ok:true,data:driveCard(p.folderId)});
     if(p.action==="biz_cert")return jsonOut({ok:true,data:bizCert(p.folderId)});
-    return jsonOut({ok:true,message:"SG CRM 드라이브 연결 정상 v3"});
+    return jsonOut({ok:true,message:"SG CRM 드라이브 연결 정상 v4"});
   }catch(err){
     return jsonOut({ok:false,error:err.message});
   }
@@ -150,9 +151,11 @@ function certScore(f,words){
   if(f.getMimeType().indexOf("pdf")>-1)s+=3;  // 사진보다 PDF가 정확
   return s;
 }
+// v4: 「사업자 등록증」(띄어쓰기)·「사업자등록증명원」처럼 이름이 조금 다른 파일도 찾는다
+function isBizCertName(n){return /사업자\s*등록/.test(n)&&!/신청서/.test(n);}
 function findBizCerts(folder,depth,out){
-  var it=folder.searchFiles("title contains '사업자등록증' and trashed = false");
-  while(it.hasNext()){var f=it.next();if(CERT_TYPES[f.getMimeType()])out.push(f);}
+  var it=folder.searchFiles("(title contains '등록증' or title contains '사업자등록') and trashed = false");
+  while(it.hasNext()){var f=it.next();if(CERT_TYPES[f.getMimeType()]&&isBizCertName(f.getName()))out.push(f);}
   if(depth<=0)return out;
   var subs=folder.getFolders();
   while(subs.hasNext()){var sf=subs.next();if(sf.getName()==="_카드이력")continue;findBizCerts(sf,depth-1,out);}

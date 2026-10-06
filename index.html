@@ -8263,7 +8263,8 @@ function parseBizCert(text){
   const name=grab('법인명(단체명)')||grab('법인명')||grab('상호');
   if(name)r.name=name.replace(/^[:\s]+/,'').trim();
   const NOT_NAME=/^(대표|유형|사업자|법인|단체|생년|개업|소재|국세|세무|과세|일반|간이|등록|상호|성명|공동|발급)/;
-  const ceoTxt=grab('대표자',true)||grab('성명',true);
+  // 「대표자(대표 유형) 박지민(단독대표)」 — 괄호 안 서식 글자는 빼고 본다 (OCR이 유형을 「뮤형」으로 읽기도 함)
+  const ceoTxt=(grab('대표자',true)||grab('성명',true)).replace(/\([^)]*\)/g,' ');
   const ceo=(ceoTxt.match(/[가-힣]{2,5}/g)||[]).find(w=>!NOT_NAME.test(w));
   if(ceo)r.ceo=ceo;
   const od=grab('개업연월일',true).match(/(\d{4})\s*[년.\-]\s*(\d{1,2})\s*[월.\-]\s*(\d{1,2})/);
@@ -8276,7 +8277,12 @@ function parseBizCert(text){
   const kind=grab('사업의종류',true);
   const up=(grab('업태',true)||'').trim(), jm=(grab('종목',true)||'').trim();
   const bt=[up,jm].filter(Boolean).join(' / ')||kind;
-  if(bt)r.biztype=bt.split(/국세청|세무서|발\s*급\s*사\s*유|공동사업자|20\d\d\s*년/)[0].replace(/\s+/g,' ').trim().slice(0,80);
+  if(bt){
+    // 발급처·날짜 꼬리, 워터마크 영문(ATION, KOREA…) 제거, 같은 업태가 두 번 읽힌 것 정리
+    let b=bt.split(/국세청|세무서|발\s*급\s*사\s*유|공동사업자|20\d\d\s*년/)[0].replace(/\b[A-Z]{3,}\b/g,' ').replace(/\s+/g,' ').trim();
+    const seen=new Set();b=b.split(/\s*\/\s*/).map(part=>part.split(/(?<=업)\s+/).filter(w=>{const k=w.trim();if(!k||seen.has(k))return false;seen.add(k);return true;}).join(' ')).filter(Boolean).join(' / ');
+    r.biztype=b.slice(0,80);
+  }
   const em=t.match(/[\w.+-]+@[\w-]+\.[\w.]+/);if(em)r.email=em[0];
   if(r.biztype){
     const b=r.biztype;
@@ -8384,7 +8390,7 @@ async function bizCertBulkRead(){
       const d=(await driveCall({action:'biz_cert',folderId:c.driveFolderId})).data;
       if(!d.file){row.note='등록증 파일 없음';}
       else{
-        row.file=d.file.name;
+        row.file=d.file.name;row.ocr=String(d.text||'').slice(0,1500);
         const r=parseBizCert(d.text);
         const f=bizCertFill(r,c);row.fill=f.fill;row.diff=f.diff;
         // 같은 폴더에 다른 회사 등록증이 섞여 있는 경우(예: 센세이션 폴더의 스탠다즈 등록증) — 자동 선택하지 않는다
@@ -8423,6 +8429,7 @@ function renderBizCertPreview(){
         +(fills?'<div>'+fills+'</div>':(r.file?'<div style="color:var(--text4)">채울 빈 칸 없음</div>':''))
         +(r.diff.length?'<div style="color:var(--text3)">다른 값(그대로 둠): '+escAttr(r.diff.join(' · '))+'</div>':'')
         +(r.note?'<div style="color:var(--danger)">'+escAttr(r.note)+'</div>':'')
+        +(r.ocr?'<details style="margin-top:3px"><summary style="cursor:pointer;color:var(--text4)">읽은 글자(OCR) 보기</summary><pre style="white-space:pre-wrap;font-size:11px;background:var(--surface2);padding:6px;border-radius:6px;max-height:200px;overflow:auto">'+escAttr(r.ocr)+'</pre></details>':'')
         +'</div></div>';
     }).join('');
 }
