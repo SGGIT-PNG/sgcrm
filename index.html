@@ -309,6 +309,8 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
 .todo-wrap4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:start;}
 .todo-chip{display:inline-block;font-size:11px;padding:1px 7px;border-radius:9px;background:#F1F5F9;color:var(--text2);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
 .todo-btn{padding:1px 8px!important;font-size:11px!important;}
+/* 2026-10-06 CRM 축소 — 지원사업·업무 화면은 숨김(데이터는 Firestore에 그대로) */
+.sg-retired{display:none!important;}
 /* 할 일 화면 (오늘·기업별·주간) */
 .tdl-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
 .tdl-tabs{display:flex;gap:4px;background:#E5E7EB;padding:4px;border-radius:10px;}
@@ -620,15 +622,15 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
     <div class="mob-drawer-item" onclick="mobileNavTo('gantt')">📅 일정관리</div>
     <div class="mob-drawer-item" onclick="mobileNavTo('overview')">🏠 전체 현황</div>
     <div class="mob-drawer-item" onclick="mobileNavTo('todo')">✅ 할 일</div>
-    <div class="mob-drawer-item" onclick="mobileNavTo('clients')">🏢 기업별 진행현황</div>
-    <div class="mob-drawer-item" onclick="mobileNavTo('work')">📋 업무 영역별</div>
+    <div class="mob-drawer-item sg-retired" onclick="mobileNavTo('clients')">🏢 기업별 진행현황</div>
+    <div class="mob-drawer-item sg-retired" onclick="mobileNavTo('work')">📋 업무 영역별</div>
 
     <!-- 관리 -->
     <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,.35);padding:14px 8px 4px;letter-spacing:.08em;text-transform:uppercase">관리</div>
-    <div class="mob-drawer-item" onclick="mobileNavTo('matching')">🎯 지원사업매칭</div>
-    <div class="mob-drawer-item" onclick="mobileNavTo('cert')">🏅 인증·갱신관리</div>
-    <div class="mob-drawer-item" onclick="mobileNavTo('stats')">📊 누적통계</div>
-    <div class="mob-drawer-item" onclick="mobileNavTo('history')">📁 완료업무이력</div>
+    <div class="mob-drawer-item sg-retired" onclick="mobileNavTo('matching')">🎯 지원사업매칭</div>
+    <div class="mob-drawer-item" onclick="mobileNavTo('cert')">🏅 인증·갱신</div>
+    <div class="mob-drawer-item" onclick="mobileNavTo('stats')">📊 통계</div>
+    <div class="mob-drawer-item sg-retired" onclick="mobileNavTo('history')">📁 완료업무이력</div>
     <div class="mob-drawer-item" onclick="mobileNavTo('companies')">🏛️ 기업관리</div>
 
     <!-- 도구 -->
@@ -680,13 +682,13 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
   <div class="sb-menu" id="nav-gantt" onclick="navTo('gantt')"><span class="sb-ico">📅</span><span>일정관리</span><span class="sb-cnt" id="sb-gantt-cnt">0</span></div>
   <div class="sb-menu active" id="nav-overview" onclick="navTo('overview')"><span class="sb-ico">🏠</span><span>전체 현황</span></div>
   <div class="sb-menu" id="nav-todo" onclick="navTo('todo')"><span class="sb-ico">✅</span><span>할 일</span><span class="sb-cnt" id="sb-todo-cnt">0</span></div>
-  <div class="sb-menu" id="nav-clients" onclick="navTo('clients')"><span class="sb-ico">🏢</span><span>기업별 진행현황</span><span class="sb-cnt" id="sb-cli-cnt">0</span></div>
-  <div class="sb-menu" id="nav-work" onclick="navTo('work')"><span class="sb-ico">📊</span><span>업무 영역별 현황</span></div>
+  <div class="sb-menu sg-retired" id="nav-clients" onclick="navTo('clients')"><span class="sb-ico">🏢</span><span>기업별 진행현황</span><span class="sb-cnt" id="sb-cli-cnt">0</span></div>
+  <div class="sb-menu sg-retired" id="nav-work" onclick="navTo('work')"><span class="sb-ico">📊</span><span>업무 영역별 현황</span></div>
   <div class="sb-section">관리</div>
-  <div class="sb-menu" id="nav-matching" onclick="navTo('matching')"><span class="sb-ico">🎯</span><span>지원사업 매칭</span></div>
-  <div class="sb-menu" id="nav-cert" onclick="navTo('cert')"><span class="sb-ico">📋</span><span>인증·갱신 관리</span><span class="sb-cnt" id="sb-cert-cnt">0</span></div>
-  <div class="sb-menu" id="nav-stats" onclick="navTo('stats')"><span class="sb-ico">📈</span><span>누적 통계 데이터</span></div>
-  <div class="sb-menu" id="nav-history" onclick="navTo('history')"><span class="sb-ico">📁</span><span>완료 업무 이력</span><span class="sb-cnt" id="sb-history-cnt">0</span></div>
+  <div class="sb-menu sg-retired" id="nav-matching" onclick="navTo('matching')"><span class="sb-ico">🎯</span><span>지원사업 매칭</span></div>
+  <div class="sb-menu" id="nav-cert" onclick="navTo('cert')"><span class="sb-ico">📋</span><span>인증·갱신</span><span class="sb-cnt" id="sb-cert-cnt">0</span></div>
+  <div class="sb-menu" id="nav-stats" onclick="navTo('stats')"><span class="sb-ico">📈</span><span>통계</span></div>
+  <div class="sb-menu sg-retired" id="nav-history" onclick="navTo('history')"><span class="sb-ico">📁</span><span>완료 업무 이력</span><span class="sb-cnt" id="sb-history-cnt">0</span></div>
   <div class="sb-menu" id="nav-companies" onclick="navTo('companies')"><span class="sb-ico">🏛️</span><span>기업 관리</span><span class="sb-cnt" id="sb-corp-cnt">0</span></div>
   <div class="sb-bottom">
     <div onclick="openGcalModal()" id="gcal-sidebar-btn" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:7px;padding:7px 12px;text-align:center;cursor:pointer;font-size:12px;font-weight:500;color:rgba(255,255,255,.7);margin-bottom:6px;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.15)'" onmouseout="this.style.background='rgba(255,255,255,.08)'">🗓️ 구글 캘린더 연동</div>
@@ -720,11 +722,11 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
       <!-- 1. 긴급 갱신 배너 -->
       <div id="cert-banner"></div>
       <!-- 2. 업무 진행 요약 통계 (5개 카드) -->
-      <div class="grid5" id="ov-stats" style="margin-bottom:24px"></div>
+      <div class="grid5 sg-retired" id="ov-stats" style="margin-bottom:24px"></div>
       <!-- 3. 인증·갱신 현황 요약 -->
       <div id="cert-summary-ov" style="margin-bottom:24px"></div>
-      <!-- 4. 지원사업·정책자금 -->
-      <div style="margin-bottom:24px">
+      <!-- 4. 지원사업·정책자금 (숨김: 2026-10-06 CRM 축소) -->
+      <div class="sg-retired" style="margin-bottom:24px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
           <div style="display:flex;align-items:center;gap:8px">
             <div style="width:28px;height:28px;border-radius:8px;background:#EEF2FF;display:flex;align-items:center;justify-content:center">📅</div>
@@ -760,8 +762,8 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
         </div>
         <div id="todo-grid"></div>
       </div>
-      <!-- 6. 업무 영역별 진행 현황 -->
-      <div style="margin-bottom:24px">
+      <!-- 6. 업무 영역별 진행 현황 (숨김: 2026-10-06 CRM 축소) -->
+      <div class="sg-retired" style="margin-bottom:24px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
           <div style="display:flex;align-items:center;gap:8px">
             <div style="width:28px;height:28px;border-radius:8px;background:#F5F3FF;display:flex;align-items:center;justify-content:center">📊</div>
@@ -781,8 +783,8 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
         </div>
         <div class="grid3" id="work-grid"></div>
       </div>
-      <!-- 7. 기업별 진행 분야 현황 -->
-      <div style="margin-bottom:24px">
+      <!-- 7. 기업별 진행 분야 현황 (숨김: 2026-10-06 CRM 축소) -->
+      <div class="sg-retired" style="margin-bottom:24px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
           <div style="display:flex;align-items:center;gap:8px">
             <div style="width:28px;height:28px;border-radius:8px;background:var(--teal-pale);display:flex;align-items:center;justify-content:center">🏢</div>
@@ -811,8 +813,8 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
           <div id="pg-cli-ov" style="padding:8px 16px;border-top:1px solid var(--border)"></div>
         </div>
       </div>
-      <!-- 8. 누적 통계 데이터 -->
-      <div style="margin-bottom:24px">
+      <!-- 8. 누적 통계 데이터 (숨김: 2026-10-06 CRM 축소) -->
+      <div class="sg-retired" style="margin-bottom:24px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
           <div style="width:28px;height:28px;border-radius:8px;background:var(--gold-pale);display:flex;align-items:center;justify-content:center">📈</div>
           <span style="font-size:16px;font-weight:500">누적 통계 데이터</span>
@@ -825,17 +827,17 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
     <div class="page-section" id="page-gantt">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <div class="toggle-btn" id="gantt-view-toggle">
+          <div class="toggle-btn sg-retired" id="gantt-view-toggle">
               <button class="toggle-opt active" data-view="gantt" onclick="setGanttView('gantt')">간트</button>
               <button class="toggle-opt" data-view="calendar" onclick="setGanttView('calendar')">캘린더</button>
           </div>
-          <div class="toggle-btn" id="gantt-filter-toggle-sub">
+          <div class="toggle-btn sg-retired" id="gantt-filter-toggle-sub">
               <button class="toggle-opt" onclick="setGanttFilter('wait')">대기</button>
               <button class="toggle-opt active" onclick="setGanttFilter('ing')">진행</button>
               <button class="toggle-opt" onclick="setGanttFilter('done')">완료</button>
               <button class="toggle-opt" onclick="setGanttFilter('all')">전체</button>
           </div>
-          <select class="fs" id="gantt-region-filter" onchange="renderGantt('');renderGanttView()" style="width:100px">
+          <select class="fs sg-retired" id="gantt-region-filter" onchange="renderGantt('');renderGanttView()" style="width:100px">
             <option value="">전체 지역</option>
             <option value="서울">서울</option><option value="경기">경기</option>
             <option value="인천">인천</option><option value="부산">부산</option>
@@ -847,7 +849,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
             <option value="경북">경북</option><option value="경남">경남</option>
             <option value="제주">제주</option>
           </select>
-          <select class="fs" id="gantt-industry-filter" onchange="renderGantt('');renderGanttView()" style="width:120px">
+          <select class="fs sg-retired" id="gantt-industry-filter" onchange="renderGantt('');renderGanttView()" style="width:120px">
             <option value="">전체 업종</option>
             <option value="제조">제조업</option>
             <option value="IT">IT·소프트웨어</option>
@@ -859,9 +861,9 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
             <option value="에너지">에너지·환경</option>
           </select>
         </div>
-        <button class="btn btn-primary" onclick="openConsultingModal()">+ 대분류 추가</button>
+        <button class="btn btn-primary sg-retired" onclick="openConsultingModal()">+ 대분류 추가</button>
       </div>
-      <div class="gantt-wrap" id="gantt-wrap-sub">
+      <div class="gantt-wrap sg-retired" id="gantt-wrap-sub">
         <div class="gantt-top">
           <button class="cal-nav-btn" onclick="prevMonth()">‹</button>
           <div class="cal-month-title" id="cal-month-title-sub"></div>
@@ -887,7 +889,7 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
           </label>
           <span id="gcal-ext-status" style="font-size:10px"></span>
           <div class="gcal-legend">
-            <span>📅 지원사업</span><span>🏅 인증만료</span><span>📋 연간신고</span><span>✅ ToDo</span><span style="color:#7C3AED">● ISO 심사</span><span style="color:#0D9488">● 구글 일정</span>
+            <span>🏅 인증만료</span><span>📋 연간신고</span><span>✅ ToDo</span><span style="color:#7C3AED">● ISO 심사</span><span style="color:#0D9488">● 구글 일정</span>
           </div>
         </div>
         <!-- 월 뷰 -->
@@ -2455,6 +2457,10 @@ const COL = {
 };
 
 // ── CONSTANTS ──
+// 2026-10-06 CRM 축소(사장님 결정): CRM은 일정관리·할 일·인증 갱신/완료(각 프로그램에서 읽기)·통계·기업관리만 남긴다.
+//   지원사업(consulting)·업무(work_items) 화면은 숨기고, 화면을 열 때 업무를 자동으로 만들던 작업도 멈춘다.
+//   데이터는 지우지 않는다 — 되돌리려면 여기 값을 false로.
+const CRM_RETIRED={cons:true,work:true};
 // 기본 업무 분야 (고정값 - 항상 유지)
 const DEFAULT_CAT_META = {
   policy:{name:'정책자금',    icon:'💰',color:'#3B82F6',requiresCert:false},
@@ -2647,7 +2653,7 @@ async function loadAll(){
     try{ await migrateCycleGroupId(); }catch(e){console.warn('cycleGroupId 보정 스킵:',e);}
     try{ await cleanupOrphanCerts(); }catch(e){console.warn('고아 정리 스킵:',e);}
     // 인증을 받아 끝난 업무를 완료로 맞춘다 (취득일이 업무 생성일보다 나중인 것만)
-    try{ await reconcileWorkFromCerts(); }catch(e){console.warn('인증→업무 반영 스킵:',e);}
+    if(!CRM_RETIRED.work){ try{ await reconcileWorkFromCerts(); }catch(e){console.warn('인증→업무 반영 스킵:',e);} }
     // [iso-one] 심사가 임박한 기업의 업무·ToDo를 만든다. isoAuditId로 중복을 막아 여러 번 돌려도 안전.
     try{ await createIsoTasks(true); }catch(e){console.warn('ISO 업무 생성 스킵:',e);}
     // 갱신이 임박한 인증(고정주기)의 업무·ToDo를 만든다. certTaskId로 중복을 막아 여러 번 돌려도 안전.
@@ -3150,7 +3156,7 @@ function renderPage(p){
 }
 function renderAll(){renderPage(currentPage);}
 function updateCounts(){
-  const g=document.getElementById('sb-gantt-cnt');if(g)g.textContent=consulting.length;
+  const g=document.getElementById('sb-gantt-cnt');if(g){g.textContent=consulting.length;g.style.display=CRM_RETIRED.cons?'none':'';}
   const t=document.getElementById('sb-todo-cnt');if(t)t.textContent=todoGroups().miss.length;   // 놓치고 있는 일 수
   const c=document.getElementById('sb-cli-cnt');if(c)c.textContent=companies.length;
   const co=document.getElementById('sb-corp-cnt');if(co)co.textContent=companies.length;
@@ -3828,8 +3834,8 @@ function toggleGcalExternal(on){
 function collectGanttEvents(rs,re){
   const evs=[];
   const overlap=(s,e)=>!!s&&!!e&&s<=re&&e>=rs;
-  // 1) 지원사업 대분류 / ISO 1·2차 심사 (간트와 동일 필터 적용)
-  consulting.forEach((c,ci)=>{
+  // 1) 지원사업 대분류 / ISO 1·2차 심사 (간트와 동일 필터 적용) — CRM 축소 후에는 표시하지 않음
+  (CRM_RETIRED.cons?[]:consulting).forEach((c,ci)=>{
     const ccs=getConsCompanies(c.id);
     if(!consPassesGanttFilter(c,ccs))return;
     const color=CAT_COLORS[ci%CAT_COLORS.length];
@@ -4215,6 +4221,7 @@ function closeGcalDay(){
 }
 // 간트 페이지 현재 뷰 렌더 (간트 ↔ 캘린더 전환 포함)
 function renderGanttView(){
+  if(CRM_RETIRED.cons)ganttViewMode='calendar';   // 간트(지원사업)는 숨김 — 일정관리는 캘린더만
   const g=document.getElementById('gantt-wrap-sub');
   const cw=document.getElementById('gcal-wrap-sub');
   const isCal=ganttViewMode==='calendar';
@@ -7283,7 +7290,7 @@ function isoTaskExists(auditId){
 }
 function isoTasksPending(){
   return isoUpcomingAudits().filter(function(x){
-    const h=isoTaskExists(x.a.auditId); return !h.work||!h.todo;});
+    const h=isoTaskExists(x.a.auditId); return (!h.work&&!CRM_RETIRED.work)||!h.todo;});
 }
 async function createIsoTasks(silent){
   const pend=isoTasksPending();
@@ -7298,7 +7305,7 @@ async function createIsoTasks(silent){
     const nm=comp?comp.name:(a.companyName||'');
     const has=isoTaskExists(a.auditId);
     try{
-      if(!has.work){
+      if(!has.work&&!CRM_RETIRED.work){
         await addDoc(COL.work_items(),{
           category:'iso',name:isoTaskLabel(a),
           sub:(a.lead?'심사팀장 '+a.lead+' · ':'')+'마감 '+a.nextDeadline,
@@ -7353,7 +7360,7 @@ function certTaskExists(certId){
 }
 function certTasksPending(){
   return certUpcomingRenewals().filter(function(x){
-    const h=certTaskExists(x.c.id); return !h.work||!h.todo;});
+    const h=certTaskExists(x.c.id); return (!h.work&&!CRM_RETIRED.work)||!h.todo;});
 }
 async function createCertTasks(silent){
   const pend=certTasksPending();
@@ -7371,7 +7378,7 @@ async function createCertTasks(silent){
     const has=certTaskExists(c.id);
     const cat=certCategoryOf(c.certMasterId)||'etc';
     try{
-      if(!has.work){
+      if(!has.work&&!CRM_RETIRED.work){
         await addDoc(COL.work_items(),{
           category:cat,name:certTaskLabel(m),
           sub:'만료 '+c.expDate,
