@@ -32,6 +32,7 @@
  *   v5.1: 제미나이에 「할 일」이라고 말하면 캘린더가 아니라 **구글 Tasks**에 저장된다 → Tasks의 끝나지 않은 할 일도
  *         전부 CRM 할 일로 옮기고 Tasks에서 지운다. ⚠️ 왼쪽 「서비스 +」에서 **Tasks API**(식별자 Tasks) 추가 필요.
  *         (하위 할 일이 달린 할 일·하위 할 일은 건너뜀)
+ *   v5.2: 실행 로그를 console.log로(편집기 「실행 로그」 창에 확실히 보이게), voiceDiag 오류도 로그로.
  *   설치(1회): 코드 교체 → 저장 → 함수 선택에서 **setupVoiceTrigger** 실행 → 권한 허용(캘린더·외부 요청)
  *             → 「배포 관리」에서 기존 배포를 **새 버전**으로 수정.
  *
@@ -50,7 +51,7 @@ function doGet(e){
     if(p.action==="drive_card")return jsonOut({ok:true,data:driveCard(p.folderId)});
     if(p.action==="biz_cert")return jsonOut({ok:true,data:bizCert(p.folderId)});
     if(p.action==="voice_move")return jsonOut({ok:true,data:moveVoiceTodos()});
-    return jsonOut({ok:true,message:"SG CRM 드라이브 연결 정상 v5.1"});
+    return jsonOut({ok:true,message:"SG CRM 드라이브 연결 정상 v5.2"});
   }catch(err){
     return jsonOut({ok:false,error:err.message});
   }
@@ -338,23 +339,27 @@ function listGoogleTasks(){
 }
 // 점검용 — 옮기지 않고 무엇이 보이는지만 실행 로그에 적는다
 function voiceDiag(){
-  Logger.log("계정: "+Session.getEffectiveUser().getEmail());
-  Logger.log("Tasks API: "+(typeof Tasks==="undefined"?"꺼져 있음(서비스 + 에서 추가)":"켜짐"));
+  console.log("점검 시작 (v5.2)");
+  try{ voiceDiagRun(); }catch(e){ console.error("점검 오류: "+e.message+"\n"+e.stack); }
+}
+function voiceDiagRun(){
+  console.log("계정: "+Session.getEffectiveUser().getEmail());
+  console.log("Tasks API: "+(typeof Tasks==="undefined"?"꺼져 있음(서비스 + 에서 추가)":"켜짐"));
   if(typeof Tasks!=="undefined"){
     (Tasks.Tasklists.list({maxResults:100}).items||[]).forEach(function(l){
       var r=Tasks.Tasks.list(l.id,{showCompleted:false,maxResults:100});
-      Logger.log("목록 「"+l.title+"」: "+(r.items||[]).map(function(t){return t.title+(t.due?" ("+t.due.slice(0,10)+")":"")+(t.parent?" [하위]":"");}).join(" / "));
+      console.log("목록 「"+l.title+"」: "+(r.items||[]).map(function(t){return t.title+(t.due?" ("+t.due.slice(0,10)+")":"")+(t.parent?" [하위]":"");}).join(" / "));
     });
   }
-  Logger.log("옮길 대상(Tasks): "+listGoogleTasks().length+"건");
+  console.log("옮길 대상(Tasks): "+listGoogleTasks().length+"건");
   var r=UrlFetchApp.fetch(FS_BASE+"todos?pageSize=1&key="+FS_KEY,{muteHttpExceptions:true});
-  Logger.log("CRM 읽기: HTTP "+r.getResponseCode());
+  console.log("CRM 읽기: HTTP "+r.getResponseCode());
 }
 function voiceTrigger(){moveVoiceTodos();}          // 10분 트리거가 부르는 함수
 // 10분마다 자동 옮기기 트리거 설치 (여러 번 실행해도 하나만 남는다)
 function setupVoiceTrigger(){
   ScriptApp.getProjectTriggers().forEach(function(t){if(t.getHandlerFunction()==="voiceTrigger")ScriptApp.deleteTrigger(t);});
   ScriptApp.newTrigger("voiceTrigger").timeBased().everyMinutes(10).create();
-  Logger.log("음성 할 일 자동 옮기기 설치 완료 — 10분마다.");
-  Logger.log("지금 한 번 실행: "+JSON.stringify(moveVoiceTodos()));
+  console.log("음성 할 일 자동 옮기기 설치 완료 — 10분마다.");
+  console.log("지금 한 번 실행: "+JSON.stringify(moveVoiceTodos()));
 }
