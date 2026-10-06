@@ -7883,6 +7883,7 @@ function getDriveUrl(){try{return localStorage.getItem(DRIVE_URL_LS)||'';}catch(
 function setDriveUrl(v){try{v?localStorage.setItem(DRIVE_URL_LS,v):localStorage.removeItem(DRIVE_URL_LS);}catch(e){}}
 let driveFolders=null;          // [{id,name,sido,updated,cardId,cardName, ...parsed}]
 let driveLoading=false;
+let driveInternalIds=new Set();  // 사내 폴더(0.(주)SG솔루션 아래) ID — 업체로 등록되면 안 됨
 let driveSel=new Set();        // 일괄 처리 대상 폴더 ID (이름 일치=연결, 미등록=신규 등록)
 function getDriveKey(){try{return localStorage.getItem(DRIVE_KEY_LS)||'';}catch(e){return '';}}
 function setDriveKey(v){try{v?localStorage.setItem(DRIVE_KEY_LS,v):localStorage.removeItem(DRIVE_KEY_LS);}catch(e){}}
@@ -8030,7 +8031,10 @@ async function loadDriveFolders(){
   if(st){st.textContent='🔄 드라이브 업체 폴더를 읽는 중... (10~20초)';st.style.color='var(--text3)';}
   try{
     const j=await driveCall({action:'drive_companies'});
-    driveFolders=(j.folders||[]).map(f=>Object.assign({},f,{parsed:parseDriveFolderName(f.name)}));
+    // 「0.(주)SG솔루션」은 시도가 아니라 사내 폴더 — 그 아래(ISO인증·정책자금·크몽 등)는 업체가 아니다
+    const isInternal=f=>/^0\s*\./.test(String(f.sido||'').trim());
+    driveInternalIds=new Set((j.folders||[]).filter(isInternal).map(f=>f.id));
+    driveFolders=(j.folders||[]).filter(f=>!isInternal(f)).map(f=>Object.assign({},f,{parsed:parseDriveFolderName(f.name)}));
     // 이름 일치는 기본으로 체크(연결은 기존 값을 바꾸지 않아 안전), 미등록은 사람이 고른다
     driveSel=new Set(driveFolders.filter(f=>matchDriveFolder(f).state==='same').map(f=>f.id));
     if(st){st.textContent='✅ 업체 폴더 '+driveFolders.length+'개 · 업체카드 '+driveFolders.filter(f=>f.cardId).length+'개';st.style.color='var(--ok)';}
@@ -8056,6 +8060,10 @@ function renderDriveImport(){
   const cnt={none:0,same:0,linked:0};driveFolders.forEach(f=>cnt[matchDriveFolder(f).state]++);
   const sumEl=document.getElementById('drive-summary');
   if(sumEl)sumEl.innerHTML='미등록 <b>'+cnt.none+'</b> · 이름 일치(연결 전) <b>'+cnt.same+'</b> · 연결됨 <b>'+cnt.linked+'</b>';
+  const wrong=companies.filter(c=>c.driveFolderId&&driveInternalIds.has(c.driveFolderId));
+  if(sumEl&&wrong.length)sumEl.innerHTML+='<div style="margin-top:6px;padding:6px 10px;background:#FEF2F2;border:1px solid #FECACA;border-radius:6px;color:#991B1B">⚠️ 사내 폴더(0.(주)SG솔루션 아래)가 기업으로 등록된 곳 <b>'+wrong.length+'</b>곳: '
+    +escAttr(wrong.slice(0,8).map(c=>c.name||c._id).join(', '))+(wrong.length>8?' 외':'')
+    +' <button class="btn btn-danger btn-sm" style="margin-left:6px;padding:2px 8px;font-size:12px" onclick="driveCleanupInternal()">정리하기</button></div>';
   const selFolders=driveFolders.filter(f=>driveSel.has(f.id));
   const nLink=selFolders.filter(f=>matchDriveFolder(f).state==='same').length;
   const nNew=selFolders.filter(f=>matchDriveFolder(f).state==='none').length;
@@ -8101,6 +8109,28 @@ function driveSelectShown(on){
     on?driveSel.add(id):driveSel.delete(id);
   });
   renderDriveImport();
+}
+// 사내 폴더로 잘못 등록된 기업 정리 — 딸린 업무·인증 등이 없으면 삭제, 있으면 비활성
+async function driveCleanupInternal(){
+  const wrong=companies.filter(c=>c.driveFolderId&&driveInternalIds.has(c.driveFolderId));
+  if(!wrong.length)return;
+  const linked=c=>workItems.some(w=>w.clientBizno===c._id||w.bizno===c._id)||certifications.some(x=>x.bizno===c._id)
+    ||annualReports.some(r=>r.bizno===c._id)||consCompanies.some(cc=>cc.bizno===c._id);
+  const del=wrong.filter(c=>!linked(c)),off=wrong.filter(linked);
+  if(!confirm('사내 폴더가 기업으로 등록된 '+wrong.length+'곳을 정리합니다.\n\n'
+    +(del.length?'▶ 삭제 '+del.length+'곳 (딸린 업무·인증 없음)\n'+del.map(c=>'  · '+(c.name||'(이름 없음)')+'  '+c._id).join('\n')+'\n\n':'')
+    +(off.length?'▶ 비활성 '+off.length+'곳 (딸린 데이터가 있어 지우지 않음)\n'+off.map(c=>'  · '+(c.name||'(이름 없음)')+'  '+c._id).join('\n')+'\n\n':'')
+    +'진행할까요?'))return;
+  try{
+    const batch=writeBatch(db);
+    del.forEach(c=>batch.delete(doc(db,'companies',c._id)));
+    off.forEach(c=>batch.update(doc(db,'companies',c._id),{active:'N',deactivatedAt:Date.now(),updatedAt:Date.now()}));
+    await batch.commit();
+    console.log('[드라이브 정리] 사내 폴더 기업 삭제 '+del.length+' · 비활성 '+off.length);
+    const st=document.getElementById('drive-status');
+    if(st){st.textContent='✅ 사내 폴더 기업 정리 — 삭제 '+del.length+' · 비활성 '+off.length;st.style.color='var(--ok)';}
+  }catch(e){alert('정리 실패\n\n'+(e.message||e));}
+  setTimeout(renderDriveImport,800);
 }
 // 비어 있는 임시번호 — 카운터와 기존 TEMP-### 중 큰 값 다음부터
 function nextTempBiznos(n){
@@ -11071,7 +11101,7 @@ Object.assign(window,{
   navTo,manualSave,closeModal,
   downloadBackup,openRestorePicker,restoreBackupFile,
   openDriveImport,saveDriveKeyAndLoad,renderDriveImport,driveImportPick,
-  driveToggleSel,driveSelectShown,driveBulkApply,
+  driveToggleSel,driveSelectShown,driveBulkApply,driveCleanupInternal,
   compFillFromBizCert,compSaveAndConvert,bizCertBulkRead,bizCertBulkApply,renderBizCertPreview,bizCertToggle,
   fmtBizno,fmtCorpno,fmtTel,consDateCompose,composeApprovedDate,
   toggleMobileDrawer,closeMobileDrawer,mobileNavTo,
