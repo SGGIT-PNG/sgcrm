@@ -309,6 +309,18 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
 .todo-wrap4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:start;}
 .todo-chip{display:inline-block;font-size:11px;padding:1px 7px;border-radius:9px;background:#F1F5F9;color:var(--text2);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
 .todo-btn{padding:1px 8px!important;font-size:11px!important;}
+/* 할 일 TV 모드 (#tv) — 사이드바·입력·버튼 숨김, 큰 글씨, 업체명 가리기 */
+body.tv-mode #sidebar,body.tv-mode #topbar,body.tv-mode #mobile-header,body.tv-mode #mobile-tabbar{display:none!important;}
+body.tv-mode #main{margin-left:0!important;padding-bottom:0!important;}
+body.tv-mode .tdl-quick,body.tv-mode #todo-quick-hint,body.tv-mode .tdl-filters,body.tv-mode .tdl-tools,body.tv-mode .tdl-act,body.tv-mode .tdl-chk,body.tv-mode .tdl-fold{display:none!important;}
+body.tv-mode .tdl-row{grid-template-columns:minmax(0,1fr) 240px 220px;}
+body.tv-mode #page-todo{zoom:var(--tv-zoom,1.5);}
+.tv-bar{display:none;}
+body.tv-mode .tv-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+.tv-bar h1{margin:0;font-size:22px;font-weight:700;}
+.tv-bar .tv-clock{font-family:'JetBrains Mono',monospace;font-size:18px;color:var(--text2);}
+.tv-bar button{border:1px solid var(--border2);background:var(--surface);border-radius:8px;padding:6px 12px;font-family:inherit;font-size:13px;cursor:pointer;}
+.tv-bar button.on{background:#1E3A8A;color:#fff;border-color:#1E3A8A;}
 /* 2026-10-06 CRM 축소 — 지원사업·업무 화면은 숨김(데이터는 Firestore에 그대로) */
 .sg-retired{display:none!important;}
 /* 할 일 화면 (오늘·기업별·주간) */
@@ -4670,7 +4682,7 @@ async function deleteConsulting(){
 //   놓치고 있는 일 → 지금 하는 일 → 해야 할 일(30일 이내) → 앞으로 할 일  (위에서 먼저 걸리는 칸 하나에만)
 const TODO_RULES_DEFAULT={stallDays:14,soonDays:3,horizonDays:30,leadDays:14};
 let todoRules=Object.assign({},TODO_RULES_DEFAULT);   // app_state에 저장 (appStatePayload)
-const TODO_SRC={manual:'손 입력',voice:'음성 일정',cert:'인증 갱신',iso:'ISO',annual:'연간신고',lead:'잠재고객',card:'업체카드',secretary:'비서'};
+const TODO_SRC={manual:'손 입력',voice:'음성 일정',chat:'채팅',cert:'인증 갱신',iso:'ISO',annual:'연간신고',lead:'잠재고객',card:'업체카드',secretary:'비서'};
 let todoFilter={bizno:'',category:'',source:''};
 let todoShowDone=false;
 const TODO_ME_LS='sgcrm_me';
@@ -4784,9 +4796,60 @@ function todoWeekMove(n){todoWeekOffset=n===0?0:todoWeekOffset+n;renderTodo('sub
 // 글 앞의 [기업명]은 기업 칸에 따로 보이므로 목록에서는 뺀다
 function todoText(t){
   const x=String(t.text||'');
-  return t.bizno&&/^\[[^\]]+\]\s*/.test(x)?x.replace(/^\[[^\]]+\]\s*/,''):x;
+  return tvMask(t.bizno&&/^\[[^\]]+\]\s*/.test(x)?x.replace(/^\[[^\]]+\]\s*/,''):x);
 }
-function todoCoShort(t){return String(t.companyName||'').replace(/주식회사\s*|\(주\)\s*|㈜\s*/g,'').trim();}
+function todoCoShort(t){return tvMask(String(t.companyName||'').replace(/주식회사\s*|\(주\)\s*|㈜\s*/g,'').trim());}
+// ── TV 모드 (index.html#tv) — 사무실 TV에 띄우는 할 일 화면. 할 일만 보이고 입력·버튼은 숨긴다 ──
+//   index.html#todo 는 할 일 화면을 바로 연다(일반 모드).
+const TV_LS={mask:'sgcrm_tv_mask',zoom:'sgcrm_tv_zoom'};
+function tvLs(k,d){try{const v=localStorage.getItem(k);return v===null?d:v;}catch(e){return d;}}
+let tvMode=false,tvMasked=tvLs(TV_LS.mask,'0')==='1',tvZoom=parseFloat(tvLs(TV_LS.zoom,'1.5'))||1.5,tvTimer=null,tvClockTimer=null;
+let tvMaskRe=null,tvMaskKey='';
+// 업체명 가리기: 기업 목록의 이름(법인 표기 뺀 것)을 글 속에서 찾아 첫 글자만 남긴다 — 「하이퍼다인」→「하○○○○」
+function tvMask(str){
+  if(!tvMode||!tvMasked||!str)return str;
+  const names=[...new Set(companies.map(c=>String(c.name||'').replace(/주식회사|유한회사|농업회사법인|\(주\)|㈜|\([^)]*\)/g,'').trim())
+    .concat(todos.map(t=>String(t.companyName||'').replace(/주식회사|\(주\)|㈜|\([^)]*\)/g,'').trim()))
+    .filter(n=>n.length>=2))].sort((a,b)=>b.length-a.length);
+  const key=names.join('|');
+  if(key!==tvMaskKey){tvMaskKey=key;tvMaskRe=names.length?new RegExp(names.map(n=>n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|'),'g'):null;}
+  let out=String(str).replace(/주식회사\s*|\(주\)\s*|㈜\s*/g,'');
+  if(tvMaskRe)out=out.replace(tvMaskRe,m=>m.charAt(0)+'○'.repeat(Math.min(m.length-1,4)));
+  return out;
+}
+function tvBarHtml(){
+  return '<div class="tv-bar">'
+    +'<h1>SG솔루션 할 일</h1><span class="tv-clock" id="tv-clock"></span>'
+    +'<span style="flex:1"></span>'
+    +'<button class="'+(tvMasked?'on':'')+'" onclick="tvToggleMask()" aria-pressed="'+tvMasked+'">'+(tvMasked?'업체명 보이기':'업체명 가리기')+'</button>'
+    +'<button onclick="tvSetZoom(-0.1)" aria-label="글자 작게">가−</button>'
+    +'<button onclick="tvSetZoom(0.1)" aria-label="글자 크게">가+</button>'
+    +'<button onclick="tvExit()">나가기</button>'
+  +'</div>';
+}
+function tvTick(){const el=document.getElementById('tv-clock');if(el){const d=new Date();el.textContent=(d.getMonth()+1)+'/'+d.getDate()+' '+['일','월','화','수','목','금','토'][d.getDay()]+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}}
+function tvToggleMask(){tvMasked=!tvMasked;try{localStorage.setItem(TV_LS.mask,tvMasked?'1':'0');}catch(e){}renderTodo('sub');}
+function tvSetZoom(d){tvZoom=Math.min(3,Math.max(0.8,Math.round((tvZoom+d)*10)/10));try{localStorage.setItem(TV_LS.zoom,String(tvZoom));}catch(e){}document.documentElement.style.setProperty('--tv-zoom',tvZoom);}
+function tvExit(){location.hash='';}
+function setTvMode(on){
+  tvMode=on;
+  document.body.classList.toggle('tv-mode',on);
+  clearInterval(tvTimer);clearInterval(tvClockTimer);
+  if(on){
+    document.documentElement.style.setProperty('--tv-zoom',tvZoom);
+    // 데이터는 실시간 구독으로 바로 바뀐다. 1분마다 다시 그려 「며칠째」·마감 계산을 맞추고, 6시간마다 새로 읽어 새 배포도 받는다
+    const started=Date.now();
+    tvTimer=setInterval(()=>{if(Date.now()-started>6*3600000)location.reload();else if(currentPage==='todo')renderTodo('sub');},60000);
+    tvClockTimer=setInterval(tvTick,15000);
+  }
+}
+// 주소 끝(#todo, #tv)으로 화면 열기
+function applyHashRoute(){
+  const h=(location.hash||'').replace(/^#\/?/,'').toLowerCase();
+  if(h==='tv'||h==='todo-tv'){setTvMode(true);todoView='today';navTo('todo');}
+  else{ if(tvMode)setTvMode(false); if(h&&document.getElementById('page-'+h))navTo(h); }
+}
+window.addEventListener('hashchange',applyHashRoute);
 function todoOpen(){return todos.filter(t=>t.status!=='done'&&todoPassFilter(t));}
 function todoDayStr(d){return dateStr(d.getFullYear(),d.getMonth(),d.getDate());}
 function todoBriefData(g){
@@ -4801,7 +4864,7 @@ function todoBriefData(g){
 function todoBriefHtml(g){
   const b=todoBriefData(g);
   const line=(arr,fmt)=>arr.length?arr.slice(0,6).map(fmt).join(' · ')+(arr.length>6?' 외 '+(arr.length-6)+'건':''):'없음';
-  const nm=t=>t.lead?escAttr(t.companyName)+' 후속 연락':escAttr((todoCoShort(t)?todoCoShort(t)+' — ':'')+todoText(t));
+  const nm=t=>t.lead?escAttr(tvMask(t.companyName))+' 후속 연락':escAttr((todoCoShort(t)?todoCoShort(t)+' — ':'')+todoText(t));
   return '<div class="tdl-brief">'
     +'<button class="tdl-brief-hd" onclick="todoToggleBrief()" aria-expanded="'+todoBriefOpen+'">'
       +'<span style="font-weight:700">오늘 브리핑</span>'
@@ -4824,9 +4887,9 @@ function todoRowHtml(t){
   if(t.lead){
     const bz=escAttr(t.bizno);
     return '<div class="tdl-row">'
-      +'<span></span>'
+      +'<span class="tdl-chk"></span>'
       +'<div class="tdl-text">후속 연락</div>'
-      +'<button class="tdl-co" data-b="'+bz+'" onclick="openCompanyModal(this.dataset.b)">'+escAttr(t.companyName)+'</button>'
+      +'<button class="tdl-co" data-b="'+bz+'" onclick="openCompanyModal(this.dataset.b)">'+escAttr(tvMask(t.companyName))+'</button>'
       +'<div class="tdl-why" style="color:#B91C1C">잠재고객 · '+t.days+'일 무소식</div>'
       +'<div class="tdl-act"><button class="btn btn-ghost btn-sm todo-btn" data-b="'+bz+'" onclick="todoFromLead(this.dataset.b)">할 일로</button>'
         +'<button class="btn btn-ghost btn-sm todo-btn" data-b="'+bz+'" onclick="todoLeadContacted(this.dataset.b)">연락함</button></div>'
@@ -4845,7 +4908,7 @@ function todoRowHtml(t){
     +'<input type="checkbox" class="tdl-chk" aria-label="완료" data-id="'+id+'"'+(done?' checked':'')+' onchange="todoSetStatus(this.dataset.id,this.checked?\'done\':\'wait\')">'
     +'<div class="tdl-text"><button class="tdl-link" data-id="'+id+'" onclick="openTodoModal(null,this.dataset.id)">'+escAttr(todoText(t))+'</button>'+chips
       +(t.memo?'<div class="tdl-memo">'+escAttr(t.memo.slice(0,80))+'</div>':'')+'</div>'
-    +(t.bizno?'<button class="tdl-co" data-b="'+escAttr(t.bizno)+'" onclick="openCompanyModal(this.dataset.b)">'+escAttr(t.companyName||t.bizno)+'</button>':'<span class="tdl-co tdl-none">기업 없음</span>')
+    +(t.bizno?'<button class="tdl-co" data-b="'+escAttr(t.bizno)+'" onclick="openCompanyModal(this.dataset.b)">'+escAttr(tvMask(t.companyName||t.bizno))+'</button>':'<span class="tdl-co tdl-none">기업 없음</span>')
     +'<div class="tdl-why" style="color:'+whyColor+'">'+escAttr(why)+'</div>'
     +'<div class="tdl-act">'+(done?'':
       (t.status!=='ing'?'<button class="btn btn-ghost btn-sm todo-btn" data-id="'+id+'" onclick="todoSetStatus(this.dataset.id,\'ing\')">시작</button>':'')
@@ -4886,7 +4949,7 @@ function todoCompanyHtml(g){
       const st=r.miss?['멈춤·놓침','#991B1B','#FEE2E2']:r.ing?['진행','#92400E','#FEF3C7']:['대기','#1E40AF','#DBEAFE'];
       const days=r.last?Math.floor((Date.now()-r.last)/86400000):null;
       return '<div class="tdl-co-row'+(r.key===''?' tdl-co-none':'')+'">'
-        +'<div>'+(r.key?'<button class="tdl-link" style="font-weight:700;font-size:15px" data-b="'+escAttr(r.key)+'" onclick="openCompanyModal(this.dataset.b)">'+escAttr(r.name)+'</button>':'<b style="color:var(--text2)">기업 연결 없음</b>')
+        +'<div>'+(r.key?'<button class="tdl-link" style="font-weight:700;font-size:15px" data-b="'+escAttr(r.key)+'" onclick="openCompanyModal(this.dataset.b)">'+escAttr(tvMask(r.name))+'</button>':'<b style="color:var(--text2)">기업 연결 없음</b>')
           +'<div class="tdl-memo">'+(r.key?(days!==null?'마지막 손댄 날 '+days+'일 전':''):'「🔗 기업 연결 제안」으로 정리')+'</div></div>'
         +'<div><span class="todo-chip" style="background:'+st[2]+';color:'+st[1]+';font-weight:700">'+st[0]+'</span></div>'
         +'<div style="display:grid;gap:4px">'+r.items.map(t=>t.lead?'<div>후속 연락 <span style="color:#B91C1C;font-size:12px;font-weight:700">· 잠재고객 '+t.days+'일 무소식</span></div>'
@@ -5005,8 +5068,8 @@ function renderTodo(sfx){
   const srcOpts='<option value="">전체 출처</option>'+Object.keys(TODO_SRC).map(k=>'<option value="'+k+'"'+(todoFilter.source===k?' selected':'')+'>'+TODO_SRC[k]+'</option>').join('');
   const tabs=[['today','오늘'],['company','기업별'],['week','주간']];
   const view=tabs.some(x=>x[0]===todoView)?todoView:'today';
-  const body=view==='company'?todoCompanyHtml(g):view==='week'?todoWeekHtml():(mob?todoMobileHtml(g):todoBriefHtml(g)+todoTodayHtml(g));
-  grid.innerHTML=
+  const body=view==='company'?todoCompanyHtml(g):view==='week'?todoWeekHtml():((mob&&!tvMode)?todoMobileHtml(g):todoBriefHtml(g)+todoTodayHtml(g));
+  grid.innerHTML=(tvMode?tvBarHtml():'')+
     '<div class="tdl-top">'
       +'<div class="tdl-tabs" role="tablist">'+tabs.map(([k,l])=>'<button role="tab" aria-selected="'+(view===k)+'" class="'+(view===k?'on':'')+'" onclick="todoSetView(\''+k+'\')">'+l+'</button>').join('')+'</div>'
       +(mob?'':'<div class="tdl-tools">'
@@ -5030,6 +5093,7 @@ function renderTodo(sfx){
     +'</div>')
     +body;
   todoQuickHint();
+  if(tvMode)tvTick();
   if(getDriveUrl()&&getDriveKey()&&!voiceMove.busy&&Date.now()-voiceMove.at>2*60000)todoVoiceMove();
 }
 function todoSetFilter(k,v){todoFilter[k]=v;renderTodo('sub');}
@@ -11439,7 +11503,7 @@ function gcalSyncTodo(todo,action){
   if(action==='delete')return sendToGcal('delete','todo',{id:todo.id});
   // 음성(제미나이) 일정에서 온 할 일은 구글에 원래 일정이 있으므로 [ToDo]로 또 만들지 않는다
   var src=todo.source||((todos.find(function(x){return x.id===todo.id;})||{}).source);
-  if(src==='voice')return Promise.resolve({ok:true,skipped:true});
+  if(src==='voice'||src==='chat')return Promise.resolve({ok:true,skipped:true});   // 채팅으로 들어온 것도 같다(원래 일정은 옮긴 뒤 지움)
   // 마감일이 없거나(마감일을 지운 경우 포함) 완료된 할일은 캘린더에서 제거
   if(!todo.dueDate||todo.status==='done')return sendToGcal('delete','todo',{id:todo.id});
   return sendToGcal('upsert','todo',{
@@ -11880,12 +11944,13 @@ document.addEventListener('click',(e)=>{
 },{passive:true});
 
 // ── INIT ──
+applyHashRoute();   // index.html#todo · index.html#tv
 loadAll();
 
 
 // ── GLOBAL EXPORTS ──
 Object.assign(window,{
-  copyDriveScript,
+  copyDriveScript,tvToggleMask,tvSetZoom,tvExit,
   navTo,manualSave,closeModal,
   downloadBackup,openRestorePicker,restoreBackupFile,
   openDriveImport,saveDriveKeyAndLoad,renderDriveImport,driveImportPick,

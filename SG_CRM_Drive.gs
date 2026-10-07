@@ -32,6 +32,7 @@
  *   v5.1: 제미나이에 「할 일」이라고 말하면 캘린더가 아니라 **구글 Tasks**에 저장된다 → Tasks의 끝나지 않은 할 일도
  *         전부 CRM 할 일로 옮기고 Tasks에서 지운다. ⚠️ 왼쪽 「서비스 +」에서 **Tasks API**(식별자 Tasks) 추가 필요.
  *         (하위 할 일이 달린 할 일·하위 할 일은 건너뜀)
+ *   v5.4: 일정 설명(Tasks 메모)에 「Claude 채팅에서 등록 (작성: 이름)」이 있으면 source='chat', createdBy=이름.
  *   v5.3: action=cal_list — CRM 일정관리에 sgceo 기본 캘린더 일정을 보여 준다(읽기만).
  *         예전 캘린더 스크립트(「SG솔루션 CRM」)의 목록 기능을 대신한다. 그 스크립트의 위치를 찾지 못해 여기로 옮김.
  *   v5.2: 실행 로그를 console.log로(편집기 「실행 로그」 창에 확실히 보이게), voiceDiag 오류도 로그로.
@@ -54,7 +55,7 @@ function doGet(e){
     if(p.action==="biz_cert")return jsonOut({ok:true,data:bizCert(p.folderId)});
     if(p.action==="voice_move")return jsonOut({ok:true,data:moveVoiceTodos()});
     if(p.action==="cal_list")return jsonOut({ok:true,events:calList(p.from,p.to)});
-    return jsonOut({ok:true,message:"SG CRM 드라이브 연결 정상 v5.3"});
+    return jsonOut({ok:true,message:"SG CRM 드라이브 연결 정상 v5.4"});
   }catch(err){
     return jsonOut({ok:false,error:err.message});
   }
@@ -221,6 +222,17 @@ var FS_PROJECT="sg-crm-f9adc";
 var FS_KEY="AIzaSyD7EoihxcX9zIbr1n4NiXK_qlWpv8p5gRk";   // CRM index.html과 같은 웹 API 키(공개값)
 var FS_BASE="https://firestore.googleapis.com/v1/projects/"+FS_PROJECT+"/databases/(default)/documents/";
 function fmtD(d){return Utilities.formatDate(d,TZ,"yyyy-MM-dd");}
+// v5.4: 채팅(Claude sg-todo 스킬)이 만든 일정은 설명에 「Claude 채팅에서 등록 (작성: 이름)」이 들어 있다
+//   → source 'chat', createdBy = 그 이름. 나머지 설명 줄은 메모로.
+var CHAT_MARK="Claude 채팅에서 등록";
+function chatInfo(desc){
+  var d=String(desc||"").replace(/<br\s*\/?>/gi,"\n").replace(/<[^>]+>/g,"").replace(/&nbsp;/g," ").replace(/&amp;/g,"&").trim();
+  if(d.indexOf(CHAT_MARK)<0)return {chat:false,author:"",note:d};
+  var m=d.match(/작성\s*[:：]\s*([^)\n]+)/);
+  var author=m?m[1].trim():"";
+  var note=d.replace(/Claude 채팅에서 등록\s*(\([^)]*\))?/,"").trim();
+  return {chat:true,author:author,note:note};
+}
 function cleanVoiceTitle(t){
   var c=String(t||"").replace(/\[?\s*할\s*일\s*\]?\s*[:：\-]?\s*/," ").replace(/\s{2,}/g," ").trim();
   return c||String(t||"");
@@ -295,8 +307,10 @@ function moveVoiceTodos(){
       var co=findCompany(text,comps);
       var nowMs=Date.now();
       var due=x.task.due?String(x.task.due).slice(0,10):"";
-      var data={text:text,status:"wait",dueDate:due,source:"voice",sourceRef:"task:"+x.task.id,
-        memo:"음성 할 일(구글 Tasks)"+(x.task.notes?" · "+x.task.notes:""),createdBy:"음성",createdAt:nowMs,updatedAt:nowMs};
+      var ci=chatInfo(x.task.notes);
+      var data={text:text,status:"wait",dueDate:due,source:ci.chat?"chat":"voice",sourceRef:"task:"+x.task.id,
+        memo:(ci.chat?"채팅 할 일(구글 Tasks)":"음성 할 일(구글 Tasks)")+(ci.note?" · "+ci.note:""),
+        createdBy:ci.chat?ci.author:"음성",createdAt:nowMs,updatedAt:nowMs};
       if(co){data.bizno=co.id;data.companyName=co.name;}
       writeTodo("task:"+x.task.id,data);
       Tasks.Tasks.remove(x.listId,x.task.id);
@@ -309,8 +323,10 @@ function moveVoiceTodos(){
       var text=cleanVoiceTitle(ev.getTitle());
       var co=findCompany(text,comps);
       var nowMs=Date.now();
-      var data={text:text,status:"wait",dueDate:date,source:"voice",sourceRef:ev.getId(),
-        memo:"음성 일정 "+date+(time?" "+time:"")+(loc?" · "+loc:""),createdBy:"음성",
+      var ci=chatInfo(ev.getDescription());
+      var data={text:text,status:"wait",dueDate:date,source:ci.chat?"chat":"voice",sourceRef:ev.getId(),
+        memo:(ci.chat?"채팅 일정 ":"음성 일정 ")+date+(time?" "+time:"")+(loc?" · "+loc:"")+(ci.note?" · "+ci.note:""),
+        createdBy:ci.chat?ci.author:"음성",
         createdAt:nowMs,updatedAt:nowMs};
       if(co){data.bizno=co.id;data.companyName=co.name;}
       writeTodo(ev.getId(),data);
