@@ -605,6 +605,17 @@ body.tv-mode .tv-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;mar
 </head>
 <body>
 
+<!-- 로그인 화면 (로그인 전에는 CRM을 가린다) -->
+<div id="auth-gate" style="position:fixed;inset:0;z-index:99999;background:var(--navy,#1B2B4B);display:flex;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#FFF;border-radius:14px;padding:28px 24px;width:100%;max-width:360px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.3)">
+    <div style="font-size:20px;font-weight:700;color:#1B2B4B">SG솔루션</div>
+    <div style="font-size:12px;color:#64748B;margin-bottom:20px">Business CRM v3</div>
+    <div id="auth-gate-msg" style="font-size:13px;color:#334155;margin-bottom:16px;line-height:1.6">로그인 상태 확인 중…</div>
+    <button id="auth-gate-btn" onclick="crmSignIn()" style="display:none;width:100%;padding:12px;border:1px solid #CBD5E1;border-radius:8px;background:#FFF;font-size:14px;font-weight:600;color:#1E293B;cursor:pointer">Google 계정으로 로그인</button>
+    <button id="auth-gate-out" onclick="crmSignOut()" style="display:none;width:100%;margin-top:8px;padding:10px;border:none;border-radius:8px;background:#F1F5F9;font-size:13px;color:#475569;cursor:pointer">다른 계정으로 로그인</button>
+  </div>
+</div>
+
 <!-- 모바일 헤더 -->
 <header id="mobile-header">
   <button id="mobile-menu-btn" onclick="toggleMobileDrawer()">☰</button>
@@ -662,6 +673,10 @@ body.tv-mode .tv-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;mar
       💾 저장
     </div>
     <div id="mob-save-badge" style="font-size:11px;color:rgba(255,255,255,.4);text-align:center;margin-top:6px" id="live-time-mob"></div>
+    <div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:11px;color:rgba(255,255,255,.5)">
+      <span class="crm-user-email" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+      <span onclick="crmSignOut()" style="cursor:pointer;text-decoration:underline">로그아웃</span>
+    </div>
   </div>
 </nav>
 
@@ -713,6 +728,10 @@ body.tv-mode .tv-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;mar
     </div>
     <div class="sb-save" id="save-badge" onclick="manualSave()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:7px;padding:7px 12px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;color:var(--text2);transition:all .15s;margin-bottom:6px;">💾 저장</div>
     <div class="sb-time" id="live-time-sb"></div>
+    <div style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:11px;color:rgba(255,255,255,.5)">
+      <span class="crm-user-email" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+      <span onclick="crmSignOut()" style="cursor:pointer;text-decoration:underline">로그아웃</span>
+    </div>
   </div>
 </nav>
 
@@ -2441,6 +2460,7 @@ body.tv-mode .tv-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;mar
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
 import { getFirestore, doc, collection, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, query, where, orderBy } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD7EoihxcX9zIbr1n4NiXK_qlWpv8p5gRk",
@@ -2452,6 +2472,11 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+// ── 로그인 (2026-10, SECURITY_PLAN.md · TODO_ARCHITECTURE.md §4) ──
+// 구글 로그인 + 허용 메일만 CRM을 연다. 두 대표는 sgceo 공용 계정을 함께 쓴다.
+// ⚠️ 지금은 화면 잠금만이다. 데이터 잠금은 Firestore 규칙을 바꿔야 완성된다(규칙 변경은 별도 단계).
+const auth = getAuth(app);
+const CRM_ALLOWED_EMAILS=['sgceo@sgsolutionss.com'];   // 계정을 나누면 여기에 추가 (규칙의 허용 메일과 같게)
 
 // ── COLLECTIONS (= Oracle Tables) ──
 const COL = {
@@ -11944,12 +11969,59 @@ document.addEventListener('click',(e)=>{
 },{passive:true});
 
 // ── INIT ──
-applyHashRoute();   // index.html#todo · index.html#tv
-loadAll();
+// 로그인 확인 → 허용 메일이면 그때 처음 불러온다
+function authGate(msg,showBtn,showOut){
+  const g=document.getElementById('auth-gate');if(!g)return;
+  g.style.display=msg===null?'none':'flex';
+  if(msg===null)return;
+  document.getElementById('auth-gate-msg').innerHTML=msg;
+  document.getElementById('auth-gate-btn').style.display=showBtn?'block':'none';
+  document.getElementById('auth-gate-out').style.display=showOut?'block':'none';
+}
+function isCrmAllowed(u){
+  return !!(u&&u.emailVerified&&CRM_ALLOWED_EMAILS.includes(String(u.email||'').toLowerCase()));
+}
+async function crmSignIn(){
+  const provider=new GoogleAuthProvider();
+  provider.setCustomParameters({prompt:'select_account'});
+  try{ await signInWithPopup(auth,provider); }
+  catch(e){
+    const code=e&&e.code||'';
+    if(code==='auth/popup-closed-by-user'||code==='auth/cancelled-popup-request')return;
+    const why=code==='auth/popup-blocked'?'브라우저가 로그인 창(팝업)을 막았습니다. 주소창의 팝업 차단을 풀고 다시 눌러 주세요.'
+      :code==='auth/unauthorized-domain'?'이 주소('+escAttr(location.hostname)+')가 Firebase 「승인된 도메인」에 없습니다.'
+      :code==='auth/operation-not-allowed'?'Firebase에서 Google 로그인이 꺼져 있습니다.'
+      :'로그인 실패: '+escAttr(code||e.message);
+    authGate(why,true,false);
+  }
+}
+async function crmSignOut(){
+  try{ await signOut(auth); }catch(e){ console.warn('로그아웃 실패:',e); }
+}
+let crmStarted=false;
+onAuthStateChanged(auth,(u)=>{
+  if(!u){
+    if(crmStarted){location.reload();return;}          // 쓰던 중 로그아웃 → 화면을 비우고 처음부터
+    authGate('SG솔루션 계정으로 로그인해 주세요.',true,false);
+    return;
+  }
+  if(!isCrmAllowed(u)){
+    authGate('<b>'+escAttr(u.email||'')+'</b><br>이 계정은 CRM을 사용할 수 없습니다.',false,true);
+    return;
+  }
+  document.querySelectorAll('.crm-user-email').forEach(el=>{el.textContent=u.email;});
+  authGate(null);
+  if(crmStarted)return;
+  crmStarted=true;
+  console.log('[로그인]',u.email);
+  applyHashRoute();   // index.html#todo · index.html#tv
+  loadAll();
+});
 
 
 // ── GLOBAL EXPORTS ──
 Object.assign(window,{
+  crmSignIn,crmSignOut,
   copyDriveScript,tvToggleMask,tvSetZoom,tvExit,
   navTo,manualSave,closeModal,
   downloadBackup,openRestorePicker,restoreBackupFile,

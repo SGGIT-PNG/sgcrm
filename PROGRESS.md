@@ -718,6 +718,15 @@ ID 체계 통일(`e92e19b`) + 옛 일정 20건 삭제 + 24건 재등록 + 잔재
 
 ## 5. 세션 로그
 
+### 2026-10-07 (클라우드, 3) — 실행 1단계: CRM 로그인 화면 + 드라이브 스크립트 v6 (규칙은 아직 그대로)
+- 사장님 콘솔 작업 완료: Authentication Google 사용 설정 · 승인된 도메인 `sggit-png.github.io` · 현재 규칙 캡처(`SECURITY_PLAN.md` §1-1, 4/20 게시 `if true`) · 백업.
+- **CRM 로그인(`index.html`)**: `firebase-auth` 추가, 첫 화면 `#auth-gate`(구글 로그인 팝업). 허용 메일 `CRM_ALLOWED_EMAILS=['sgceo@sgsolutionss.com']`(공용 계정)일 때만
+  `applyHashRoute()`·`loadAll()` 실행. 다른 계정은 「사용할 수 없음 + 다른 계정으로 로그인」. 사이드바·모바일 메뉴 아래 계정 메일 + 로그아웃(쓰던 중 로그아웃 시 새로고침).
+  팝업 차단·승인 안 된 도메인·Google 꺼짐은 원인 문구로 안내. ⚠️ 화면 잠금만 — 데이터 잠금은 규칙 게시 때.
+- **드라이브 스크립트 v6**: Firestore 요청 3곳을 `fsFetch`(sgceo OAuth 토큰)로, 공개 API 키 삭제. `appsscript.json`에 `oauthScopes` 추가 필요(파일 머리말 안내). 설치 확인 함수 `fsCheck`.
+- 검증: `verify.mjs` 통과(export 197개), `.gs` node --check 통과. 브라우저(가짜 Firebase) 1400·390px — 로그아웃 상태/다른 계정/허용 계정 세 경우와 로그인 버튼 동작 확인, 콘솔 오류 0.
+- 남은 1단계: main 반영(배포) 후 실제 로그인 확인 → 스크립트 v6 설치·`fsCheck` 200 확인 → iso-one 로그인(별도 창) → 규칙 게시.
+
 ### 2026-10-07 (클라우드, 2) — 독립 할 일 프로그램 설계 초안 (`TODO_ARCHITECTURE.md`, 코드 수정 없음)
 - 현재 `todos` 구조(필드·상태 3개·네 칸 계산·쓰는 곳 10곳 이상·화면 열 때 자동 생성·드라이브 스크립트 v5 필드) 정리 + 새 방향과의 차이 13가지.
 - 초안: 쓰기 창구 한 곳(권장 **Cloudflare Workers** — Apps Script는 원격 MCP 불가, Blaze는 카드 필요), 번호 `T-0123`(`app_state/todo_seq` 트랜잭션),
