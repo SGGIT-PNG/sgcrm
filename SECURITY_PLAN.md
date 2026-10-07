@@ -33,8 +33,7 @@ service cloud.firestore {
       return request.auth != null
         && request.auth.token.email_verified == true
         && request.auth.token.email in [
-             'sgceo@sgsolutionss.com',
-             '<김학미 대표 메일>'
+             'sgceo@sgsolutionss.com'   // 두 대표 공용 계정(10/7). 계정을 나누면 추가
            ];
     }
     match /{document=**} {
@@ -62,7 +61,7 @@ service cloud.firestore {
 | 채팅(sg-todo) | 캘린더 경유 | 영향 없음 |
 
 ## 3. 순서 (제안)
-1. 사장님: Firebase 콘솔에서 Google 로그인 켜기, 김학미 대표 메일 알려 주기, 현재 규칙 캡처(되돌리기용).
+1. 사장님: Firebase 콘솔에서 Google 로그인 켜기, 현재 규칙 캡처(되돌리기용).
 2. CRM 로그인 화면 + 드라이브 스크립트 v6(OAuth) 만들기 → 잠그기 **전에** 둘 다 배포해 동작 확인.
 3. iso-one 쓰기 방식 확인·변경(그쪽 개발 창).
 4. 콘솔 「규칙 플레이그라운드」로 시험 → 규칙 게시.
