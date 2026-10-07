@@ -16,6 +16,20 @@
 API 키는 공개 저장소의 `index.html`에 있어 비밀이 아니다(키가 없어도 읽힌다).
 쓰기는 시험 삼아 데이터를 바꾸지 않고, 위 실제 동작으로 판단했다.
 
+### 1-1. 현재 게시된 규칙 (2026-10-07 콘솔 캡처 — 되돌리기용 원본)
+콘솔 표시 게시 시각 **2026-04-20 오후 8:45** (이전 이력 4/20 오전 9:20, 4/19 오후 7:32). 콘솔 경고: 「보안 규칙이 공개로 정의되어 있어 누구나 데이터를 도용·수정·삭제할 수 있습니다」.
+
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
+```
+
 ## 2. 막는 방법 (제안)
 
 ### 2-1. CRM 화면 — 구글 로그인 + 두 대표 계정만
@@ -33,8 +47,7 @@ service cloud.firestore {
       return request.auth != null
         && request.auth.token.email_verified == true
         && request.auth.token.email in [
-             'sgceo@sgsolutionss.com',
-             '<김학미 대표 메일>'
+             'sgceo@sgsolutionss.com'   // 두 대표 공용 계정(10/7). 계정을 나누면 추가
            ];
     }
     match /{document=**} {
@@ -62,7 +75,7 @@ service cloud.firestore {
 | 채팅(sg-todo) | 캘린더 경유 | 영향 없음 |
 
 ## 3. 순서 (제안)
-1. 사장님: Firebase 콘솔에서 Google 로그인 켜기, 김학미 대표 메일 알려 주기, 현재 규칙 캡처(되돌리기용).
+1. 사장님: Firebase 콘솔에서 Google 로그인 켜기, 현재 규칙 캡처(되돌리기용).
 2. CRM 로그인 화면 + 드라이브 스크립트 v6(OAuth) 만들기 → 잠그기 **전에** 둘 다 배포해 동작 확인.
 3. iso-one 쓰기 방식 확인·변경(그쪽 개발 창).
 4. 콘솔 「규칙 플레이그라운드」로 시험 → 규칙 게시.

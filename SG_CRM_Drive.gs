@@ -1,5 +1,5 @@
 /**
- * SG CRM 드라이브 연결 — 업체 폴더·업체카드·사업자등록증 읽기 + 음성 「할일」 자동 옮기기 (v5, 2026-10)
+ * SG CRM 드라이브 연결 — 업체 폴더·업체카드·사업자등록증 읽기 + 음성 「할일」 자동 옮기기 (v6, 2026-10)
  *
  * 하는 일: 드라이브 「관리 업체 List」의 업체 폴더 목록과 업체카드 내용을 CRM 기업등록 화면에 넘겨준다.
  *         드라이브는 읽기만 한다(파일·폴더를 만들거나 고치거나 지우지 않는다).
@@ -38,6 +38,27 @@
  *   v5.2: 실행 로그를 console.log로(편집기 「실행 로그」 창에 확실히 보이게), voiceDiag 오류도 로그로.
  *   설치(1회): 코드 교체 → 저장 → 함수 선택에서 **setupVoiceTrigger** 실행 → 권한 허용(캘린더·외부 요청)
  *             → 「배포 관리」에서 기존 배포를 **새 버전**으로 수정.
+ *
+ * v6 (2026-10-07) — Firestore를 공개 API 키가 아니라 **이 스크립트를 실행하는 계정(sgceo)의 권한**으로 읽고 쓴다.
+ *   CRM에 로그인을 붙이고 Firestore 규칙을 잠그면 API 키 방식은 막힌다(SECURITY_PLAN.md). 계정 토큰 요청은 규칙이 아니라
+ *   Google Cloud 권한(IAM)으로 판단하므로, sgceo가 프로젝트 sg-crm-f9adc의 소유자·편집자이면 잠근 뒤에도 그대로 동작한다.
+ *   설치(1회):
+ *    ① 편집기 왼쪽 톱니바퀴(프로젝트 설정) → 「편집기에서 "appsscript.json" 매니페스트 파일 표시」 체크
+ *    ② 왼쪽 파일 목록의 appsscript.json을 열어, 맨 바깥 { } 안에 아래 "oauthScopes" 항목을 **추가**한다
+ *       (다른 항목 — timeZone, dependencies, webapp 등 — 은 지우지 말 것. 앞 항목 끝에 쉼표 하나 필요)
+ *         "oauthScopes": [
+ *           "https://www.googleapis.com/auth/datastore",
+ *           "https://www.googleapis.com/auth/drive",
+ *           "https://www.googleapis.com/auth/documents",
+ *           "https://www.googleapis.com/auth/calendar",
+ *           "https://www.googleapis.com/auth/tasks",
+ *           "https://www.googleapis.com/auth/script.external_request",
+ *           "https://www.googleapis.com/auth/script.scriptapp",
+ *           "https://www.googleapis.com/auth/userinfo.email"
+ *         ]
+ *    ③ Code.gs를 이 파일로 교체 → 저장 → 함수 선택에서 **fsCheck** 실행 → 권한 허용
+ *       실행 로그에 「Firestore 읽기(계정 권한): HTTP 200」이 나오면 성공. 403이면 이 계정에 프로젝트 권한이 없는 것.
+ *    ④ 「배포 관리」에서 기존 배포를 **새 버전**으로 수정
  *
  * 비밀 문구를 두는 이유: CRM에는 아직 로그인이 없다. 주소만 알아서는 업체카드(사업자번호·매출 등)를
  *   읽지 못하게 한다. 주소와 비밀 문구는 Firestore가 아니라 각 기기 브라우저에만 저장된다.
@@ -219,8 +240,13 @@ var CRM_TITLE_RE=/^\[(인증만료|인증완료|연간신고|지원사업|ToDo|I
 var VOICE_MARK_RE=/할\s*일/;
 var TZ="Asia/Seoul";
 var FS_PROJECT="sg-crm-f9adc";
-var FS_KEY="AIzaSyD7EoihxcX9zIbr1n4NiXK_qlWpv8p5gRk";   // CRM index.html과 같은 웹 API 키(공개값)
 var FS_BASE="https://firestore.googleapis.com/v1/projects/"+FS_PROJECT+"/databases/(default)/documents/";
+// v6: Firestore 요청은 전부 여기로 — 실행 계정(sgceo)의 OAuth 토큰을 붙인다 (예전: 공개 API 키 &key=)
+function fsFetch(url,opt){
+  opt=opt||{};
+  opt.headers=Object.assign({},opt.headers||{},{Authorization:"Bearer "+ScriptApp.getOAuthToken()});
+  return UrlFetchApp.fetch(url,opt);
+}
 function fmtD(d){return Utilities.formatDate(d,TZ,"yyyy-MM-dd");}
 // v5.4: 채팅(Claude sg-todo 스킬)이 만든 일정은 설명에 「Claude 채팅에서 등록 (작성: 이름)」이 들어 있다
 //   → source 'chat', createdBy = 그 이름. 나머지 설명 줄은 메모로.
@@ -260,7 +286,7 @@ function findCompany(text,comps){
 function listCompanies(){
   var out=[],tok="";
   do{
-    var j=JSON.parse(UrlFetchApp.fetch(FS_BASE+"companies?pageSize=300&key="+FS_KEY+(tok?"&pageToken="+tok:"")).getContentText());
+    var j=JSON.parse(fsFetch(FS_BASE+"companies?pageSize=300"+(tok?"&pageToken="+tok:"")).getContentText());
     (j.documents||[]).forEach(function(d){
       var f=d.fields||{};
       out.push({id:d.name.split("/").pop(),name:(f.name&&f.name.stringValue)||"",active:(f.active&&f.active.stringValue)||""});
@@ -279,7 +305,7 @@ function writeTodo(evId,data){
     var v=data[k];
     fields[k]=typeof v==="number"?{integerValue:String(v)}:{stringValue:String(v)};
   });
-  var r=UrlFetchApp.fetch(FS_BASE+"todos?documentId="+voiceDocId(evId)+"&key="+FS_KEY,
+  var r=fsFetch(FS_BASE+"todos?documentId="+voiceDocId(evId),
     {method:"post",contentType:"application/json",payload:JSON.stringify({fields:fields}),muteHttpExceptions:true});
   var code=r.getResponseCode();
   if(code===200||code===409)return true;           // 409 = 전에 이미 옮김
@@ -358,7 +384,7 @@ function listGoogleTasks(){
 }
 // 점검용 — 옮기지 않고 무엇이 보이는지만 실행 로그에 적는다
 function voiceDiag(){
-  console.log("점검 시작 (v5.2)");
+  console.log("점검 시작 (v6)");
   try{ voiceDiagRun(); }catch(e){ console.error("점검 오류: "+e.message+"\n"+e.stack); }
 }
 function voiceDiagRun(){
@@ -371,8 +397,15 @@ function voiceDiagRun(){
     });
   }
   console.log("옮길 대상(Tasks): "+listGoogleTasks().length+"건");
-  var r=UrlFetchApp.fetch(FS_BASE+"todos?pageSize=1&key="+FS_KEY,{muteHttpExceptions:true});
+  var r=fsFetch(FS_BASE+"todos?pageSize=1",{muteHttpExceptions:true});
   console.log("CRM 읽기: HTTP "+r.getResponseCode());
+}
+// v6 설치 확인 — 계정 권한으로 Firestore를 읽어 본다(쓰지 않음)
+function fsCheck(){
+  console.log("계정: "+Session.getEffectiveUser().getEmail());
+  var r=fsFetch(FS_BASE+"companies?pageSize=1",{muteHttpExceptions:true});
+  var code=r.getResponseCode();
+  console.log("Firestore 읽기(계정 권한): HTTP "+code+(code===200?" — 성공":" — "+r.getContentText().slice(0,300)));
 }
 function voiceTrigger(){moveVoiceTodos();}          // 10분 트리거가 부르는 함수
 // 10분마다 자동 옮기기 트리거 설치 (여러 번 실행해도 하나만 남는다)
