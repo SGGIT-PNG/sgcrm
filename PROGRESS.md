@@ -718,6 +718,17 @@ ID 체계 통일(`e92e19b`) + 옛 일정 20건 삭제 + 24건 재등록 + 잔재
 
 ## 5. 세션 로그
 
+### 2026-10-08 (클라우드, 2) — 5단계: CRM 할 일 보기 전용 + 쓰기 창구로 일원화
+- **SGCRM(`index.html`)**: `TODO_READONLY=true` — 할 일 쓰기 13곳(빠른 입력·할 일 창·상태·미루기·끌어놓기·삭제·기업 연결 제안·잠재고객 할 일·업체카드 가져오기·cycleTodo)은
+  누르면 할 일 프로그램(`#T-0123`)을 연다. 할 일 화면 맨 위 안내 + 「할 일 프로그램 열기」, 줄마다 T-번호. 전체 현황에 **🔔 방금 바뀐 것**(activity 10건 실시간, 누르면 해당 할 일).
+  CRM이 화면 열 때 만들던 인증·ISO·연간신고 할 일 중지(쓰기 창구가 매일 06:00). 할 일 → 구글 캘린더 `[ToDo]` 전송 중지(D10).
+  사업자번호 변경의 할 일 옮기기 → 쓰기 창구 `/api/admin/rebizno`. 백업 복원에서 `todos` 제외. 대기 배너 판정에 `dedupeKey`도 인정.
+  되돌리기: `TODO_READONLY=false`(단 규칙 2단계 뒤엔 저장 거절).
+- **드라이브 스크립트 v7**: 음성·채팅 할 일 → 쓰기 창구 `/api/ingest`(X-Api-Key=INGEST_KEY). `makeIngestKey`·`ingestCheck` 추가.
+- **sg-todo**: `worker/src/auto.js`(자동 생성 + 휴지통 30일 정리, cron 매일 21:00 UTC), ingest에 `chat`, `rebizno`, 관리 탭 「자동 생성 미리보기·지금 실행」. 시험 22개.
+- 검증: SGCRM `verify.mjs` 통과(export 199). 가짜 Firebase 브라우저 시험 — 보기 전용 안내·버튼 숨김·T-번호·누르면 할 일 프로그램 열림·DB 쓰기 0·방금 바뀐 것 표시·콘솔 오류 0.
+- 남은 것(사장님): INGEST_KEY 설정(스크립트 → Cloudflare 비밀), 드라이브 스크립트 v7 배포, SGCRM main 반영, 확인 후 **규칙 2단계** 게시(`SECURITY_PLAN.md` §2-5).
+
 ### 2026-10-07 (클라우드, 3) — 실행 1단계: CRM 로그인 화면 + 드라이브 스크립트 v6 (규칙은 아직 그대로)
 - 사장님 콘솔 작업 완료: Authentication Google 사용 설정 · 승인된 도메인 `sggit-png.github.io` · 현재 규칙 캡처(`SECURITY_PLAN.md` §1-1, 4/20 게시 `if true`) · 백업.
 - **CRM 로그인(`index.html`)**: `firebase-auth` 추가, 첫 화면 `#auth-gate`(구글 로그인 팝업). 허용 메일 `CRM_ALLOWED_EMAILS=['sgceo@sgsolutionss.com']`(공용 계정)일 때만
@@ -725,7 +736,30 @@ ID 체계 통일(`e92e19b`) + 옛 일정 20건 삭제 + 24건 재등록 + 잔재
   팝업 차단·승인 안 된 도메인·Google 꺼짐은 원인 문구로 안내. ⚠️ 화면 잠금만 — 데이터 잠금은 규칙 게시 때.
 - **드라이브 스크립트 v6**: Firestore 요청 3곳을 `fsFetch`(sgceo OAuth 토큰)로, 공개 API 키 삭제. `appsscript.json`에 `oauthScopes` 추가 필요(파일 머리말 안내). 설치 확인 함수 `fsCheck`.
 - 검증: `verify.mjs` 통과(export 197개), `.gs` node --check 통과. 브라우저(가짜 Firebase) 1400·390px — 로그아웃 상태/다른 계정/허용 계정 세 경우와 로그인 버튼 동작 확인, 콘솔 오류 0.
-- 남은 1단계: main 반영(배포) 후 실제 로그인 확인 → 스크립트 v6 설치·`fsCheck` 200 확인 → iso-one 로그인(별도 창) → 규칙 게시.
+- ✅ **배포·설치 확인(2026-10-07 저녁)**: PR #2 main 병합(`88a9e2f`) → PC CRM 구글 로그인 성공. 드라이브 스크립트 v6 설치 —
+  `appsscript.json`에 `oauthScopes`(datastore 등 8개) 추가, `fsCheck` → **HTTP 200**, 배포 관리에서 새 버전. CRM 「드라이브에서 가져오기」 업체 목록 정상,
+  구글 Tasks 「v6 테스트」 → CRM 할 일로 옮겨짐(계정 권한 쓰기 확인) 후 삭제.
+- 메모: 음성 할 일 트리거 10분 간격은 그대로(나중에 5분으로 바꿀 수 있음 — `setupVoiceTrigger`의 `everyMinutes(10)`). 드라이브 연결 주소·비밀 문구는 기기별 저장 → 규칙 잠금 후 app_state로 옮길 것.
+- 2026-10-08: 휴대폰 로그인 ✅. 승인된 도메인에 `iso-one.web.app` 추가 ✅. iso-one 로그인 지시문을 iso-one 개발 세션(클라우드 「iso-one web program deployment」)에 전달
+  (그 세션에 9/27 「올려줘」 대기 수정본이 남아 있어 먼저 확인하게 함). **메인이노는 아직 미확정 → 실제 사용 전에 같은 로그인 처리 필요(SGCRM `companies` 읽기).**
+- 2026-10-08: iso-one CRM 연결 로그인 배포(iso-one 세션, 9/27 Claude API 수정 함께) → 사장님 CRM 연결 ✅.
+  **Firestore 규칙 게시(1단계 잠금)** — sgceo 로그인만 읽기·쓰기. 로그인 없이 읽기 403 확인(키 없이·공개 키 모두), 드라이브 `fsCheck` 200 ✅. (`SECURITY_PLAN.md` §1-2)
+  잠금 후 CRM(읽기·저장)·iso-one(CRM 연결 상태에서 심사 저장) 정상 ✅ → **실행 1단계 완료.** 다음: 2단계 쓰기 창구(Cloudflare 계정·서비스 계정 키).
+- 2단계 준비(10/8): **Cloudflare 계정**(sgceo, 사무실 인터넷에선 가입이 막혀 휴대폰 데이터로 가입) · workers.dev 하위 도메인 **`sgsolution`** → 창구 주소 예정 `https://sg-todo.sgsolution.workers.dev`.
+  **서비스 계정 `sg-todo-api@sg-crm-f9adc.iam.gserviceaccount.com`**(역할: Cloud Datastore 사용자) + JSON 키 1개(사장님 PC 보관, 채팅·저장소에 올리지 않음).
+  조직 정책 `iam.disableServiceAccountKeyCreation` 때문에 sgceo에 「조직 정책 관리자」 부여 → sg-crm-f9adc에서만 잠시 끄고 키 생성 → **다시 상위 정책 상속으로 복구.**
+- **쓰기 창구 가동(10/8)**: 새 저장소 **`SGGIT-PNG/sg-todo`**(공개, 사장님이 생성 — Claude 앱은 저장소 생성 권한 없음). `worker/` = Cloudflare Worker
+  (번호 T-0123·상태 규칙·반복·휴지통·`activity` 변동 기록·Firebase 로그인 토큰 확인·작성자 X-SG-User, 모의 시험 15개).
+  Cloudflare Workers Builds ↔ GitHub 연결(Cloudflare 앱은 sg-todo만 허용, 경로 `/worker`, main push → 자동 배포). Secret `GCP_SA_KEY` 등록.
+  ✅ `https://sg-todo.sgsolution.workers.dev/health?check=firestore` → **연결됨**. (이 작업 환경에선 workers.dev 접속이 막혀 사장님 브라우저로 확인)
+  참고: 사장님 PC McAfee 웹 보호가 gitlab.com 등을 막음 — Cloudflare 사무실 가입 실패 원인일 수 있음.
+- **할 일 웹 화면 가동(10/8)**: `sg-todo/index.html` → https://sggit-png.github.io/sg-todo/ (GitHub Pages, main/root).
+  sgceo 로그인 + 기기별 「나」 선택, 오늘·기업별·주간·완료·휴지통·관리, 빠른 입력, 방금 바뀐 것(activity). 읽기 = Firestore 실시간, 쓰기 = 쓰기 창구.
+  ✅ **기존 할 일 23건 번호 붙임 T-0001~T-0023** (관리 → 미리보기 → 적용, 사장님 실행). `app_state/todo_seq.last = 23`.
+- ⚠️ 아직 SGCRM 할 일 화면·자동 생성(인증 갱신·ISO·연간신고)·드라이브 스크립트가 `todos`에 **직접** 쓴다 → 그 할 일은 번호 없음.
+  관리 → 번호 붙이기를 다시 누르면 이어서 붙는다(여러 번 안전). 근본 해결은 5단계(CRM 통합제어 화면·자동 생성 이전·규칙 2단계).
+- 다음: 5단계 CRM 통합제어 화면(할 일 쓰기 제거 + 방금 바뀐 것) → 6단계 MCP 커넥터(Claude 창 추가·완료·수정·삭제·조회).
+- 결정(10/8, 권장대로): 업체·기한 **선택** 입력 / 쓰기 창구 **Cloudflare Workers** / 채팅 작성자는 **Claude 프로젝트 사람별** / 할 일 캘린더 `[ToDo]` 전송 **중단**(할 일 프로그램 전환 때). `TODO_ARCHITECTURE.md` §9 결정 열.
 
 ### 2026-10-07 (클라우드, 2) — 독립 할 일 프로그램 설계 초안 (`TODO_ARCHITECTURE.md`, 코드 수정 없음)
 - 현재 `todos` 구조(필드·상태 3개·네 칸 계산·쓰는 곳 10곳 이상·화면 열 때 자동 생성·드라이브 스크립트 v5 필드) 정리 + 새 방향과의 차이 13가지.

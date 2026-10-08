@@ -342,6 +342,13 @@ body.tv-mode .tv-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;mar
 .tdl-sec{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px;}
 .tdl-sec-hd{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;padding:10px 16px;font-size:13px;}
 .tdl-sec-hd span{font-size:12px;opacity:.85;}
+.tdl-ro-banner{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A;border-radius:10px;padding:10px 14px;margin:0 0 12px;font-size:13px}
+.tdl-no{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text4);margin-right:6px}
+.todo-ro .tdl-act,.todo-ro .todo-btn,.todo-ro .tdl-x{display:none!important}
+.todo-ro input.tdl-chk{pointer-events:none;opacity:.55}
+.ov-act{display:flex;gap:10px;align-items:baseline;padding:7px 14px;border-top:1px solid #F3F4F6;font-size:13px;cursor:pointer}
+.ov-act:hover{background:var(--surface2)}
+.ov-act time{flex-shrink:0;width:64px;color:var(--text4);font-size:12px}
 .tdl-row{display:grid;grid-template-columns:24px minmax(0,1fr) 170px 140px 150px;gap:12px;align-items:center;padding:10px 16px;border-top:1px solid #F3F4F6;}
 .tdl-done .tdl-link{color:var(--text3);text-decoration:line-through;}
 .tdl-chk{width:18px;height:18px;cursor:pointer;margin:0;}
@@ -783,6 +790,16 @@ body.tv-mode .tv-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;mar
           </div>
           <div class="gantt-scroll"><table class="gantt-table" id="gantt-table"></table></div>
         </div>
+      </div>
+      <!-- 4-1. 방금 바뀐 것 (통합제어 — 할 일 프로그램·Claude 창·자동 생성이 남긴 변동 기록 activity) -->
+      <div style="margin-bottom:24px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <div style="width:28px;height:28px;border-radius:8px;background:#EFF6FF;display:flex;align-items:center;justify-content:center">🔔</div>
+          <span style="font-size:16px;font-weight:500">방금 바뀐 것</span>
+          <span style="font-size:12px;color:var(--text3)">할 일 프로그램 · Claude 창 · 자동 생성</span>
+          <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="todoGoApp()">할 일 프로그램 ↗</button>
+        </div>
+        <div id="ov-activity" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden"><div style="padding:12px 14px;color:var(--text4);font-size:13px">불러오는 중…</div></div>
       </div>
       <!-- 5. 할 일 (네 칸 요약) -->
       <div style="margin-bottom:24px">
@@ -2459,7 +2476,7 @@ body.tv-mode .tv-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;mar
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
-import { getFirestore, doc, collection, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, query, where, orderBy } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+import { getFirestore, doc, collection, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -2692,9 +2709,9 @@ async function loadAll(){
     // 인증을 받아 끝난 업무를 완료로 맞춘다 (취득일이 업무 생성일보다 나중인 것만)
     if(!CRM_RETIRED.work){ try{ await reconcileWorkFromCerts(); }catch(e){console.warn('인증→업무 반영 스킵:',e);} }
     // [iso-one] 심사가 임박한 기업의 업무·ToDo를 만든다. isoAuditId로 중복을 막아 여러 번 돌려도 안전.
-    try{ await createIsoTasks(true); }catch(e){console.warn('ISO 업무 생성 스킵:',e);}
+    if(!TODO_READONLY){ try{ await createIsoTasks(true); }catch(e){console.warn('ISO 업무 생성 스킵:',e);} }
     // 갱신이 임박한 인증(고정주기)의 업무·ToDo를 만든다. certTaskId로 중복을 막아 여러 번 돌려도 안전.
-    try{ await createCertTasks(true); }catch(e){console.warn('인증 갱신 업무 생성 스킵:',e);}
+    if(!TODO_READONLY){ try{ await createCertTasks(true); }catch(e){console.warn('인증 갱신 업무 생성 스킵:',e);} }
     try{ await createAnnualTasks(); }catch(e){console.warn('연간신고 할 일 생성 스킵:',e);}
     renderAll(); updateCounts();
     setBadge('✅ 로드 완료',2000);
@@ -2708,7 +2725,23 @@ async function loadAll(){
 }
 
 // ── REALTIME SYNC (각 컬렉션 독립 감시) ──
+// ── 방금 바뀐 것 (activity — 쓰기 창구가 모든 변경마다 한 줄 남김) ──
+let ovActs=[];
+function actAgo(ms){
+  const s=Math.floor((Date.now()-ms)/1000);
+  if(s<60)return '방금';if(s<3600)return Math.floor(s/60)+'분 전';if(s<86400)return Math.floor(s/3600)+'시간 전';
+  return new Date(ms).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'});
+}
+function renderOvActivity(){
+  const el=document.getElementById('ov-activity');if(!el)return;
+  el.innerHTML=ovActs.length?ovActs.map(a=>'<div class="ov-act" data-ref="'+escAttr(a.ref||'')+'" onclick="todoGoRef(this.dataset.ref)"><time>'+actAgo(a.at)+'</time><span>'+escAttr(tvMask(a.summary||''))+'</span></div>').join('')
+    :'<div style="padding:12px 14px;color:var(--text4);font-size:13px">아직 기록이 없습니다.</div>';
+}
+function todoGoRef(ref){ window.open(TODO_APP_URL+(/^T-\d+$/.test(ref||'')?'#'+ref:''),'sg-todo'); }
 function startRealtimeSync(){
+  onSnapshot(query(collection(db,'activity'),orderBy('at','desc'),limit(10)),(s)=>{ovActs=s.docs.map(d=>d.data());renderOvActivity();},
+    (e)=>console.warn('방금 바뀐 것 구독 실패:',e.message));
+  setInterval(renderOvActivity,60000);   // 「n분 전」 갱신
   onSnapshot(COL.companies(),(s)=>{companies=s.docs.map(d=>({_id:d.id,...d.data()}));renderAll();updateCounts();});
   onSnapshot(COL.consulting(),(s)=>{consulting=s.docs.map(d=>({id:d.id,...d.data()}));renderAll();updateCounts();});
   onSnapshot(COL.consulting_company(),(s)=>{consCompanies=s.docs.map(d=>({id:d.id,...d.data()}));renderAll();});
@@ -3149,6 +3182,7 @@ async function restoreBackupFile(input){
     setBadge('🔄 복원 중...');
     const ops=[];
     for(const c of BACKUP_COLS){
+      if(c==='todos'&&TODO_READONLY)continue;   // 할 일은 할 일 프로그램이 소유 — 복원에서 제외(규칙 2단계 뒤엔 어차피 거절)
       const want=new Map((b.collections[c]||[]).map(x=>[x.id,x]));
       (cur.collections[c]||[]).forEach(x=>{if(!want.has(x.id))ops.push({t:'del',ref:doc(db,c,x.id)});});
       want.forEach((x,id)=>ops.push({t:'set',ref:doc(db,c,id),data:x.data}));
@@ -4706,6 +4740,25 @@ async function deleteConsulting(){
 // 상태는 대기·진행·완료 세 가지만 저장하고, 화면의 네 칸은 규칙으로 계산한다.
 //   놓치고 있는 일 → 지금 하는 일 → 해야 할 일(30일 이내) → 앞으로 할 일  (위에서 먼저 걸리는 칸 하나에만)
 const TODO_RULES_DEFAULT={stallDays:14,soonDays:3,horizonDays:30,leadDays:14};
+// ── 2026-10-08 5단계: 할 일은 독립 할 일 프로그램(sg-todo)이 쓴다. CRM은 보기만 (TODO_ARCHITECTURE.md) ──
+//   입력·완료·수정은 할 일 프로그램 또는 Claude 창에서. 자동 생성(인증 갱신·ISO·연간신고)은 쓰기 창구가 매일 06:00.
+//   false로 바꾸면 예전처럼 CRM에서 직접 쓴다(되돌리기용 — 단, Firestore 규칙 2단계 뒤에는 저장이 거절됨).
+const TODO_READONLY=true;
+const TODO_APP_URL='https://sggit-png.github.io/sg-todo/';
+const TODO_API_URL='https://sg-todo.sgsolution.workers.dev';
+function todoNoLabel(t){return t&&t.no?'T-'+String(t.no).padStart(4,'0'):'';}
+// 할 일 프로그램 열기 (id·번호가 있으면 그 할 일로)
+function todoGoApp(id){
+  const t=id?todos.find(x=>x.id===id):null;
+  window.open(TODO_APP_URL+(t&&t.no?'#'+todoNoLabel(t):''),'sg-todo');
+}
+// 보기 전용일 때 쓰기 버튼을 누르면: 할 일 프로그램으로 보내고, 체크박스 등 화면 상태는 되돌린다
+function todoRO(id){
+  if(!TODO_READONLY)return false;
+  todoGoApp(id);
+  renderTodo('sub');renderTodo('');
+  return true;
+}
 let todoRules=Object.assign({},TODO_RULES_DEFAULT);   // app_state에 저장 (appStatePayload)
 const TODO_SRC={manual:'손 입력',voice:'음성 일정',chat:'채팅',cert:'인증 갱신',iso:'ISO',annual:'연간신고',lead:'잠재고객',card:'업체카드',secretary:'비서'};
 let todoFilter={bizno:'',category:'',source:''};
@@ -4931,7 +4984,7 @@ function todoRowHtml(t){
     +(todoSource(t)!=='manual'?'<span class="todo-chip">'+escAttr(TODO_SRC[todoSource(t)]||'')+'</span>':'');
   return '<div class="tdl-row'+(done?' tdl-done':'')+'">'
     +'<input type="checkbox" class="tdl-chk" aria-label="완료" data-id="'+id+'"'+(done?' checked':'')+' onchange="todoSetStatus(this.dataset.id,this.checked?\'done\':\'wait\')">'
-    +'<div class="tdl-text"><button class="tdl-link" data-id="'+id+'" onclick="openTodoModal(null,this.dataset.id)">'+escAttr(todoText(t))+'</button>'+chips
+    +'<div class="tdl-text">'+(t.no?'<span class="tdl-no">'+todoNoLabel(t)+'</span>':'')+'<button class="tdl-link" data-id="'+id+'" onclick="openTodoModal(null,this.dataset.id)">'+escAttr(todoText(t))+'</button>'+chips
       +(t.memo?'<div class="tdl-memo">'+escAttr(t.memo.slice(0,80))+'</div>':'')+'</div>'
     +(t.bizno?'<button class="tdl-co" data-b="'+escAttr(t.bizno)+'" onclick="openCompanyModal(this.dataset.b)">'+escAttr(tvMask(t.companyName||t.bizno))+'</button>':'<span class="tdl-co tdl-none">기업 없음</span>')
     +'<div class="tdl-why" style="color:'+whyColor+'">'+escAttr(why)+'</div>'
@@ -5017,6 +5070,7 @@ function todoWeekHtml(){
 }
 function todoDragStart(ev,id){todoDragId=id;try{ev.dataTransfer.setData('text/plain',id);ev.dataTransfer.effectAllowed='move';}catch(e){}}
 async function todoDropDay(ev,ds){
+  if(todoRO(todoDragId))return;
   ev.preventDefault();
   let id='';try{id=ev.dataTransfer.getData('text/plain');}catch(e){}
   id=id||todoDragId;todoDragId='';
@@ -5075,7 +5129,7 @@ function renderTodo(sfx){
   if(cnt)cnt.textContent='놓친 일 '+g.miss.length+' · 진행 '+g.ing.length+' · 해야 '+g.todo.length;
   if(!sfx){
     // 대시보드: 할 일 화면과 같은 모양 — 접힌 브리핑 + 놓친 일 상위 5줄 + 지금 하는 일
-    grid.className='';
+    grid.className=TODO_READONLY?'todo-ro':'';
     const more=g.miss.length>5?'<button class="tdl-fold" onclick="navTo(\'todo\')">놓친 일 '+(g.miss.length-5)+'건 더 보기 →</button>':'';
     grid.innerHTML=todoBriefHtml(g)
       +todoSectionHtml('놓치고 있는 일','오늘 안에 결정 — 하거나, 날짜를 다시 잡거나','#991B1B','#FEF2F2',g.miss.slice(0,5),'놓치고 있는 일이 없습니다')+more
@@ -5083,7 +5137,7 @@ function renderTodo(sfx){
       +'<button class="tdl-fold" onclick="navTo(\'todo\')">할 일 전체 보기 (해야 할 일 '+g.todo.length+' · 앞으로 '+g.later.length+') →</button>';
     return;
   }
-  grid.className='';
+  grid.className=TODO_READONLY?'todo-ro':'';
   const me=getTodoMe();
   const mob=isMobile();
   const unlinked=todoLinkCandidates().length;
@@ -5098,26 +5152,28 @@ function renderTodo(sfx){
     '<div class="tdl-top">'
       +'<div class="tdl-tabs" role="tablist">'+tabs.map(([k,l])=>'<button role="tab" aria-selected="'+(view===k)+'" class="'+(view===k?'on':'')+'" onclick="todoSetView(\''+k+'\')">'+l+'</button>').join('')+'</div>'
       +(mob?'':'<div class="tdl-tools">'
-        +(unlinked?'<button class="btn btn-ghost btn-sm" onclick="todoLinkSuggest()" title="글자 속 기업명으로 연결 후보를 찾습니다">🔗 기업 연결 제안 '+unlinked+'</button>':'')
-        +'<label style="color:var(--text3)">작성자 <select class="fs" style="width:100px" onchange="setTodoMe(this.value)"><option value="">선택</option>'
-          +['정석진','김학미'].map(n=>'<option'+(me===n?' selected':'')+'>'+n+'</option>').join('')+'</select></label>'
+        +(unlinked&&!TODO_READONLY?'<button class="btn btn-ghost btn-sm" onclick="todoLinkSuggest()" title="글자 속 기업명으로 연결 후보를 찾습니다">🔗 기업 연결 제안 '+unlinked+'</button>':'')
+        +(TODO_READONLY?'':'<label style="color:var(--text3)">작성자 <select class="fs" style="width:100px" onchange="setTodoMe(this.value)"><option value="">선택</option>'
+          +['정석진','김학미'].map(n=>'<option'+(me===n?' selected':'')+'>'+n+'</option>').join('')+'</select></label>')
         +'<button class="btn btn-ghost btn-sm" onclick="todoEditRules()" title="놓친 일 판단 기준 바꾸기">기준 '+todoRules.stallDays+'·'+todoRules.soonDays+'·'+todoRules.horizonDays+'·'+todoRules.leadDays+'일</button>'
       +'</div>')
     +'</div>'
-    +'<div class="tdl-quick">'
+    +(TODO_READONLY?'<div class="tdl-ro-banner">할 일 <b>추가·완료·수정</b>은 할 일 프로그램이나 Claude 창에서 합니다. 여기서는 실시간으로 보기만 합니다. '
+      +'<button class="btn btn-primary btn-sm" onclick="todoGoApp()">할 일 프로그램 열기 ↗</button></div>':'')
+    +(TODO_READONLY?'':'<div class="tdl-quick">'
       +'<input class="fi" id="todo-quick" placeholder="'+(mob?'할 일 적기 — 기업·날짜 자동 인식':'빠른 입력 — 예: 하이퍼다인 서류 독촉 10/10   (Enter로 저장, 기업·날짜는 자동 인식)')+'" oninput="todoQuickHint()" onkeydown="if(event.key===\'Enter\'&&!event.isComposing){event.preventDefault();todoQuickSave();}">'
       +'<button id="todo-mic" class="tdl-mic" onclick="todoVoiceInput()" aria-label="말로 할 일 넣기" title="말로 할 일 넣기"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>'
       +'<button class="btn btn-primary btn-sm" onclick="todoQuickSave()">추가</button>'
       +(mob?'':'<button class="btn btn-ghost btn-sm" onclick="openTodoModal(\'wait\')">자세히 추가</button>')
     +'</div>'
-    +'<div id="todo-quick-hint" style="font-size:12px;color:var(--text3);min-height:16px;margin:4px 2px 10px"></div>'
+    +'<div id="todo-quick-hint" style="font-size:12px;color:var(--text3);min-height:16px;margin:4px 2px 10px"></div>')
     +(mob?'':'<div class="tdl-filters">'
       +'<select class="fs" onchange="todoSetFilter(\'bizno\',this.value)" aria-label="기업">'+coOpts+'</select>'
       +'<select class="fs" onchange="todoSetFilter(\'category\',this.value)" aria-label="분야">'+catOpts+'</select>'
       +'<select class="fs" onchange="todoSetFilter(\'source\',this.value)" aria-label="출처">'+srcOpts+'</select>'
     +'</div>')
     +body;
-  todoQuickHint();
+  if(!TODO_READONLY)todoQuickHint();
   if(tvMode)tvTick();
   if(getDriveUrl()&&getDriveKey()&&!voiceMove.busy&&Date.now()-voiceMove.at>2*60000)todoVoiceMove();
 }
@@ -5148,6 +5204,7 @@ async function todoVoiceMove(){
 function todoToggleDone(){todoShowDone=!todoShowDone;renderTodo('sub');}
 // 버튼 방식 상태 변경 — 예전엔 카드를 누르면 상태가 돌아가 실수로 바뀌기 쉬웠다
 async function todoSetStatus(id,st){
+  if(todoRO(id))return;
   const t=todos.find(x=>x.id===id);if(!t)return;
   const upd={status:st,updatedAt:Date.now(),statusAt:Date.now()};
   if(st==='done')upd.doneAt=Date.now();
@@ -5158,6 +5215,7 @@ async function todoSetStatus(id,st){
 }
 // 미루기: 날짜를 받는다(기본 = 마감 또는 오늘 + 7일)
 async function todoPostpone(id){
+  if(todoRO(id))return;
   const t=todos.find(x=>x.id===id);if(!t)return;
   const base=t.dueDate&&t.dueDate>todoToday()?t.dueDate:todoToday();
   const d=new Date(base);d.setDate(d.getDate()+7);
@@ -5219,6 +5277,7 @@ function todoQuickHint(){
     +' <span style="color:var(--text4)">(다르면 「자세히 추가」에서 고치세요)</span>';
 }
 async function todoQuickSave(){
+  if(todoRO())return;
   const inp=document.getElementById('todo-quick');if(!inp)return;
   const raw=inp.value.trim();if(!raw)return;
   const p=parseQuickTodo(raw);
@@ -5236,6 +5295,7 @@ function todoLinkCandidates(){
   return todos.filter(t=>!t.bizno&&t.status!=='done').map(t=>({t,c:todoFindCompany(t.text||'')})).filter(x=>x.c);
 }
 async function todoLinkSuggest(){
+  if(todoRO())return;
   const list=todoLinkCandidates();
   if(!list.length){alert('연결할 후보가 없습니다.');return;}
   let n=0;
@@ -5249,6 +5309,7 @@ async function todoLinkSuggest(){
 
 // ── 잠재고객 후속 ──
 async function todoFromLead(bizno){
+  if(todoRO())return;
   const c=companies.find(x=>x._id===bizno);if(!c)return;
   const d=new Date();d.setDate(d.getDate()+3);
   const data={text:'['+c.name+'] 후속 연락',status:'wait',dueDate:dateStr(d.getFullYear(),d.getMonth(),d.getDate()),
@@ -5283,6 +5344,7 @@ function annualTasksPending(){
   return out;
 }
 async function createAnnualTasks(){
+  if(TODO_READONLY)return 0;   // 쓰기 창구가 매일 06:00에 만든다
   const pend=annualTasksPending();let n=0;
   for(const x of pend){
     const comp=companies.find(z=>z._id===x.c.bizno);
@@ -5304,6 +5366,7 @@ function renderCompanyTodos(bizno){
   const el=document.getElementById('comp-todo-box');if(!el)return;
   if(!bizno){el.style.display='none';return;}
   el.style.display='';
+  el.classList.toggle('todo-ro',TODO_READONLY);
   const mine=todos.filter(t=>t.bizno===bizno);
   const open=mine.filter(t=>t.status!=='done').map(t=>Object.assign({},t,{_reason:todoBucket(t).reason}));
   open.sort((a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999'));
@@ -5343,6 +5406,7 @@ function parseCardNextTodos(text){
   return out;
 }
 async function todoCardImport(bizno){
+  if(todoRO())return;
   const c=companies.find(x=>x._id===bizno);if(!c||!c.driveFolderId)return;
   const box=document.getElementById('comp-todo-card');if(!box)return;
   box.innerHTML='<div style="font-size:12px;color:var(--text3);margin-top:8px">업체카드 읽는 중…</div>';
@@ -5372,6 +5436,7 @@ function renderCardProposals(bizno){
 }
 function todoCardToggle(i,on){if(todoCardProposals[i])todoCardProposals[i].on=on;}
 async function todoCardApply(bizno){
+  if(todoRO())return;
   const c=companies.find(x=>x._id===bizno);if(!c)return;
   const pick=todoCardProposals.filter(p=>p.on&&!p.dup);
   if(!pick.length){alert('고른 항목이 없습니다.');return;}
@@ -5389,6 +5454,7 @@ async function todoCardApply(bizno){
 // ── 할 일 창 (추가·수정) ──
 // presetBizno: 기업 창에서 「+ 할 일」로 열 때
 function openTodoModal(st,id,presetBizno){
+  if(todoRO(id))return;
   const t=id?todos.find(x=>x.id===id):null;
   document.getElementById('td-edit-id').value=t?t.id:'';
   document.getElementById('td-modal-title').innerHTML=(t?'✏️ 할 일 수정':'✅ 할 일 추가')+'<button class="modal-close" onclick="closeModal(\'todo-modal\')">×</button>';
@@ -5424,6 +5490,7 @@ function todoModalCompany(){
   return c?{bizno:c._id,name:c.name}:undefined;   // undefined = 못 찾음
 }
 async function saveTodo(){
+  if(todoRO())return;
   const text=document.getElementById('td-text').value.trim();if(!text){alert('내용을 입력하세요');return;}
   const editId=document.getElementById('td-edit-id').value;
   const co=todoModalCompany();
@@ -5453,11 +5520,12 @@ async function saveTodo(){
 }
 // 예전 방식(눌러서 상태 돌리기) — 다른 화면 호환용으로 남겨 둠
 async function cycleTodo(id){
+  if(todoRO(id))return;
   const t=todos.find(x=>x.id===id);if(!t)return;
   const cy={wait:'ing',ing:'done',done:'wait'};
   await todoSetStatus(id,cy[t.status]||'wait');
 }
-async function deleteTodoItem(id){if(!confirm('삭제하시겠습니까?'))return;try{await deleteDoc(doc(db,'todos',id));gcalSyncTodo({id:id},'delete');}catch(e){alert('삭제 실패');}}
+async function deleteTodoItem(id){if(todoRO(id))return;if(!confirm('삭제하시겠습니까?'))return;try{await deleteDoc(doc(db,'todos',id));gcalSyncTodo({id:id},'delete');}catch(e){alert('삭제 실패');}}
 // 마감일 색상: 기한 초과 빨강 / 7일 이내 주황 / 그 외 회색 (완료는 항상 회색)
 function todoDueColor(t){
   if(!t.dueDate||t.status==='done')return 'var(--text4)';
@@ -7382,7 +7450,7 @@ function isoTaskLabel(a){ return 'ISO '+(a.nextAtype||'심사'); }
 function isoTaskExists(auditId){
   return {
     work:workItems.some(function(x){return x.isoAuditId===auditId;}),
-    todo:todos.some(function(x){return x.isoAuditId===auditId;})
+    todo:todos.some(function(x){return x.isoAuditId===auditId||x.dedupeKey==='iso:'+auditId;})
   };
 }
 function isoTasksPending(){
@@ -7390,6 +7458,7 @@ function isoTasksPending(){
     const h=isoTaskExists(x.a.auditId); return (!h.work&&!CRM_RETIRED.work)||!h.todo;});
 }
 async function createIsoTasks(silent){
+  if(TODO_READONLY){ if(!silent)alert('ISO 심사 할 일은 할 일 쓰기 창구가 매일 아침 6시에 자동으로 만듭니다.\n바로 만들려면 할 일 프로그램 → 관리 → 「자동 생성 지금 실행」.'); return 0; }
   const pend=isoTasksPending();
   if(!pend.length){ if(!silent)setBadge('만들 것이 없습니다',2000); return 0; }
   if(!silent&&!confirm('심사가 임박한 '+pend.length+'곳의 업무·ToDo를 만듭니다.\n\n'
@@ -7452,7 +7521,7 @@ function certTaskLabel(m){ return (m.certName||'인증')+' 갱신'; }
 function certTaskExists(certId){
   return {
     work:workItems.some(function(x){return x.certTaskId===certId;}),
-    todo:todos.some(function(x){return x.certTaskId===certId;})
+    todo:todos.some(function(x){return x.certTaskId===certId||x.dedupeKey==='cert:'+certId;})
   };
 }
 function certTasksPending(){
@@ -7460,6 +7529,7 @@ function certTasksPending(){
     const h=certTaskExists(x.c.id); return (!h.work&&!CRM_RETIRED.work)||!h.todo;});
 }
 async function createCertTasks(silent){
+  if(TODO_READONLY){ if(!silent)alert('인증 갱신 할 일은 할 일 쓰기 창구가 매일 아침 6시에 자동으로 만듭니다.\n바로 만들려면 할 일 프로그램 → 관리 → 「자동 생성 지금 실행」.'); return 0; }
   const pend=certTasksPending();
   if(!pend.length){ if(!silent)setBadge('만들 것이 없습니다',2000); return 0; }
   const nameOf=function(c){
@@ -9401,10 +9471,17 @@ async function moveBiznoData(oldBizno,newBizno,patch){
       await updateDoc(doc(db,'consulting_company',cc.id),{bizno:newBizno,updatedAt:Date.now()});
     }
 
-    // 5-1. 할 일(todos) FK 업데이트
+    // 5-1. 할 일(todos) FK 업데이트 — 할 일은 쓰기 창구만 쓴다(규칙 2단계) → 창구에 옮겨 달라고 요청
     const tds=todos.filter(t=>t.bizno===oldBizno);
-    for(const t of tds){
-      await updateDoc(doc(db,'todos',t.id),{bizno:newBizno,updatedAt:Date.now()});
+    if(tds.length){
+      if(TODO_READONLY){
+        const tok=await auth.currentUser.getIdToken();
+        const r=await fetch(TODO_API_URL+'/api/admin/rebizno',{method:'POST',headers:{authorization:'Bearer '+tok,'content-type':'application/json','x-sg-user':encodeURIComponent(getTodoMe()||'공동')},body:JSON.stringify({from:oldBizno,to:newBizno})});
+        const j=await r.json().catch(()=>({}));
+        if(!r.ok||j.ok===false)throw new Error('할 일 사업자번호 옮기기 실패: '+(j.error||r.status));
+      } else {
+        for(const t of tds){ await updateDoc(doc(db,'todos',t.id),{bizno:newBizno,updatedAt:Date.now()}); }
+      }
     }
 
     // 6. 기존 기업 문서 삭제 (연관 데이터 이동이 모두 끝난 뒤)
@@ -11525,6 +11602,7 @@ function gcalSyncAnnual(report,action){
 
 // ── ToDo 저장/삭제 시 자동 동기화 ──
 function gcalSyncTodo(todo,action){
+  if(TODO_READONLY)return Promise.resolve({ok:true,skipped:true});   // 10/8: 할 일은 캘린더로 보내지 않음(캘린더 = 약속만)
   if(action==='delete')return sendToGcal('delete','todo',{id:todo.id});
   // 음성(제미나이) 일정에서 온 할 일은 구글에 원래 일정이 있으므로 [ToDo]로 또 만들지 않는다
   var src=todo.source||((todos.find(function(x){return x.id===todo.id;})||{}).source);
@@ -12021,7 +12099,7 @@ onAuthStateChanged(auth,(u)=>{
 
 // ── GLOBAL EXPORTS ──
 Object.assign(window,{
-  crmSignIn,crmSignOut,
+  crmSignIn,crmSignOut,todoGoApp,todoGoRef,
   copyDriveScript,tvToggleMask,tvSetZoom,tvExit,
   navTo,manualSave,closeModal,
   downloadBackup,openRestorePicker,restoreBackupFile,
