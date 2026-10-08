@@ -1,5 +1,5 @@
 /**
- * SG CRM 드라이브 연결 — 업체 폴더·업체카드·사업자등록증 읽기 + 음성 「할일」 자동 옮기기 (v6, 2026-10)
+ * SG CRM 드라이브 연결 — 업체 폴더·업체카드·사업자등록증 읽기 + 음성 「할일」 자동 옮기기 (v7, 2026-10)
  *
  * 하는 일: 드라이브 「관리 업체 List」의 업체 폴더 목록과 업체카드 내용을 CRM 기업등록 화면에 넘겨준다.
  *         드라이브는 읽기만 한다(파일·폴더를 만들거나 고치거나 지우지 않는다).
@@ -38,6 +38,14 @@
  *   v5.2: 실행 로그를 console.log로(편집기 「실행 로그」 창에 확실히 보이게), voiceDiag 오류도 로그로.
  *   설치(1회): 코드 교체 → 저장 → 함수 선택에서 **setupVoiceTrigger** 실행 → 권한 허용(캘린더·외부 요청)
  *             → 「배포 관리」에서 기존 배포를 **새 버전**으로 수정.
+ *
+ * v7 (2026-10-08) — 음성·채팅 할 일을 Firestore에 직접 쓰지 않고 **할 일 쓰기 창구**(sg-todo Worker)의 /api/ingest로 보낸다.
+ *   그래야 T-번호·작성자·변동 기록이 붙는다(TODO_ARCHITECTURE.md). 창구용 키가 필요하다:
+ *    ① 이 파일로 교체·저장 → 함수 선택에서 **makeIngestKey** 실행 → 실행 로그에 나온 키를 복사
+ *       (스크립트 속성 INGEST_KEY에 자동 저장됨. 이미 있으면 그 값을 다시 보여 줌)
+ *    ② Cloudflare → Workers → sg-todo → 설정 → 변수 및 비밀 → 추가: 키 INGEST_KEY, 값 = ①의 키, 「비밀」 체크 → 배포
+ *    ③ 함수 선택에서 **ingestCheck** 실행 → 「쓰기 창구 연결: HTTP 200」이면 성공
+ *    ④ 「배포 관리」에서 기존 배포를 **새 버전**으로 수정
  *
  * v6 (2026-10-07) — Firestore를 공개 API 키가 아니라 **이 스크립트를 실행하는 계정(sgceo)의 권한**으로 읽고 쓴다.
  *   CRM에 로그인을 붙이고 Firestore 규칙을 잠그면 API 키 방식은 막힌다(SECURITY_PLAN.md). 계정 토큰 요청은 규칙이 아니라
@@ -299,17 +307,34 @@ function listCompanies(){
 function voiceDocId(evId){
   return "voice_"+Utilities.computeDigest(Utilities.DigestAlgorithm.MD5,evId).map(function(b){return ("0"+(b&255).toString(16)).slice(-2);}).join("");
 }
+// v7: 쓰기 창구로 보낸다 — 같은 sourceRef는 창구가 한 번만 만든다(두 번 돌아도 한 건)
+var TODO_API="https://sg-todo.sgsolution.workers.dev";
+function ingestKey(){return PropertiesService.getScriptProperties().getProperty("INGEST_KEY")||"";}
 function writeTodo(evId,data){
-  var fields={};
-  Object.keys(data).forEach(function(k){
-    var v=data[k];
-    fields[k]=typeof v==="number"?{integerValue:String(v)}:{stringValue:String(v)};
-  });
-  var r=fsFetch(FS_BASE+"todos?documentId="+voiceDocId(evId),
-    {method:"post",contentType:"application/json",payload:JSON.stringify({fields:fields}),muteHttpExceptions:true});
+  var key=ingestKey();
+  if(!key)throw new Error("INGEST_KEY가 없습니다 — 함수 makeIngestKey를 먼저 실행하세요");
+  var body={text:data.text,source:data.source,sourceRef:data.sourceRef,author:data.createdBy,memo:data.memo||""};
+  if(data.dueDate)body.due=data.dueDate;
+  if(data.bizno)body.company=data.bizno;
+  var r=UrlFetchApp.fetch(TODO_API+"/api/ingest",{method:"post",contentType:"application/json",
+    headers:{"x-api-key":key},payload:JSON.stringify(body),muteHttpExceptions:true});
   var code=r.getResponseCode();
-  if(code===200||code===409)return true;           // 409 = 전에 이미 옮김
+  if(code===200)return true;                       // 새로 만들었거나(created) 이미 있음(duplicate)
   throw new Error("할 일 저장 실패 HTTP "+code+": "+r.getContentText().slice(0,200));
+}
+// 창구용 키 만들기 (처음 한 번) — 스크립트 속성 INGEST_KEY에 저장하고 실행 로그에 보여 준다
+function makeIngestKey(){
+  var p=PropertiesService.getScriptProperties();
+  var k=p.getProperty("INGEST_KEY");
+  if(!k){k=Utilities.getUuid().replace(/-/g,"")+Utilities.getUuid().replace(/-/g,"");p.setProperty("INGEST_KEY",k);}
+  console.log("INGEST_KEY (Cloudflare sg-todo 「비밀」에 같은 값으로 넣으세요): "+k);
+}
+// 창구 연결 확인 — 키가 맞으면 200 (빈 요청을 보내 「sourceRef가 필요합니다」 400이 오면 키는 통과한 것)
+function ingestCheck(){
+  var r=UrlFetchApp.fetch(TODO_API+"/api/ingest",{method:"post",contentType:"application/json",
+    headers:{"x-api-key":ingestKey()},payload:JSON.stringify({source:"voice"}),muteHttpExceptions:true});
+  var code=r.getResponseCode(),t=r.getContentText();
+  console.log("쓰기 창구 연결: "+(code===400&&/sourceRef/.test(t)?"HTTP 200 (키 통과)":"HTTP "+code+" "+t.slice(0,200)));
 }
 // 지난 30일 ~ 앞으로 180일 중 제목에 「할일」이 든 일정 → 할 일로 저장 → 저장이 확인된 것만 캘린더에서 삭제
 //   반복 일정은 시리즈 전체가 지워질 수 있어 건너뛴다. 지운 일정은 구글 캘린더 휴지통에서 되살릴 수 있다.

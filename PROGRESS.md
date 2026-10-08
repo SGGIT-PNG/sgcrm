@@ -718,6 +718,17 @@ ID 체계 통일(`e92e19b`) + 옛 일정 20건 삭제 + 24건 재등록 + 잔재
 
 ## 5. 세션 로그
 
+### 2026-10-08 (클라우드, 2) — 5단계: CRM 할 일 보기 전용 + 쓰기 창구로 일원화
+- **SGCRM(`index.html`)**: `TODO_READONLY=true` — 할 일 쓰기 13곳(빠른 입력·할 일 창·상태·미루기·끌어놓기·삭제·기업 연결 제안·잠재고객 할 일·업체카드 가져오기·cycleTodo)은
+  누르면 할 일 프로그램(`#T-0123`)을 연다. 할 일 화면 맨 위 안내 + 「할 일 프로그램 열기」, 줄마다 T-번호. 전체 현황에 **🔔 방금 바뀐 것**(activity 10건 실시간, 누르면 해당 할 일).
+  CRM이 화면 열 때 만들던 인증·ISO·연간신고 할 일 중지(쓰기 창구가 매일 06:00). 할 일 → 구글 캘린더 `[ToDo]` 전송 중지(D10).
+  사업자번호 변경의 할 일 옮기기 → 쓰기 창구 `/api/admin/rebizno`. 백업 복원에서 `todos` 제외. 대기 배너 판정에 `dedupeKey`도 인정.
+  되돌리기: `TODO_READONLY=false`(단 규칙 2단계 뒤엔 저장 거절).
+- **드라이브 스크립트 v7**: 음성·채팅 할 일 → 쓰기 창구 `/api/ingest`(X-Api-Key=INGEST_KEY). `makeIngestKey`·`ingestCheck` 추가.
+- **sg-todo**: `worker/src/auto.js`(자동 생성 + 휴지통 30일 정리, cron 매일 21:00 UTC), ingest에 `chat`, `rebizno`, 관리 탭 「자동 생성 미리보기·지금 실행」. 시험 22개.
+- 검증: SGCRM `verify.mjs` 통과(export 199). 가짜 Firebase 브라우저 시험 — 보기 전용 안내·버튼 숨김·T-번호·누르면 할 일 프로그램 열림·DB 쓰기 0·방금 바뀐 것 표시·콘솔 오류 0.
+- 남은 것(사장님): INGEST_KEY 설정(스크립트 → Cloudflare 비밀), 드라이브 스크립트 v7 배포, SGCRM main 반영, 확인 후 **규칙 2단계** 게시(`SECURITY_PLAN.md` §2-5).
+
 ### 2026-10-07 (클라우드, 3) — 실행 1단계: CRM 로그인 화면 + 드라이브 스크립트 v6 (규칙은 아직 그대로)
 - 사장님 콘솔 작업 완료: Authentication Google 사용 설정 · 승인된 도메인 `sggit-png.github.io` · 현재 규칙 캡처(`SECURITY_PLAN.md` §1-1, 4/20 게시 `if true`) · 백업.
 - **CRM 로그인(`index.html`)**: `firebase-auth` 추가, 첫 화면 `#auth-gate`(구글 로그인 팝업). 허용 메일 `CRM_ALLOWED_EMAILS=['sgceo@sgsolutionss.com']`(공용 계정)일 때만

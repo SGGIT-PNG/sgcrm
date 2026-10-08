@@ -81,6 +81,29 @@ service cloud.firestore {
 | 에이전트·다른 앱 읽기 (`COMPANY_MASTER.md` §3 REST) | API 키 | 서비스 계정 또는 OAuth |
 | 채팅(sg-todo) | 캘린더 경유 | 영향 없음 |
 
+### 2-5. 규칙 2단계 (할 일은 쓰기 창구만) — 5단계 확인 뒤 게시
+할 일(`todos`)·변동 기록(`activity`)·번호 카운터(`app_state/todo_seq`)는 화면에서 직접 못 쓰게 막는다. 쓰기 창구는 서비스 계정이라 규칙과 무관하게 통과.
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function staff() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email in ['sgceo@sgsolutionss.com'];
+    }
+    // 최상위 컬렉션: 읽기는 두 대표, 쓰기는 할 일 관련만 빼고 두 대표
+    match /{col}/{id} {
+      allow read: if staff();
+      allow write: if staff()
+        && !(col in ['todos', 'activity'])
+        && !(col == 'app_state' && id == 'todo_seq');
+    }
+  }
+}
+```
+⚠️ 1단계 규칙의 `match /{document=**} { allow read, write: if staff(); }`를 **지우고** 위로 바꾼다(남겨 두면 차단이 무력화).
+
 ## 3. 순서 (제안)
 1. 사장님: Firebase 콘솔에서 Google 로그인 켜기, 현재 규칙 캡처(되돌리기용).
 2. CRM 로그인 화면 + 드라이브 스크립트 v6(OAuth) 만들기 → 잠그기 **전에** 둘 다 배포해 동작 확인.
