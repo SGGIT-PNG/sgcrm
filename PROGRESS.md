@@ -737,6 +737,12 @@ ID 체계 통일(`e92e19b`) + 옛 일정 20건 삭제 + 24건 재등록 + 잔재
 - 2단계 준비(10/8): **Cloudflare 계정**(sgceo, 사무실 인터넷에선 가입이 막혀 휴대폰 데이터로 가입) · workers.dev 하위 도메인 **`sgsolution`** → 창구 주소 예정 `https://sg-todo.sgsolution.workers.dev`.
   **서비스 계정 `sg-todo-api@sg-crm-f9adc.iam.gserviceaccount.com`**(역할: Cloud Datastore 사용자) + JSON 키 1개(사장님 PC 보관, 채팅·저장소에 올리지 않음).
   조직 정책 `iam.disableServiceAccountKeyCreation` 때문에 sgceo에 「조직 정책 관리자」 부여 → sg-crm-f9adc에서만 잠시 끄고 키 생성 → **다시 상위 정책 상속으로 복구.**
+- **쓰기 창구 가동(10/8)**: 새 저장소 **`SGGIT-PNG/sg-todo`**(공개, 사장님이 생성 — Claude 앱은 저장소 생성 권한 없음). `worker/` = Cloudflare Worker
+  (번호 T-0123·상태 규칙·반복·휴지통·`activity` 변동 기록·Firebase 로그인 토큰 확인·작성자 X-SG-User, 모의 시험 15개).
+  Cloudflare Workers Builds ↔ GitHub 연결(Cloudflare 앱은 sg-todo만 허용, 경로 `/worker`, main push → 자동 배포). Secret `GCP_SA_KEY` 등록.
+  ✅ `https://sg-todo.sgsolution.workers.dev/health?check=firestore` → **연결됨**. (이 작업 환경에선 workers.dev 접속이 막혀 사장님 브라우저로 확인)
+  참고: 사장님 PC McAfee 웹 보호가 gitlab.com 등을 막음 — Cloudflare 사무실 가입 실패 원인일 수 있음.
+- 다음: 2-4 기존 할 일 번호 붙이기(미리보기 → 확인 → 적용), 할 일 웹 화면.
 - 결정(10/8, 권장대로): 업체·기한 **선택** 입력 / 쓰기 창구 **Cloudflare Workers** / 채팅 작성자는 **Claude 프로젝트 사람별** / 할 일 캘린더 `[ToDo]` 전송 **중단**(할 일 프로그램 전환 때). `TODO_ARCHITECTURE.md` §9 결정 열.
 
 ### 2026-10-07 (클라우드, 2) — 독립 할 일 프로그램 설계 초안 (`TODO_ARCHITECTURE.md`, 코드 수정 없음)
