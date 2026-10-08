@@ -731,7 +731,9 @@ ID 체계 통일(`e92e19b`) + 옛 일정 20건 삭제 + 24건 재등록 + 잔재
 - 메모: 음성 할 일 트리거 10분 간격은 그대로(나중에 5분으로 바꿀 수 있음 — `setupVoiceTrigger`의 `everyMinutes(10)`). 드라이브 연결 주소·비밀 문구는 기기별 저장 → 규칙 잠금 후 app_state로 옮길 것.
 - 2026-10-08: 휴대폰 로그인 ✅. 승인된 도메인에 `iso-one.web.app` 추가 ✅. iso-one 로그인 지시문을 iso-one 개발 세션(클라우드 「iso-one web program deployment」)에 전달
   (그 세션에 9/27 「올려줘」 대기 수정본이 남아 있어 먼저 확인하게 함). **메인이노는 아직 미확정 → 실제 사용 전에 같은 로그인 처리 필요(SGCRM `companies` 읽기).**
-- 남은 1단계: iso-one 로그인 완료·배포 확인 → 규칙 게시.
+- 2026-10-08: iso-one CRM 연결 로그인 배포(iso-one 세션, 9/27 Claude API 수정 함께) → 사장님 CRM 연결 ✅.
+  **Firestore 규칙 게시(1단계 잠금)** — sgceo 로그인만 읽기·쓰기. 로그인 없이 읽기 403 확인(키 없이·공개 키 모두), 드라이브 `fsCheck` 200 ✅. (`SECURITY_PLAN.md` §1-2)
+  잠금 후 CRM(읽기·저장)·iso-one(CRM 연결 상태에서 심사 저장) 정상 ✅ → **실행 1단계 완료.** 다음: 2단계 쓰기 창구(Cloudflare 계정·서비스 계정 키).
 - 결정(10/8, 권장대로): 업체·기한 **선택** 입력 / 쓰기 창구 **Cloudflare Workers** / 채팅 작성자는 **Claude 프로젝트 사람별** / 할 일 캘린더 `[ToDo]` 전송 **중단**(할 일 프로그램 전환 때). `TODO_ARCHITECTURE.md` §9 결정 열.
 
 ### 2026-10-07 (클라우드, 2) — 독립 할 일 프로그램 설계 초안 (`TODO_ARCHITECTURE.md`, 코드 수정 없음)

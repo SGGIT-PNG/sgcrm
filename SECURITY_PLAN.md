@@ -1,4 +1,4 @@
-# Firestore 잠금 계획 (제안 — 아직 적용 안 함)
+# Firestore 잠금 계획 — **1단계 적용됨 (2026-10-08)**
 
 > 작성 2026-10-07 · 대상 Firebase 프로젝트 `sg-crm-f9adc`
 > 저장소에 `firestore.rules`가 없다. 규칙은 Firebase 콘솔에만 있다(콘솔 → Firestore → 규칙).
@@ -29,6 +29,13 @@ service cloud.firestore {
   }
 }
 ```
+
+## 1-2. 적용 결과 (2026-10-08)
+- 게시한 규칙: §2-2와 같은 형태, 허용 메일 `sgceo@sgsolutionss.com` 하나(`email_verified` 확인), 모든 문서 읽기·쓰기.
+- 로그인 없이 읽기 시험(Claude 작업 환경에서 REST): `companies`·`todos`·`iso_audits` 키 없이 **403**, 공개 API 키로도 **403** → 잠김 확인.
+- 잠금 후 정상 확인: 드라이브 스크립트 `fsCheck` **HTTP 200**(계정 권한), CRM 읽기·저장, iso-one 심사 저장(CRM 연결 로그인) — 모두 정상.
+- 되돌리기: 규칙 탭 이전 버전(2026-04-20 오후 8:45) 선택 → 게시, 또는 §1-1 원문 붙여 넣기.
+- 남은 것: 2단계 규칙(`todos`·`activity` 직접 쓰기 차단)은 할 일 쓰기 창구가 생긴 뒤 — `TODO_ARCHITECTURE.md` §4-2. 메인이노는 실사용 전 로그인 필요.
 
 ## 2. 막는 방법 (제안)
 
