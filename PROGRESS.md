@@ -742,7 +742,12 @@ ID 체계 통일(`e92e19b`) + 옛 일정 20건 삭제 + 24건 재등록 + 잔재
   Cloudflare Workers Builds ↔ GitHub 연결(Cloudflare 앱은 sg-todo만 허용, 경로 `/worker`, main push → 자동 배포). Secret `GCP_SA_KEY` 등록.
   ✅ `https://sg-todo.sgsolution.workers.dev/health?check=firestore` → **연결됨**. (이 작업 환경에선 workers.dev 접속이 막혀 사장님 브라우저로 확인)
   참고: 사장님 PC McAfee 웹 보호가 gitlab.com 등을 막음 — Cloudflare 사무실 가입 실패 원인일 수 있음.
-- 다음: 2-4 기존 할 일 번호 붙이기(미리보기 → 확인 → 적용), 할 일 웹 화면.
+- **할 일 웹 화면 가동(10/8)**: `sg-todo/index.html` → https://sggit-png.github.io/sg-todo/ (GitHub Pages, main/root).
+  sgceo 로그인 + 기기별 「나」 선택, 오늘·기업별·주간·완료·휴지통·관리, 빠른 입력, 방금 바뀐 것(activity). 읽기 = Firestore 실시간, 쓰기 = 쓰기 창구.
+  ✅ **기존 할 일 23건 번호 붙임 T-0001~T-0023** (관리 → 미리보기 → 적용, 사장님 실행). `app_state/todo_seq.last = 23`.
+- ⚠️ 아직 SGCRM 할 일 화면·자동 생성(인증 갱신·ISO·연간신고)·드라이브 스크립트가 `todos`에 **직접** 쓴다 → 그 할 일은 번호 없음.
+  관리 → 번호 붙이기를 다시 누르면 이어서 붙는다(여러 번 안전). 근본 해결은 5단계(CRM 통합제어 화면·자동 생성 이전·규칙 2단계).
+- 다음: 5단계 CRM 통합제어 화면(할 일 쓰기 제거 + 방금 바뀐 것) → 6단계 MCP 커넥터(Claude 창 추가·완료·수정·삭제·조회).
 - 결정(10/8, 권장대로): 업체·기한 **선택** 입력 / 쓰기 창구 **Cloudflare Workers** / 채팅 작성자는 **Claude 프로젝트 사람별** / 할 일 캘린더 `[ToDo]` 전송 **중단**(할 일 프로그램 전환 때). `TODO_ARCHITECTURE.md` §9 결정 열.
 
 ### 2026-10-07 (클라우드, 2) — 독립 할 일 프로그램 설계 초안 (`TODO_ARCHITECTURE.md`, 코드 수정 없음)
