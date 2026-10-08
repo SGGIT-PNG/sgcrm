@@ -734,6 +734,9 @@ ID 체계 통일(`e92e19b`) + 옛 일정 20건 삭제 + 24건 재등록 + 잔재
 - 2026-10-08: iso-one CRM 연결 로그인 배포(iso-one 세션, 9/27 Claude API 수정 함께) → 사장님 CRM 연결 ✅.
   **Firestore 규칙 게시(1단계 잠금)** — sgceo 로그인만 읽기·쓰기. 로그인 없이 읽기 403 확인(키 없이·공개 키 모두), 드라이브 `fsCheck` 200 ✅. (`SECURITY_PLAN.md` §1-2)
   잠금 후 CRM(읽기·저장)·iso-one(CRM 연결 상태에서 심사 저장) 정상 ✅ → **실행 1단계 완료.** 다음: 2단계 쓰기 창구(Cloudflare 계정·서비스 계정 키).
+- 2단계 준비(10/8): **Cloudflare 계정**(sgceo, 사무실 인터넷에선 가입이 막혀 휴대폰 데이터로 가입) · workers.dev 하위 도메인 **`sgsolution`** → 창구 주소 예정 `https://sg-todo.sgsolution.workers.dev`.
+  **서비스 계정 `sg-todo-api@sg-crm-f9adc.iam.gserviceaccount.com`**(역할: Cloud Datastore 사용자) + JSON 키 1개(사장님 PC 보관, 채팅·저장소에 올리지 않음).
+  조직 정책 `iam.disableServiceAccountKeyCreation` 때문에 sgceo에 「조직 정책 관리자」 부여 → sg-crm-f9adc에서만 잠시 끄고 키 생성 → **다시 상위 정책 상속으로 복구.**
 - 결정(10/8, 권장대로): 업체·기한 **선택** 입력 / 쓰기 창구 **Cloudflare Workers** / 채팅 작성자는 **Claude 프로젝트 사람별** / 할 일 캘린더 `[ToDo]` 전송 **중단**(할 일 프로그램 전환 때). `TODO_ARCHITECTURE.md` §9 결정 열.
 
 ### 2026-10-07 (클라우드, 2) — 독립 할 일 프로그램 설계 초안 (`TODO_ARCHITECTURE.md`, 코드 수정 없음)
