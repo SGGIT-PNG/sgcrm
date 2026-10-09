@@ -2651,7 +2651,7 @@ async function loadAll(){
     consulting     = conSnap.docs.map(d=>({id:d.id,...d.data()}));
     consCompanies  = ccSnap.docs.map(d=>({id:d.id,...d.data()}));
     workItems      = wiSnap.docs.map(d=>({id:d.id,...d.data()}));
-    todos          = tSnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+    todos          = tSnap.docs.map(d=>({id:d.id,...d.data()})).filter(t=>!t.deletedAt).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
     certifications = certSnap.docs.map(d=>({id:d.id,...d.data()}));
     certMaster     = cmSnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.sortOrder||99)-(b.sortOrder||99));
     annualReports  = arSnap.docs.map(d=>({id:d.id,...d.data()}));
@@ -2746,7 +2746,7 @@ function startRealtimeSync(){
   onSnapshot(COL.consulting(),(s)=>{consulting=s.docs.map(d=>({id:d.id,...d.data()}));renderAll();updateCounts();});
   onSnapshot(COL.consulting_company(),(s)=>{consCompanies=s.docs.map(d=>({id:d.id,...d.data()}));renderAll();});
   onSnapshot(COL.work_items(),(s)=>{workItems=s.docs.map(d=>({id:d.id,...d.data()}));renderAll();updateCounts();});
-  onSnapshot(COL.todos(),(s)=>{todos=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));renderAll();updateCounts();
+  onSnapshot(COL.todos(),(s)=>{todos=s.docs.map(d=>({id:d.id,...d.data()})).filter(t=>!t.deletedAt).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));renderAll();updateCounts();
     const cm=document.getElementById('company-modal');if(cm&&cm.classList.contains('open'))renderCompanyTodos(document.getElementById('comp-edit-bizno').value);});
   onSnapshot(COL.categories(),(s)=>{applyCategories(s.docs.map(d=>({id:d.id,...d.data()})));renderAll();});
   onSnapshot(COL.certifications(),(s)=>{certifications=s.docs.map(d=>({id:d.id,...d.data()}));renderAll();updateCounts();});
@@ -4773,7 +4773,13 @@ function todoSource(t){return t.source||(t.certTaskId?'cert':t.isoAuditId?'iso':
 function todoTouched(t){return t.statusAt||t.createdAt||0;}
 // 할 일 하나 → {col, reason}
 function todoBucket(t){
-  if(t.status==='done')return {col:'done',reason:''};
+  if(t.status==='done'||t.status==='cancel')return {col:'done',reason:''};   // cancel = 할 일 프로그램의 「취소」
+  if(t.status==='waiting'){   // 할 일 프로그램의 「기다리는 중」 — CRM은 별도 칸 없이 해야 할 일에 표시
+    const dl=t.dueDate?todoDaysFrom(todoToday(),t.dueDate):null;
+    const what='기다리는 중'+(t.waitingFor?' · '+t.waitingFor:'');
+    if(dl!==null&&dl<0)return {col:'miss',reason:what+' · 확인일 '+(-dl)+'일 지남'};
+    return {col:'todo',reason:what+(dl!==null?' · 확인 D-'+dl:'')};
+  }
   const today=todoToday();
   const due=t.dueDate||'';
   const dleft=due?todoDaysFrom(today,due):null;

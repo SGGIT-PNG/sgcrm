@@ -81,7 +81,7 @@ service cloud.firestore {
 | 에이전트·다른 앱 읽기 (`COMPANY_MASTER.md` §3 REST) | API 키 | 서비스 계정 또는 OAuth |
 | 채팅(sg-todo) | 캘린더 경유 | 영향 없음 |
 
-### 2-5. 규칙 2단계 (할 일은 쓰기 창구만) — 5단계 확인 뒤 게시
+### 2-5. 규칙 2단계 (할 일은 쓰기 창구만) — ✅ 2026-10-09 게시, CRM·할 일 프로그램·iso-one 정상
 할 일(`todos`)·변동 기록(`activity`)·번호 카운터(`app_state/todo_seq`)는 화면에서 직접 못 쓰게 막는다. 쓰기 창구는 서비스 계정이라 규칙과 무관하게 통과.
 ```
 rules_version = '2';
