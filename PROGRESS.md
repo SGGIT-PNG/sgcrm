@@ -3,7 +3,7 @@
 > **PC와 노트북 두 대에서 번갈아 작업합니다.**
 > 작업 시작 전 `git pull` / 작업 종료 시 이 파일 갱신 → "올려줘" 지시 시 push.
 >
-> **최종 갱신: 2026-10-06**
+> **최종 갱신: 2026-10-09**
 
 ---
 
@@ -717,6 +717,14 @@ ID 체계 통일(`e92e19b`) + 옛 일정 20건 삭제 + 24건 재등록 + 잔재
 ---
 
 ## 5. 세션 로그
+
+### 2026-10-09 (클라우드, 3) — 6단계: Claude 커넥터(MCP) + sg-todo 스킬 교체
+- **sg-todo 쓰기 창구**(SGGIT-PNG/sg-todo PR #1, main `c297bd8`): `POST /mcp` 도구 9개(todo_add·complete·update·list·get·changes·delete·restore, company_find).
+  로그인 `/oauth/*`·`/.well-known/*` — Firebase 구글 로그인(허용 메일) → 서명 출입증 1시간·갱신증 90일. **KV·구글 OAuth 클라이언트 없음**,
+  서명 키는 `MCP_SECRET`(선택, 없으면 서비스 계정 키에서 만듦 — 값을 바꾸면 커넥터 전부 끊김). 쓰기 도구는 `author` 필수, 기록 `via:'mcp'`. 시험 27개.
+- ✅ 사장님: Firebase 승인된 도메인에 `sg-todo.sgsolution.workers.dev` 추가 → claude.ai 커스텀 커넥터 **「SG Todo-List」**(`https://sg-todo.sgsolution.workers.dev/mcp`) 연결 → 추가·수정·조회·완료·삭제 시험 정상.
+- ✅ **sg-todo 스킬 교체**: 캘린더 「할일」 일정 대신 커넥터 도구 사용(원본 `sg-todo/skills/sg-todo/SKILL.md`). claude.ai Skills에서 제거 후 재업로드, 시험 정상.
+- 남은 것: 7단계(드라이브 스크립트 「할일」 캘린더 이동 폐기 + 남은 `[ToDo]` 일정 목록 확인 후 정리), 사람별 Claude 프로젝트(D7) 만들기(원하시면), DRIVE_KEY 교체, 메인이노 로그인.
 
 ### 2026-10-08 (클라우드, 2) — 5단계: CRM 할 일 보기 전용 + 쓰기 창구로 일원화
 - **SGCRM(`index.html`)**: `TODO_READONLY=true` — 할 일 쓰기 13곳(빠른 입력·할 일 창·상태·미루기·끌어놓기·삭제·기업 연결 제안·잠재고객 할 일·업체카드 가져오기·cycleTodo)은
