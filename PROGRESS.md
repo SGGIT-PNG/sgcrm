@@ -727,7 +727,12 @@ ID 체계 통일(`e92e19b`) + 옛 일정 20건 삭제 + 24건 재등록 + 잔재
 - **드라이브 스크립트 v7**: 음성·채팅 할 일 → 쓰기 창구 `/api/ingest`(X-Api-Key=INGEST_KEY). `makeIngestKey`·`ingestCheck` 추가.
 - **sg-todo**: `worker/src/auto.js`(자동 생성 + 휴지통 30일 정리, cron 매일 21:00 UTC), ingest에 `chat`, `rebizno`, 관리 탭 「자동 생성 미리보기·지금 실행」. 시험 22개.
 - 검증: SGCRM `verify.mjs` 통과(export 199). 가짜 Firebase 브라우저 시험 — 보기 전용 안내·버튼 숨김·T-번호·누르면 할 일 프로그램 열림·DB 쓰기 0·방금 바뀐 것 표시·콘솔 오류 0.
-- 남은 것(사장님): INGEST_KEY 설정(스크립트 → Cloudflare 비밀), 드라이브 스크립트 v7 배포, SGCRM main 반영, 확인 후 **규칙 2단계** 게시(`SECURITY_PLAN.md` §2-5).
+- ✅ 10/8~9 마무리: SGCRM main 반영(PR #3). 드라이브 스크립트 v7 설치 — `makeIngestKey` → Cloudflare 비밀 `INGEST_KEY` → `ingestCheck` 「HTTP 200 (키 통과)」 → 새 버전 배포.
+  구글 Tasks 「v7 테스트」 → 쓰기 창구로 T-번호 달고 들어옴·방금 바뀐 것 기록 확인 후 삭제.
+- ✅ **Firestore 규칙 2단계 게시(10/9)** — `todos`·`activity`·`app_state/todo_seq`는 쓰기 창구(서비스 계정)만. CRM·할 일 프로그램·iso-one 정상 확인.
+- CRM 보완(10/9): 휴지통(deletedAt) 할 일 숨김, 새 상태 「기다리는 중」(해야 할 일 칸에 표시·확인일 지나면 놓친 일)·「취소」(완료처럼) 반영.
+- **다음: 6단계 MCP 커넥터** — 쓰기 창구에 `/mcp` + OAuth(구글 로그인) → claude.ai 커스텀 커넥터 → sg-todo 스킬을 도구 호출로 교체 → 캘린더 「할일」 경로 폐기.
+  남은 정리: 예전 `[ToDo]` 캘린더 일정 목록 확인 후 삭제(사장님 확인 필수), 메인이노 로그인(실사용 전).
 
 ### 2026-10-07 (클라우드, 3) — 실행 1단계: CRM 로그인 화면 + 드라이브 스크립트 v6 (규칙은 아직 그대로)
 - 사장님 콘솔 작업 완료: Authentication Google 사용 설정 · 승인된 도메인 `sggit-png.github.io` · 현재 규칙 캡처(`SECURITY_PLAN.md` §1-1, 4/20 게시 `if true`) · 백업.
