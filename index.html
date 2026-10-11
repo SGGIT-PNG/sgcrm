@@ -361,6 +361,7 @@ body.tvd-on{overflow:hidden;}
 .tvd-row .t{flex:1;min-width:0;font-size:var(--tfs);line-height:1.25;font-weight:700;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;word-break:keep-all;}
 .tvd-row .t small{font-size:calc(var(--tfs)*0.74);font-weight:400;color:#9aa7bf;}
 .tvd-row .tvd-pill{font-size:calc(var(--tfs)*0.74);}
+.tvd-idea{opacity:0.62;}
 .tvd-tag{display:inline-block;font-size:calc(var(--tfs)*0.6);font-weight:600;border-radius:999px;padding:0 14px;margin-left:12px;vertical-align:middle;background:rgba(255,255,255,0.08);color:#c3cde0;}
 .tvd-tag.red{background:rgba(255,59,48,0.22);color:#ff8f85;}
 .tvd-tag.amber{background:rgba(255,146,43,0.2);color:#ffb066;}
@@ -4098,6 +4099,7 @@ function collectGanttEvents(rs,re){
   // 4) ToDo (마감일 있는 건만, 상태 필터 공유)
   todos.forEach(t=>{
     if(!t.dueDate||!overlap(t.dueDate,t.dueDate))return;
+    if(t.status==='idea')return;   // 제안 업무의 날짜는 「제안 목표」라 일정에 넣지 않는다
     if(ganttFilter!=='all'&&t.status!==ganttFilter)return;
     evs.push({start:t.dueDate,end:t.dueDate,label:'✅ '+(t.text||''),type:'todo',color:(ST[t.status]&&ST[t.status].dot)||'#94A3B8',click:"openTodoModal('"+(t.status||'ing')+"','"+t.id+"')"});
   });
@@ -4856,6 +4858,7 @@ async function deleteConsulting(){
 // 2026-10-11 세 칸으로 바꿈 (sg-todo worker/src/core.js bucket과 같은 규칙):
 //   하고 있는 업무(시작일 ≤ 오늘, N일째) · 해야 할 업무(시작일 > 오늘, D-n) · 완료 업무
 //   긴급(★)·기다리는 중·마감은 칸이 아니라 꼬리표. 마감 지남·stallDays(14)일째 넘김은 빨간 표시(alert)
+//   + 제안 업무(status idea, col 'idea'): 업체가 맡기기 전 우리가 먼저 제안할 일. 시작일과 상관없이 제안 칸, 빨간 표시 없음
 const TODO_RULES_DEFAULT={stallDays:14,soonDays:3,horizonDays:30,leadDays:14};
 // ── 2026-10-08 5단계: 할 일은 독립 할 일 프로그램(sg-todo)이 쓴다. CRM은 보기만 (TODO_ARCHITECTURE.md) ──
 //   입력·완료·수정은 할 일 프로그램 또는 Claude 창에서. 자동 생성(인증 갱신·ISO·연간신고)은 쓰기 창구가 매일 06:00.
@@ -4894,6 +4897,12 @@ function todoStart(t){if(t.startDate)return t.startDate;if(t.createdAt){const d=
 function todoBucket(t){
   if(t.status==='done'||t.status==='cancel')return {col:'done',days:0,alert:false,tags:[],reason:t.status==='cancel'?'취소':''};   // cancel = 할 일 프로그램의 「취소」
   const today=todoToday(),start=todoStart(t),tags=[];
+  if(t.status==='idea'){   // 제안 업무 — 얼마나 묵었는지만, 압박(빨간 표시) 없음
+    let age=0;if(t.createdAt){const d=new Date(t.createdAt);age=todoDaysFrom(dateStr(d.getFullYear(),d.getMonth(),d.getDate()),today);}
+    if(t.priority==='high')tags.push({t:'긴급',tone:'red'});
+    if(t.dueDate)tags.push({t:'제안 목표 '+t.dueDate.slice(5).replace('-','/'),tone:'plain'});
+    return {col:'idea',days:age,alert:false,tags,reason:[age===0?'오늘 등록':'등록 '+age+'일 전'].concat(tags.map(x=>x.t)).join(' · ')};
+  }
   if(t.priority==='high')tags.push({t:'긴급',tone:'red'});
   if(t.status==='waiting')tags.push({t:'⏳ '+(t.waitingFor||'기다리는 중'),tone:'wait'});
   let alert=false;
@@ -4930,12 +4939,13 @@ function todoPassFilter(t){
 // 하고 있는 업무: 긴급 → 빨간 표시 → 마감 가까운 순 → 오래된 순 / 해야 할 업무: 시작일 가까운 순
 function todoSortIng(a,b){return ((b.priority==='high')-(a.priority==='high'))||((b._alert?1:0)-(a._alert?1:0))||(a.dueDate||'9999').localeCompare(b.dueDate||'9999')||((b._days||0)-(a._days||0))||((a.no||0)-(b.no||0));}
 function todoSortTodo(a,b){return (a._start||'').localeCompare(b._start||'')||((b.priority==='high')-(a.priority==='high'))||((a.no||0)-(b.no||0));}
+function todoSortIdea(a,b){return ((b.priority==='high')-(a.priority==='high'))||(a.dueDate||'9999').localeCompare(b.dueDate||'9999')||((b._days||0)-(a._days||0))||((a.no||0)-(b.no||0));}
 function todoGroups(){
-  const g={ing:[],todo:[],done:[],alert:0};
+  const g={ing:[],todo:[],idea:[],done:[],alert:0};
   todos.filter(todoPassFilter).forEach(t=>{const b=todoBucket(t);g[b.col].push(Object.assign({},t,{_reason:b.reason,_alert:b.alert,_days:b.days,_tags:b.tags,_start:todoStart(t)}));});
   if(!todoFilter.category&&(!todoFilter.source||todoFilter.source==='lead'))
     todoLeadItems().filter(l=>!todoFilter.bizno||l.bizno===todoFilter.bizno).forEach(l=>g.ing.push(Object.assign(l,{_alert:true,_days:l.days})));
-  g.ing.sort(todoSortIng);g.todo.sort(todoSortTodo);
+  g.ing.sort(todoSortIng);g.todo.sort(todoSortTodo);g.idea.sort(todoSortIdea);
   g.done.sort((a,b)=>(b.doneAt||b.updatedAt||0)-(a.doneAt||a.updatedAt||0));
   g.alert=g.ing.filter(t=>t._alert).length+g.todo.filter(t=>t._alert).length;
   return g;
@@ -4943,6 +4953,7 @@ function todoGroups(){
 const TODO_COLS=[
   {k:'ing',label:'하고 있는 업무',color:'#EA580C',bg:'#FFF7ED'},
   {k:'todo',label:'해야 할 업무',color:'#2563EB',bg:'#EFF6FF'},
+  {k:'idea',label:'제안 업무',color:'#0D9488',bg:'#F0FDFA'},
 ];
 const TODO_TONE={red:'background:#FEE2E2;color:#B91C1C',amber:'background:#FFF7ED;color:#C2410C',wait:'background:#F5F3FF;color:#6D28D9',plain:''};
 function todoTagChips(t){return (todoBucket(t).tags||[]).map(x=>'<span class="todo-chip" style="'+(TODO_TONE[x.tone]||'')+'">'+escAttr(x.t)+'</span>').join('');}
@@ -5065,20 +5076,21 @@ function tvdOpenTodo(t){return t&&t.status!=='done'&&t.status!=='cancel';}
 
 // ── 할 일 묶기: 세 칸 규칙(todoBucket) — 하고 있는 업무(긴급·빨간 표시 먼저) · 해야 할 업무(시작 가까운 순) ──
 function tvdTodoGroups(){
-  const g={ing:[],todo:[],urg:[],alert:0,doneToday:0};
+  const g={ing:[],todo:[],idea:[],urg:[],alert:0,doneToday:0};
   const today=tvdTodayStr();
   todos.forEach(t=>{
     if(!tvdOpenTodo(t)){if(t.status==='done'&&t.doneAt){const d=new Date(t.doneAt);if(dateStr(d.getFullYear(),d.getMonth(),d.getDate())===today)g.doneToday++;}return;}
     const b=todoBucket(t);const x=Object.assign({},t,{_reason:b.reason,_col:b.col,_alert:b.alert,_days:b.days,_tags:b.tags,_start:todoStart(t)});
-    g[b.col==='todo'?'todo':'ing'].push(x);
-    if(t.priority==='high')g.urg.push(x);
+    g[b.col==='todo'||b.col==='idea'?b.col:'ing'].push(x);
+    if(t.priority==='high'&&b.col!=='idea')g.urg.push(x);
     if(b.alert)g.alert++;
   });
-  g.ing.sort(todoSortIng);g.todo.sort(todoSortTodo);
+  g.ing.sort(todoSortIng);g.todo.sort(todoSortTodo);g.idea.sort(todoSortIdea);
   return g;
 }
 // 오른쪽 알약: 하고 있는 업무 = N일째, 해야 할 업무 = D-n
 function tvdDueTxt(t){
+  if(t._col==='idea')return '💡 제안';
   if(t._col==='todo')return t._days===1?'내일 시작':'D-'+t._days;
   return t._days===1?'오늘 시작':t._days+'일째';
 }
@@ -5135,6 +5147,7 @@ function tvdDlSub(it){
   const lab=todoNoLabel(t)||'할 일';
   if(t.status==='done')return {txt:lab+' 완료',warn:false};
   if(t.status==='cancel')return {txt:lab+' 취소',warn:false};
+  if(t.status==='idea')return {txt:'⚠ '+lab+' 아직 제안 단계',warn:true};
   const b=todoBucket(t);
   return {txt:lab+' '+(b.col==='todo'?(b.days===1?'내일 시작':'D-'+b.days+' 시작'):'하는 중 · '+(b.days===1?'오늘 시작':b.days+'일째')),warn:false};
 }
@@ -5206,7 +5219,7 @@ function tvdTodoHtml(g){
   const kpis='<div class="tvd-kpis">'
     +kp('★ 긴급',g.urg.length,'#ff3b30','#ffffff',g.urg.length?'background:linear-gradient(145deg,rgba(255,90,79,0.55),rgba(229,40,29,0.35));border-color:rgba(255,140,130,0.7);box-shadow:0 30px 60px rgba(0,0,0,0.45),0 0 80px rgba(255,59,48,0.35)':'')
     +kp('하고 있는 업무',g.ing.length,'#4dabf7','#74c0fc')+kp('해야 할 업무',g.todo.length,'#8f9bb3','#e6ebf3')
-    +kp('빨간 표시',g.alert,'#ff922b',g.alert?'#ffb066':'#8a95ad')+kp('오늘 완료',g.doneToday,'#51cf66','#8ce99a')+'</div>';
+    +kp('빨간 표시',g.alert,'#ff922b',g.alert?'#ffb066':'#8a95ad')+kp('💡 제안',g.idea.length,'#38d9a9','#96f2d7')+'</div>';
   // 개수를 자르지 않는다 — 넘치면 tvdFitList()가 글자를 줄이고, 그래도 넘치면 2단으로 나눈다
   const grp=(title,arr,c,tc)=>{
     if(!arr.length)return '';
@@ -5214,7 +5227,8 @@ function tvdTodoHtml(g){
       +arr.map(t=>{const urg=t.priority==='high';const pc=urg?'#ffffff':t._alert?'#ff8f85':tc;
         return '<div class="tvd-row'+(urg?' urg':'')+'"><div class="no">'+escAttr(todoNoLabel(t))+'</div><div class="t">'+(urg?'<span style="color:#ff6b5e">★ </span>':'')+tvdTodoName(t)+'</div><div class="tvd-pill" style="color:'+pc+(urg?';background:#ff3b30':t._alert?';background:rgba(255,59,48,0.22)':'')+'">'+escAttr(tvdDueTxt(t))+'</div></div>';}).join('');
   };
-  const list=grp('하고 있는 업무',g.ing,'#4dabf7','#74c0fc')+grp('해야 할 업무',g.todo,'#8f9bb3','#dee2e6');
+  const list=grp('하고 있는 업무',g.ing,'#4dabf7','#74c0fc')+grp('해야 할 업무',g.todo,'#8f9bb3','#dee2e6')
+    +(g.idea.length?'<div class="tvd-idea">'+grp('💡 제안 업무',g.idea,'#38d9a9','#96f2d7')+'</div>':'');   // 제안은 맨 아래 흐리게
   return '<div class="tvd-col">'+kpis+'<div class="tvd-glass tvd-list" id="tvd-list">'+(list||'<div class="tvd-empty">열린 할 일이 없습니다.</div>')+'</div></div>';
 }
 // 할 일 목록을 칸에 맞춘다: 글자 44→34px로 줄여 보고, 그래도 넘치면 2단으로 나눠 40→28px.
@@ -5426,8 +5440,8 @@ function todoRowHtml(t){
   const id=escAttr(t.id);
   const b=todoBucket(t);
   const done=t.status==='done';
-  const whyColor=b.alert?'#B91C1C':b.col==='todo'?'#1D4ED8':b.col==='done'?'#047857':'#C2410C';
-  const why=b.col==='done'?(t.status==='cancel'?'취소':t.doneAt?new Date(t.doneAt).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})+' 완료':'완료')
+  const whyColor=b.alert?'#B91C1C':b.col==='todo'?'#1D4ED8':b.col==='idea'?'#0F766E':b.col==='done'?'#047857':'#C2410C';
+  const why=b.col==='idea'?'💡 제안 · '+(b.days===0?'오늘 등록':'등록 '+b.days+'일 전'):b.col==='done'?(t.status==='cancel'?'취소':t.doneAt?new Date(t.doneAt).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})+' 완료':'완료')
     :b.col==='todo'?(b.days===1?'내일 시작':'D-'+b.days+' · '+todoStart(t).slice(5).replace('-','/')+' 시작'):(b.days===1?'오늘 시작':b.days+'일째');
   const chips=(b.col==='done'?'':todoTagChips(t))
     +(todoSource(t)!=='manual'?'<span class="todo-chip">'+escAttr(TODO_SRC[todoSource(t)]||'')+'</span>':'');
@@ -5438,8 +5452,8 @@ function todoRowHtml(t){
     +(t.bizno?'<button class="tdl-co" data-b="'+escAttr(t.bizno)+'" onclick="openCompanyModal(this.dataset.b)">'+escAttr(tvMask(t.companyName||t.bizno))+'</button>':'<span class="tdl-co tdl-none">기업 없음</span>')
     +'<div class="tdl-why" style="color:'+whyColor+'">'+escAttr(why)+'</div>'
     +'<div class="tdl-act">'+(done?'':
-      (b.col==='todo'?'<button class="btn btn-ghost btn-sm todo-btn" data-id="'+id+'" onclick="todoSetStatus(this.dataset.id,\'ing\')">지금 시작</button>':'')
-      +'<button class="btn btn-ghost btn-sm todo-btn" data-id="'+id+'" onclick="todoPostpone(this.dataset.id)">미루기</button>')
+      (b.col==='todo'||b.col==='idea'?'<button class="btn btn-ghost btn-sm todo-btn" data-id="'+id+'" onclick="todoSetStatus(this.dataset.id,\'ing\')">지금 시작</button>':'')
+      +(b.col==='idea'?'':'<button class="btn btn-ghost btn-sm todo-btn" data-id="'+id+'" onclick="todoPostpone(this.dataset.id)">미루기</button>'))
       +'<button class="tdl-x" data-id="'+id+'" onclick="deleteTodoItem(this.dataset.id)" aria-label="삭제" title="삭제">×</button></div>'
   +'</div>';
 }
@@ -5454,15 +5468,16 @@ function todoTodayHtml(g){
   const doneRecent=g.done.filter(t=>(t.doneAt||t.updatedAt||t.createdAt||0)>=weekAgo);
   return todoSectionHtml('하고 있는 업무','시작일이 온 일 · 며칠째인지 · 긴급(★)·빨간 표시 먼저','#9A3412','#FFF7ED',g.ing,'하고 있는 업무가 없습니다')
     +todoSectionHtml('해야 할 업무','시작일이 아직 · 그날이 되면 위로 올라감','#1E40AF','#EFF6FF',g.todo,'없음')
+    +(g.idea.length?todoSectionHtml('💡 제안 업무','업체가 맡기기 전, 우리가 먼저 제안할 일','#0F766E','#F0FDFA',g.idea,''):'')
     +'<button class="tdl-fold" onclick="todoToggleLater()">'+(todoLaterOpen?'▾':'▸')+' 완료 업무 (최근 7일) '+doneRecent.length+'건</button>'
     +(todoLaterOpen&&doneRecent.length?todoSectionHtml('완료 업무','최근 7일','#065F46','#ECFDF5',doneRecent,''):'');
 }
 // 기업별: 열린 할 일을 기업으로 묶고, 상태가 나쁜 기업이 위로
 function todoCompanyHtml(g){
   const map=new Map();
-  const add=(key,name,t,col)=>{if(!map.has(key))map.set(key,{key,name,items:[],miss:0,ing:0,due:'',last:0});const r=map.get(key);r.items.push(t);if(t._alert)r.miss++;if(col==='ing')r.ing++;
+  const add=(key,name,t,col)=>{if(!map.has(key))map.set(key,{key,name,items:[],miss:0,ing:0,idea:0,due:'',last:0});const r=map.get(key);r.items.push(t);if(t._alert)r.miss++;if(col==='ing')r.ing++;if(col==='idea'){r.idea++;return;}
     if(t.dueDate&&(!r.due||t.dueDate<r.due))r.due=t.dueDate;r.last=Math.max(r.last,todoTouched(t)||0);};
-  ['ing','todo'].forEach(col=>g[col].forEach(t=>{
+  ['ing','todo','idea'].forEach(col=>g[col].forEach(t=>{
     if(t.lead)add(t.bizno,t.companyName,t,col);
     else if(t.bizno)add(t.bizno,t.companyName||t.bizno,t,col);
     else add('',' 기업 연결 없음',t,col);
@@ -5471,14 +5486,14 @@ function todoCompanyHtml(g){
   if(!rows.length)return '<div class="tdl-empty" style="background:var(--surface);border:1px solid var(--border);border-radius:12px">열린 할 일이 없습니다</div>';
   return '<div class="tdl-cotable"><div class="tdl-co-hd"><div>기업</div><div>상태</div><div>열린 할 일</div><div style="text-align:right">가장 가까운 마감</div></div>'
     +rows.map(r=>{
-      const st=r.miss?['빨간 표시 '+r.miss,'#991B1B','#FEE2E2']:r.ing?['하고 있음','#9A3412','#FFEDD5']:['해야 할 업무','#1E40AF','#DBEAFE'];
+      const st=r.miss?['빨간 표시 '+r.miss,'#991B1B','#FEE2E2']:r.ing?['하고 있음','#9A3412','#FFEDD5']:r.idea===r.items.length?['💡 제안만','#0F766E','#CCFBF1']:['해야 할 업무','#1E40AF','#DBEAFE'];
       const days=r.last?Math.floor((Date.now()-r.last)/86400000):null;
       return '<div class="tdl-co-row'+(r.key===''?' tdl-co-none':'')+'">'
         +'<div>'+(r.key?'<button class="tdl-link" style="font-weight:700;font-size:15px" data-b="'+escAttr(r.key)+'" onclick="openCompanyModal(this.dataset.b)">'+escAttr(tvMask(r.name))+'</button>':'<b style="color:var(--text2)">기업 연결 없음</b>')
           +'<div class="tdl-memo">'+(r.key?(days!==null?'마지막 손댄 날 '+days+'일 전':''):'「🔗 기업 연결 제안」으로 정리')+'</div></div>'
         +'<div><span class="todo-chip" style="background:'+st[2]+';color:'+st[1]+';font-weight:700">'+st[0]+'</span></div>'
         +'<div style="display:grid;gap:4px">'+r.items.map(t=>t.lead?'<div>후속 연락 <span style="color:#B91C1C;font-size:12px;font-weight:700">· 잠재고객 '+t.days+'일 무소식</span></div>'
-          :'<div><button class="tdl-link" data-id="'+escAttr(t.id)+'" onclick="openTodoModal(null,this.dataset.id)">'+escAttr(todoText(t))+'</button>'
+          :'<div>'+(t.status==='idea'?'<span style="color:#0F766E">💡 </span>':'')+'<button class="tdl-link" data-id="'+escAttr(t.id)+'" onclick="openTodoModal(null,this.dataset.id)">'+escAttr(todoText(t))+'</button>'
             +(t._reason?' <span style="color:'+(t._alert?'#B91C1C':'var(--text3)')+';font-size:12px;font-weight:700">· '+escAttr(t._reason)+'</span>':'')+'</div>').join('')+'</div>'
         +'<div style="text-align:right;font-size:13px;color:'+(r.due?(r.due<todoToday()?'#B91C1C':'var(--text2)'):'#92400E')+'">'+(r.due?r.due.slice(5).replace('-','/'):'날짜 없음')+'</div>'
       +'</div>';
@@ -5544,9 +5559,9 @@ function todoVoiceInput(){
 // 휴대폰 화면 (H)
 function todoMobileHtml(g){
   const b=todoBriefData(g);
-  const list=[].concat(g.ing.map(t=>['ing',t]),g.todo.map(t=>['todo',t]));
+  const list=[].concat(g.ing.map(t=>['ing',t]),g.todo.map(t=>['todo',t]),g.idea.map(t=>['idea',t]));
   let last='';
-  const head={ing:['하고 있는 업무','#9A3412'],todo:['해야 할 업무','#1E40AF']};
+  const head={ing:['하고 있는 업무','#9A3412'],todo:['해야 할 업무','#1E40AF'],idea:['💡 제안 업무','#0F766E']};
   return '<div class="tdl-m-stats">'
       +'<div style="background:#FFF7ED"><span>하고 있는 업무</span><b style="color:#C2410C">'+g.ing.length+'</b></div>'
       +'<div style="background:#EFF6FF"><span>해야 할 업무</span><b style="color:#1D4ED8">'+g.todo.length+'</b></div>'
@@ -5571,14 +5586,14 @@ function renderTodo(sfx){
   const grid=document.getElementById('todo-grid'+s);if(!grid)return;
   const g=todoGroups();
   const cnt=document.getElementById('ov-todo-cnt');
-  if(cnt)cnt.textContent='하고 있는 '+g.ing.length+' · 해야 할 '+g.todo.length+(g.alert?' · 빨간 표시 '+g.alert:'');
+  if(cnt)cnt.textContent='하고 있는 '+g.ing.length+' · 해야 할 '+g.todo.length+(g.idea.length?' · 제안 '+g.idea.length:'')+(g.alert?' · 빨간 표시 '+g.alert:'');
   if(!sfx){
     // 대시보드: 할 일 화면과 같은 모양 — 접힌 브리핑 + 하고 있는 업무 상위 6줄 + 곧 시작할 업무 3줄
     grid.className=TODO_READONLY?'todo-ro':'';
     grid.innerHTML=todoBriefHtml(g)
       +todoSectionHtml('하고 있는 업무','긴급(★)·빨간 표시 먼저','#9A3412','#FFF7ED',g.ing.slice(0,6),'하고 있는 업무가 없습니다')
       +(g.todo.length?todoSectionHtml('해야 할 업무','곧 시작하는 순','#1E40AF','#EFF6FF',g.todo.slice(0,3),''):'')
-      +'<button class="tdl-fold" onclick="navTo(\'todo\')">할 일 전체 보기 (하고 있는 '+g.ing.length+' · 해야 할 '+g.todo.length+') →</button>';
+      +'<button class="tdl-fold" onclick="navTo(\'todo\')">할 일 전체 보기 (하고 있는 '+g.ing.length+' · 해야 할 '+g.todo.length+' · 💡 제안 '+g.idea.length+') →</button>';
     return;
   }
   grid.className=TODO_READONLY?'todo-ro':'';
@@ -5813,20 +5828,21 @@ function renderCompanyTodos(bizno){
   el.classList.toggle('todo-ro',TODO_READONLY);
   const mine=todos.filter(t=>t.bizno===bizno);
   const open=mine.filter(t=>t.status!=='done'&&t.status!=='cancel').map(t=>{const b=todoBucket(t);return Object.assign({},t,{_reason:b.reason,_alert:b.alert,_days:b.days,_col:b.col,_start:todoStart(t)});});
-  open.sort((a,b)=>a._col===b._col?(a._col==='ing'?todoSortIng(a,b):todoSortTodo(a,b)):a._col==='ing'?-1:1);
+  const ord={ing:0,todo:1,idea:2};
+  open.sort((a,b)=>a._col===b._col?(a._col==='ing'?todoSortIng(a,b):a._col==='idea'?todoSortIdea(a,b):todoSortTodo(a,b)):ord[a._col]-ord[b._col]);
   const doneN=mine.length-open.length;
   const c=companies.find(x=>x._id===bizno);
   const bz=escAttr(bizno);
   let h='<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap">'
     +'<span style="font-size:13px;font-weight:600">✅ 이 기업의 할 일</span>'
-    +'<span style="font-size:12px;color:var(--text3)">하고 있는·해야 할 '+open.length+' · 완료 '+doneN+'</span>'
+    +'<span style="font-size:12px;color:var(--text3)">열린 일 '+open.length+(open.some(t=>t._col==='idea')?' (💡 제안 '+open.filter(t=>t._col==='idea').length+')':'')+' · 완료 '+doneN+'</span>'
     +'<span style="flex:1"></span>'
     +(c&&c.driveCardId?'<button class="btn btn-ghost btn-sm" data-b="'+bz+'" onclick="todoCardImport(this.dataset.b)" title="업체카드 「다음 할 일」 중 CRM에 없는 것을 보여 줍니다">📇 업체카드에서 가져오기</button>':'')
     +'<button class="btn btn-ghost btn-sm" data-b="'+bz+'" onclick="openTodoModal(\'wait\',null,this.dataset.b)">+ 할 일</button>'
     +'</div>';
   h+=open.length?'<div style="display:grid;gap:6px">'+open.map(t=>{
       return '<div style="display:flex;gap:8px;align-items:center;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px'+(t._alert?';border-left:3px solid #DC2626':'')+'">'
-        +'<span style="font-size:11px;color:'+(t._col==='ing'?'#C2410C':'#1D4ED8')+';flex-shrink:0">'+(t._col==='ing'?'하고 있음':'해야 할')+'</span>'
+        +'<span style="font-size:11px;color:'+(t._col==='ing'?'#C2410C':t._col==='idea'?'#0F766E':'#1D4ED8')+';flex-shrink:0">'+(t._col==='ing'?'하고 있음':t._col==='idea'?'💡 제안':'해야 할')+'</span>'
         +'<span style="flex:1;font-size:13px;cursor:pointer" data-id="'+escAttr(t.id)+'" onclick="openTodoModal(null,this.dataset.id)">'+escAttr(t.text)+'</span>'
         +(t._reason?'<span style="font-size:11px;color:'+(t._alert?'#DC2626':'var(--text3)')+';flex-shrink:0">'+escAttr(t._reason)+'</span>':'')
         +'<button class="btn btn-ghost btn-sm todo-btn" data-id="'+escAttr(t.id)+'" onclick="todoSetStatus(this.dataset.id,\'done\')">완료</button>'
