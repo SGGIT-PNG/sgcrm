@@ -321,6 +321,105 @@ body.tv-mode .tv-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;mar
 .tv-bar .tv-clock{font-family:'JetBrains Mono',monospace;font-size:18px;color:var(--text2);}
 .tv-bar button{border:1px solid var(--border2);background:var(--surface);border-radius:8px;padding:6px 12px;font-family:inherit;font-size:13px;cursor:pointer;}
 .tv-bar button.on{background:#1E3A8A;color:#fff;border-color:#1E3A8A;}
+/* ── 통합제어 TV 화면 (#tv) — 4096×2160 기준으로 그려 창 크기에 맞춰 통째로 확대·축소 ── */
+body.tvd-on{overflow:hidden;}
+.tvd{position:fixed;inset:0;z-index:9000;background:#0a1020;overflow:hidden;cursor:none;}
+.tvd.tvd-mouse{cursor:default;}
+.tvd-stage{position:absolute;left:0;top:0;width:4096px;height:2160px;transform-origin:0 0;box-sizing:border-box;color:#f3f6fb;font-family:'Noto Sans KR','Pretendard',sans-serif;
+  background:radial-gradient(2400px 1300px at 10% 0%,#23407a 0%,transparent 60%),radial-gradient(2000px 1200px at 100% 100%,#3a1f5c 0%,transparent 60%),#0a1020;
+  padding:56px 72px 0;display:flex;flex-direction:column;gap:36px;}
+.tvd-glass{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);border-radius:36px;box-shadow:0 34px 70px rgba(0,0,0,0.45),inset 0 1px 0 rgba(255,255,255,0.15);}
+.tvd-hd{display:flex;justify-content:space-between;align-items:center;}
+.tvd-logo{width:104px;height:104px;border-radius:32px;background:linear-gradient(145deg,#5fa8ff,#3b5bdb);box-shadow:0 16px 44px rgba(59,91,219,0.55),inset 0 2px 0 rgba(255,255,255,0.35);display:flex;align-items:center;justify-content:center;font-size:42px;font-weight:900;}
+.tvd-title{font-size:76px;font-weight:700;}
+.tvd-clockbox{display:flex;align-items:center;gap:40px;padding:14px 52px;border-radius:999px;}
+.tvd-date{font-size:46px;color:#c3cde0;}
+.tvd-clock{font-size:86px;font-weight:700;font-variant-numeric:tabular-nums;}
+.tvd-body{display:grid;grid-template-columns:minmax(0,1.42fr) minmax(0,1.05fr) minmax(0,0.72fr);gap:36px;flex:1;min-height:0;}
+.tvd-col{display:flex;flex-direction:column;gap:30px;min-height:0;}
+.tvd-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:22px;}
+.tvd-kpi{border-radius:30px;padding:14px 26px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+.tvd-kpi .l{display:flex;align-items:center;gap:12px;font-size:34px;color:#c3cde0;white-space:nowrap;}
+.tvd-kpi .n{font-size:86px;font-weight:900;line-height:1.05;font-variant-numeric:tabular-nums;}
+.tvd-dot{width:18px;height:18px;border-radius:6px;flex-shrink:0;}
+.tvd-urg{background:linear-gradient(120deg,rgba(255,59,48,0.32),rgba(255,59,48,0.10) 60%,rgba(255,255,255,0.04));border:1px solid rgba(255,120,110,0.55);border-radius:36px;padding:26px 38px;box-shadow:0 34px 70px rgba(0,0,0,0.45),0 0 120px rgba(255,59,48,0.2),inset 0 1px 0 rgba(255,255,255,0.18);}
+.tvd-urg-hd{display:flex;align-items:center;gap:16px;font-size:48px;font-weight:900;color:#ffb3ad;}
+.tvd-urow{display:flex;align-items:center;gap:26px;background:rgba(10,16,32,0.55);border:1px solid rgba(255,255,255,0.1);border-radius:26px;padding:18px 30px;margin-top:12px;}
+.tvd-urow .t{font-size:50px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tvd-sub{font-size:32px;color:#c3cde0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tvd-pill{font-weight:700;border-radius:999px;padding:6px 20px;white-space:nowrap;background:rgba(0,0,0,0.25);font-size:32px;}
+.tvd-due-red{font-size:40px;font-weight:900;color:#fff;background:#ff3b30;border-radius:18px;padding:8px 24px;box-shadow:0 10px 26px rgba(255,59,48,0.45);white-space:nowrap;}
+.tvd-list{position:relative;--tfs:44px;padding:18px 38px 22px;flex:1;min-height:0;overflow:hidden;column-fill:auto;}
+.tvd-list.cols2{column-count:2;column-gap:48px;column-rule:1px solid rgba(255,255,255,0.10);}
+.tvd-list.cols2 .tvd-row{padding-left:0;}
+.tvd-grp{break-inside:avoid-column;}
+.tvd-grp-hd{display:flex;align-items:baseline;gap:18px;padding:calc(var(--tfs)*0.32) 0 6px;font-size:calc(var(--tfs)*0.92);font-weight:700;break-after:avoid;}
+.tvd-grp-hd .c{font-size:calc(var(--tfs)*0.82);color:#9aa7bf;font-weight:400;}
+.tvd-row{display:flex;align-items:center;gap:22px;padding:calc(var(--tfs)*0.22) 0 calc(var(--tfs)*0.22) 36px;border-top:1px solid rgba(255,255,255,0.08);break-inside:avoid;}
+.tvd-row.urg{background:linear-gradient(90deg,rgba(255,59,48,0.22),rgba(255,59,48,0.04));border-radius:18px;border-top-color:transparent;margin-top:6px;padding-left:22px;padding-right:12px;box-shadow:inset 0 0 0 1px rgba(255,120,110,0.45);}
+.tvd-row .no{font-size:calc(var(--tfs)*0.64);color:#9aa7bf;width:calc(var(--tfs)*2.7);flex-shrink:0;}
+.tvd-row .t{flex:1;min-width:0;font-size:var(--tfs);line-height:1.25;font-weight:700;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;word-break:keep-all;}
+.tvd-row .t small{font-size:calc(var(--tfs)*0.74);font-weight:400;color:#9aa7bf;}
+.tvd-row .tvd-pill{font-size:calc(var(--tfs)*0.74);}
+.tvd-more{padding:10px 0 0 36px;font-size:30px;color:#ffb066;}
+.tvd-empty{font-size:36px;color:#9aa7bf;padding:16px 0;}
+.tvd-cal{padding:28px 32px 32px;display:flex;flex-direction:column;gap:16px;min-height:0;}
+.tvd-sec{font-size:50px;font-weight:700;}
+.tvd-legend{display:flex;gap:28px;font-size:30px;color:#c3cde0;}
+.tvd-wk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;font-size:30px;text-align:center;color:#c3cde0;}
+.tvd-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;flex:1;min-height:0;}
+.tvd-day{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:20px;padding:12px 14px;display:flex;flex-direction:column;gap:7px;overflow:hidden;min-height:0;}
+.tvd-day .d{font-size:36px;font-weight:700;color:#e6ebf3;}
+.tvd-day.off .d{color:#8a95ad;}
+.tvd-day.out{background:rgba(255,255,255,0.02);opacity:.75;}
+.tvd-day.out .d{color:#5d6880;}
+.tvd-day.past{opacity:.5;}
+.tvd-day.today{background:linear-gradient(160deg,rgba(95,168,255,0.38),rgba(59,91,219,0.18));border-color:rgba(160,200,255,0.75);box-shadow:0 0 40px rgba(95,168,255,0.4);opacity:1;}
+.tvd-day.today .d{color:#fff;}
+.tvd-ev{font-size:26px;line-height:1.25;color:#fff;border-radius:10px;padding:4px 10px;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;word-break:keep-all;flex-shrink:0;}
+.tvd-ev.meet{background:rgba(77,171,247,0.45);} .tvd-ev.todo{background:rgba(250,176,5,0.42);} .tvd-ev.iso{background:rgba(151,117,250,0.5);} .tvd-ev.gov{background:rgba(64,192,87,0.42);}
+.tvd-ev-more{font-size:24px;color:#c3cde0;padding-left:6px;}
+.tvd-dl{background:linear-gradient(160deg,rgba(196,181,253,0.16),rgba(255,255,255,0.05));border-color:rgba(196,181,253,0.35);padding:26px 32px;display:flex;flex-direction:column;gap:6px;min-height:0;overflow:hidden;}
+.tvd-dlrow{display:flex;align-items:center;gap:20px;padding:12px 0;border-top:1px solid rgba(255,255,255,0.1);}
+.tvd-dd{font-size:36px;font-weight:900;border-radius:16px;width:150px;text-align:center;padding:6px 0;flex-shrink:0;}
+.tvd-dd.red{color:#fff;background:#ff3b30;box-shadow:0 8px 20px rgba(255,59,48,0.45);}
+.tvd-dd.amb{color:#1a1300;background:#ffd43b;}
+.tvd-dd.gry{color:#e6ebf3;background:rgba(255,255,255,0.12);}
+.tvd-dlrow .t{font-size:36px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tvd-dlrow .s{font-size:27px;color:#c3cde0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tvd-dlrow .s.warn{color:#ffb066;}
+.tvd-st{padding:26px 32px;display:flex;flex-direction:column;gap:22px;flex:1;min-height:0;}
+.tvd-donut{width:220px;height:220px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 20px 50px rgba(255,59,48,0.22);}
+.tvd-donut>div{width:152px;height:152px;border-radius:50%;background:#121a2e;box-shadow:inset 0 8px 20px rgba(0,0,0,0.6);display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.tvd-bars{flex:1;display:flex;align-items:flex-end;gap:10px;min-height:160px;}
+.tvd-bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;justify-content:flex-end;}
+.tvd-bar .v{font-size:26px;font-weight:700;color:#c3cde0;}
+.tvd-bar .b{width:100%;border-radius:12px 12px 4px 4px;background:linear-gradient(180deg,rgba(255,255,255,0.32),rgba(255,255,255,0.12));min-height:4px;}
+.tvd-bar.now .v{color:#9fd0ff;} .tvd-bar.now .b{background:linear-gradient(180deg,#74c0fc,#3b5bdb);box-shadow:0 0 22px rgba(95,168,255,0.55);}
+.tvd-bar .m{font-size:24px;color:#9aa7bf;}
+.tvd-tick{display:flex;align-items:center;gap:30px;height:110px;margin:0 -72px;padding:0 72px;background:rgba(255,255,255,0.06);border-top:1px solid rgba(255,255,255,0.14);flex-shrink:0;}
+.tvd-tick .k{font-size:34px;font-weight:700;color:#fff;background:linear-gradient(145deg,#5fa8ff,#3b5bdb);border-radius:999px;padding:8px 26px;white-space:nowrap;}
+.tvd-tick .v{font-size:40px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#e6ebf3;}
+.tvd-exit{position:absolute;right:24px;top:24px;z-index:3;font:600 16px 'Noto Sans KR',sans-serif;color:#fff;background:rgba(0,0,0,0.55);border:1px solid rgba(255,255,255,0.3);border-radius:10px;padding:10px 16px;cursor:pointer;opacity:0;transition:opacity .3s;}
+.tvd.tvd-mouse .tvd-exit{opacity:1;}
+.tvd-veil{position:absolute;inset:0;background:rgba(6,10,22,0.55);backdrop-filter:blur(10px);}
+.tvd-pop{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:1860px;box-sizing:border-box;border-radius:56px;padding:80px 104px 70px;display:flex;flex-direction:column;gap:38px;
+  background:linear-gradient(150deg,rgba(255,90,79,0.38) 0%,rgba(40,30,70,0.72) 55%,rgba(18,26,46,0.85) 100%);border:1px solid rgba(255,150,140,0.65);box-shadow:0 80px 160px rgba(0,0,0,0.7),0 0 220px rgba(255,59,48,0.35),inset 0 1px 0 rgba(255,255,255,0.3);}
+.tvd-pop.amb{background:linear-gradient(150deg,rgba(255,212,59,0.30) 0%,rgba(40,34,60,0.75) 55%,rgba(18,26,46,0.88) 100%);border-color:rgba(255,220,120,0.6);box-shadow:0 80px 160px rgba(0,0,0,0.7),0 0 220px rgba(255,212,59,0.25),inset 0 1px 0 rgba(255,255,255,0.3);}
+.tvd-pop.blue{background:linear-gradient(150deg,rgba(95,168,255,0.34) 0%,rgba(36,40,80,0.75) 55%,rgba(18,26,46,0.88) 100%);border-color:rgba(160,200,255,0.6);box-shadow:0 80px 160px rgba(0,0,0,0.7),0 0 220px rgba(95,168,255,0.3),inset 0 1px 0 rgba(255,255,255,0.3);}
+.tvd-pop .kind{font-size:52px;font-weight:700;color:#ffe3e0;}
+.tvd-pop .big{font-size:300px;font-weight:900;line-height:.9;color:#fff;text-shadow:0 0 80px rgba(255,90,79,0.8);}
+.tvd-pop .nm{font-size:92px;font-weight:900;line-height:1.15;}
+.tvd-pop .what{font-size:64px;font-weight:700;color:#e6ebf3;}
+.tvd-cells{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:26px;}
+.tvd-cell{background:rgba(10,16,32,0.5);border:1px solid rgba(255,255,255,0.16);border-radius:32px;padding:26px 34px;}
+.tvd-cell .l{font-size:34px;color:#c3cde0;} .tvd-cell .v{font-size:56px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tvd-pop .foot{display:flex;justify-content:space-between;align-items:center;gap:30px;border-top:1px solid rgba(255,255,255,0.16);padding-top:32px;font-size:40px;color:#e6ebf3;}
+.tvd-prog{width:320px;height:14px;background:rgba(255,255,255,0.14);border-radius:999px;overflow:hidden;flex-shrink:0;}
+.tvd-prog>div{height:100%;background:linear-gradient(90deg,#74c0fc,#3b5bdb);animation:tvdProg linear forwards;}
+@keyframes tvdProg{from{width:100%}to{width:0}}
+.tvd-sum{display:flex;flex-direction:column;gap:14px;}
+.tvd-sum div{font-size:48px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 /* 2026-10-06 CRM 축소 — 지원사업·업무 화면은 숨김(데이터는 Firestore에 그대로) */
 .sg-retired{display:none!important;}
 /* 할 일 화면 (오늘·기업별·주간) */
@@ -613,6 +712,11 @@ body.tv-mode .tv-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;mar
 <body>
 
 <!-- 로그인 화면 (로그인 전에는 CRM을 가린다) -->
+<!-- 통합제어 TV 화면 (#tv) — tvdOpen()이 채운다 -->
+<div id="tvd" class="tvd" hidden>
+  <div id="tvd-stage" class="tvd-stage"></div>
+  <button type="button" class="tvd-exit" onclick="tvdExit()">CRM으로 나가기 (Esc)</button>
+</div>
 <div id="auth-gate" style="position:fixed;inset:0;z-index:99999;background:var(--navy,#1B2B4B);display:flex;align-items:center;justify-content:center;padding:16px">
   <div style="background:#FFF;border-radius:14px;padding:28px 24px;width:100%;max-width:360px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.3)">
     <div style="font-size:20px;font-weight:700;color:#1B2B4B">SG솔루션</div>
@@ -2733,6 +2837,7 @@ function actAgo(ms){
   return new Date(ms).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'});
 }
 function renderOvActivity(){
+  if(tvdOn){const tv=document.getElementById('tvd-tickv');if(tv)tv.innerHTML=tvdTickText();}
   const el=document.getElementById('ov-activity');if(!el)return;
   el.innerHTML=ovActs.length?ovActs.map(a=>'<div class="ov-act" data-ref="'+escAttr(a.ref||'')+'" onclick="todoGoRef(this.dataset.ref)"><time>'+actAgo(a.at)+'</time><span>'+escAttr(tvMask(a.summary||''))+'</span></div>').join('')
     :'<div style="padding:12px 14px;color:var(--text4);font-size:13px">아직 기록이 없습니다.</div>';
@@ -3225,7 +3330,7 @@ function renderPage(p){
   else if(p==='companies'){renderCompaniesPage();}
   else if(p==='matching'){renderMatchingPage();}
 }
-function renderAll(){renderPage(currentPage);}
+function renderAll(){renderPage(currentPage);if(tvdOn)renderTvd();}
 function updateCounts(){
   const g=document.getElementById('sb-gantt-cnt');if(g){g.textContent=consulting.length;g.style.display=CRM_RETIRED.cons?'none':'';}
   const t=document.getElementById('sb-todo-cnt');if(t)t.textContent=todoGroups().miss.length;   // 놓치고 있는 일 수
@@ -4927,10 +5032,315 @@ function setTvMode(on){
     tvClockTimer=setInterval(tvTick,15000);
   }
 }
-// 주소 끝(#todo, #tv)으로 화면 열기
+// ── 통합제어 TV 화면 (index.html#tv) ──────────────────────────────────────────
+//   사무실 TV(4096×2160)에 띄우는 한 화면: 할 일 · 이번 달 달력 · 기한 알림 · 통계 · 방금 바뀐 것 + 기한 경고창.
+//   4096×2160 기준으로 그린 뒤 창 크기에 맞춰 통째로 확대·축소한다(배율·해상도가 달라도 꽉 차게).
+//   ⚠️ 보기 전용: Firestore·app_state에 아무것도 쓰지 않는다. 경고창을 「이미 띄움」 기억만 이 기기 localStorage에 둔다.
+//   예전 「할 일만 보이는 TV 모드」는 index.html#todo-tv 로 남겨 둔다.
+const TVD_W=4096,TVD_H=2160;
+const TVD_SEEN_KEY='sgcrm_tvd_seen';
+const TVD_POP_MS=30000;                       // 경고창이 떠 있는 시간
+const TVD_WORK={from:9,to:18};                 // 경고창은 평일 이 시간에만
+let tvdOn=false,tvdTimers=[],tvdWake=null,tvdOpenedAt=0,tvdMouseTimer=null;
+let tvdPopQ=[],tvdPopCur=null,tvdPopTimer=null,tvdUrgBase=null;
+const TVD_ST={wait:'시작 안 함',ing:'하는 중',waiting:'기다리는 중',done:'완료',cancel:'취소'};
+
+function tvdEsc(s){return escAttr(tvMask(String(s==null?'':s)));}
+function tvdTodayStr(){return todoToday();}
+function tvdDays(ds){return todoDaysFrom(tvdTodayStr(),ds);}
+function tvdMD(ds){return ds?(+ds.slice(5,7))+'/'+(+ds.slice(8,10)):'';}
+function tvdCoName(bz,fallback){const c=bz?companies.find(x=>x._id===bz):null;return String((c&&c.name)||fallback||'').replace(/주식회사\s*|\(주\)\s*|㈜\s*/g,'').trim();}
+function tvdOpenTodo(t){return t&&t.status!=='done'&&t.status!=='cancel';}
+
+// ── 할 일 묶기: 긴급(★중요) 먼저, 나머지는 놓친 일·하는 중·기다리는 중·해야 할 일 ──
+function tvdTodoGroups(){
+  const g={urg:[],miss:[],ing:[],waiting:[],todo:[]};
+  todos.filter(tvdOpenTodo).forEach(t=>{
+    const b=todoBucket(t);const x=Object.assign({},t,{_reason:b.reason,_col:b.col});
+    if(t.priority==='high')g.urg.push(x);
+    else if(b.col==='miss')g.miss.push(x);
+    else if(t.status==='waiting')g.waiting.push(x);
+    else if(b.col==='ing')g.ing.push(x);
+    else g.todo.push(x);
+  });
+  const byDue=(a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999');
+  Object.keys(g).forEach(k=>g[k].sort(byDue));
+  return g;
+}
+function tvdDueTxt(t){
+  if(t._col==='miss')return t._reason||'놓침';
+  if(t.status==='waiting')return t.dueDate?'확인 '+tvdMD(t.dueDate):'기다리는 중';
+  if(!t.dueDate)return '마감 없음';
+  const d=tvdDays(t.dueDate);return d===0?'오늘':(d>0&&d<=7?'D-'+d:tvdMD(t.dueDate));
+}
+function tvdTodoName(t){return escAttr(todoText(t))+(t.bizno||t.companyName?' <small>· '+tvdEsc(tvdCoName(t.bizno,t.companyName))+'</small>':'');}
+
+// ── 기한 알림: 인증 만료(ISO 제외) · ISO 차기심사(iso-one) · 연간신고 ──
+function tvdLinkedTodo(kind,item){
+  return todos.find(t=>{
+    if(kind==='cert')return t.dedupeKey==='cert:'+item.id||(t.source==='cert'&&t.sourceRef===item.id)||t.certTaskId===item.id;
+    if(kind==='annual')return t.dedupeKey==='annual:'+item.ref||(t.source==='annual'&&t.sourceRef===item.ref);
+    if(kind==='iso')return item.bizno&&t.bizno===item.bizno&&todoSource(t)==='iso'&&(t.dueDate||'')>=addDaysStr(item.date,-120);
+    return false;
+  })||null;
+}
+function tvdDeadlines(){
+  const out=[];const lo=-30,hi=150;
+  const isoBiz=new Set((isoAudits||[]).map(a=>a.bizno).filter(Boolean));
+  certifications.forEach(c=>{
+    if(!c||!c.expDate||c.status==='완료'||c.status==='제외')return;
+    const m=getCertMasterInfo(c.certMasterId);
+    if(m.reportType==='annual')return;
+    if(isIsoStdMaster(m)&&isoBiz.has(c.bizno))return;           // ISO는 iso-one 기준(아래)
+    const dd=tvdDays(c.expDate);if(dd<lo||dd>hi)return;
+    const it={kind:'cert',id:c.id,bizno:c.bizno,date:c.expDate,dd,
+      name:tvdCoName(c.bizno,c.companyName),what:(m.certName||c.certName||'인증')+(c.cycleType==='complex'?' '+(c.currentPhase||'심사'):' 만료'),
+      label:c.cycleType==='complex'?'인증 심사':'인증 만료'};
+    it.todo=tvdLinkedTodo('cert',it);out.push(it);
+  });
+  isoCalTargets().forEach(t=>{
+    if(!t.dueDate)return;const dd=tvdDays(t.dueDate);if(dd<lo||dd>hi)return;
+    const it={kind:'iso',id:t.id,bizno:t.bizno,date:t.dueDate,dd,name:String(t.companyName||'').replace(/주식회사\s*|\(주\)\s*|㈜\s*/g,'').trim(),what:t.certName||'ISO 심사',label:'ISO 심사'};
+    it.todo=tvdLinkedTodo('iso',it);out.push(it);
+  });
+  annualReports.forEach(r=>{
+    if(r.status==='done'||!r.dueDate)return;const dd=tvdDays(r.dueDate);if(dd<lo||dd>hi)return;
+    const cert=certifications.find(c=>c.id===r.certId);const m=cert?getCertMasterInfo(cert.certMasterId):{certName:'연구소'};
+    const it={kind:'annual',id:r.id,ref:(r.certId||'')+':'+r.year,bizno:r.bizno,date:r.dueDate,dd,name:tvdCoName(r.bizno,r.companyName),what:(m.certName||'연구소')+' '+(r.year||'')+'년 연간신고',label:'연간신고'};
+    it.todo=tvdLinkedTodo('annual',it);out.push(it);
+  });
+  return out.sort((a,b)=>a.dd-b.dd);
+}
+function tvdDdTxt(dd){return dd===0?'D-day':dd>0?'D-'+dd:'D+'+(-dd);}
+function tvdDdCls(dd){return dd<=7?'red':dd<=30?'amb':'gry';}
+function tvdHandled(it){return !!(it.todo&&['ing','waiting','done'].includes(it.todo.status));}
+function tvdDlSub(it){
+  const t=it.todo;
+  if(!t)return {txt:'⚠ 연결된 할 일 없음',warn:true};
+  const lab=todoNoLabel(t)||'할 일';
+  if(t.status==='wait')return {txt:'⚠ '+lab+' 아직 시작 안 함',warn:true};
+  return {txt:lab+' '+(TVD_ST[t.status]||''),warn:false};
+}
+
+// ── 달력: 이번 달(월요일 시작) — 간트 캘린더와 같은 일정 모음(collectGanttEvents)을 쓴다 ──
+function tvdEvClass(type){return type==='gcal'?'meet':type==='todo'?'todo':type==='cons'?'gov':'iso';}
+function tvdMonthRange(){
+  const now=new Date();const y=now.getFullYear(),m=now.getMonth();
+  const first=new Date(y,m,1);const off=(first.getDay()+6)%7;
+  const start=new Date(y,m,1-off);
+  const days=new Date(y,m+1,0).getDate();const weeks=Math.ceil((off+days)/7);
+  const end=new Date(start.getFullYear(),start.getMonth(),start.getDate()+weeks*7-1);
+  return {y,m,start,end,weeks,rs:todoDayStr(start),re:todoDayStr(end)};
+}
+let tvdCalLoadedAt=0;
+async function tvdLoadCal(force){
+  const r=tvdMonthRange();const key=r.rs+'~'+r.re;
+  if(!force&&gcalExternal.key===key&&Date.now()-tvdCalLoadedAt<30*60000)return;
+  if(gcalExternal.loading)return;
+  gcalExternal.key='';tvdCalLoadedAt=Date.now();
+  try{await loadGcalExternal(r.rs,r.re);}catch(e){console.warn('[TV] 구글 일정 조회 실패:',e.message);}
+  if(tvdOn)renderTvd();
+}
+function tvdCalHtml(){
+  const r=tvdMonthRange();const today=tvdTodayStr();
+  const gf=ganttFilter;ganttFilter='all';
+  let evs=[];try{evs=collectGanttEvents(r.rs,r.re);}finally{ganttFilter=gf;}
+  let cells='';
+  for(let i=0;i<r.weeks*7;i++){
+    const d=new Date(r.start.getFullYear(),r.start.getMonth(),r.start.getDate()+i);
+    const ds=todoDayStr(d);const inM=d.getMonth()===r.m;const dow=i%7;
+    const mine=evs.filter(e=>e.start<=ds&&(e.end||e.start)>=ds);
+    const cls=['tvd-day',dow>=5?'off':'',inM?'':'out',ds===today?'today':(inM&&ds<today?'past':'')].filter(Boolean).join(' ');
+    const max=r.weeks>5?2:3;
+    cells+='<div class="'+cls+'"><div class="d">'+(inM?d.getDate():(d.getMonth()+1)+'/'+d.getDate())+'</div>'
+      +mine.slice(0,max).map(e=>'<div class="tvd-ev '+tvdEvClass(e.type)+'">'+tvdEsc(String(e.label||'').replace(/^[^\w가-힣\[(]+\s*/,'').replace(/^\[[^\]]*\]\s*/,''))+'</div>').join('')
+      +(mine.length>max?'<div class="tvd-ev-more">+'+(mine.length-max)+'건</div>':'')+'</div>';
+  }
+  return '<div class="tvd-glass tvd-cal">'
+    +'<div style="display:flex;justify-content:space-between;align-items:baseline"><div class="tvd-sec">'+(r.m+1)+'월 일정</div>'
+    +'<div class="tvd-legend"><div><span style="color:#74c0fc">●</span> 구글 일정</div><div><span style="color:#ffd43b">●</span> 할 일 마감</div><div><span style="color:#c4b5fd">●</span> ISO·인증·신고</div></div></div>'
+    +'<div class="tvd-wk">'+['월','화','수','목','금','토','일'].map((w,i)=>'<div style="'+(i>=5?'color:#8a95ad':'')+'">'+w+'</div>').join('')+'</div>'
+    +'<div class="tvd-grid" style="grid-template-rows:repeat('+r.weeks+',minmax(0,1fr))">'+cells+'</div></div>';
+}
+
+// ── 통계: 열린 일 상태 비율 · 이번 달 완료 · 월별 완료(12개월) ──
+function tvdStatsHtml(g){
+  const parts=[['#ff3b30',g.urg.length],['#ff922b',g.miss.length],['#4dabf7',g.ing.length],['#b197fc',g.waiting.length],['#8f9bb3',g.todo.length]];
+  const total=parts.reduce((a,p)=>a+p[1],0);
+  let acc=0;const stops=total?parts.filter(p=>p[1]).map(p=>{const a=acc;acc+=p[1]/total*100;return p[0]+' '+a.toFixed(1)+'% '+acc.toFixed(1)+'%';}).join(','):'rgba(255,255,255,0.12) 0 100%';
+  const now=new Date();const months=[];
+  for(let i=11;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({y:d.getFullYear(),m:d.getMonth(),v:0});}
+  todos.forEach(t=>{if(t.status!=='done'||!t.doneAt)return;const d=new Date(t.doneAt);const mm=months.find(x=>x.y===d.getFullYear()&&x.m===d.getMonth());if(mm)mm.v++;});
+  const max=Math.max(1,...months.map(x=>x.v));const thisM=months[11].v;
+  return '<div class="tvd-glass tvd-st"><div class="tvd-sec" style="font-size:44px">통계</div>'
+    +'<div style="display:flex;align-items:center;gap:30px">'
+      +'<div class="tvd-donut" style="background:conic-gradient('+stops+')"><div><div style="font-size:64px;font-weight:900;line-height:1">'+total+'</div><div style="font-size:24px;color:#c3cde0">열린 일</div></div></div>'
+      +'<div><div style="font-size:30px;color:#c3cde0">이번 달 완료</div><div style="font-size:100px;font-weight:900;line-height:1">'+thisM+'<span style="font-size:36px;color:#c3cde0"> 건</span></div></div>'
+    +'</div>'
+    +'<div style="flex:1;display:flex;flex-direction:column;min-height:0"><div style="font-size:30px;color:#c3cde0;margin-bottom:12px">월별 완료 (최근 12개월)</div>'
+    +'<div class="tvd-bars">'+months.map((x,i)=>'<div class="tvd-bar'+(i===11?' now':'')+'"><div class="v">'+x.v+'</div><div class="b" style="height:'+Math.round(x.v/max*80)+'%"></div><div class="m">'+(x.m+1)+'월</div></div>').join('')+'</div></div>'
+  +'</div>';
+}
+
+// ── 화면 전체 ──
+function tvdTodoHtml(g){
+  const kp=(lab,n,c,nc,extra)=>'<div class="tvd-glass tvd-kpi" style="'+(extra||'')+'"><div class="l"><span class="tvd-dot" style="background:'+c+';box-shadow:0 0 14px '+c+'"></span>'+lab+'</div><div class="n" style="color:'+nc+'">'+n+'</div></div>';
+  const kpis='<div class="tvd-kpis">'
+    +kp('★ 긴급',g.urg.length,'#ff3b30','#ffffff',g.urg.length?'background:linear-gradient(145deg,rgba(255,90,79,0.55),rgba(229,40,29,0.35));border-color:rgba(255,140,130,0.7);box-shadow:0 30px 60px rgba(0,0,0,0.45),0 0 80px rgba(255,59,48,0.35)':'')
+    +kp('놓친 일',g.miss.length,'#ff922b','#ffb066')+kp('하는 중',g.ing.length,'#4dabf7','#74c0fc')
+    +kp('기다림',g.waiting.length,'#b197fc','#c4b5fd')+kp('해야 할 일',g.todo.length,'#8f9bb3','#e6ebf3')+'</div>';
+  // 개수를 자르지 않는다 — 넘치면 tvdFitList()가 글자를 줄이고, 그래도 넘치면 2단으로 나눈다
+  const grp=(title,arr,c,tc,urg)=>{
+    if(!arr.length)return '';
+    return '<div class="tvd-grp-hd" style="color:'+tc+'"><span class="tvd-dot" style="background:'+c+';box-shadow:0 0 14px '+c+'"></span>'+title+'<span class="c">'+arr.length+'</span></div>'
+      +arr.map(t=>'<div class="tvd-row'+(urg?' urg':'')+'"><div class="no">'+escAttr(todoNoLabel(t))+'</div><div class="t">'+tvdTodoName(t)+'</div><div class="tvd-pill" style="color:'+(urg?'#ffffff':tc)+(urg?';background:#ff3b30':'')+'">'+escAttr(tvdDueTxt(t))+'</div></div>').join('');
+  };
+  const list=grp('★ 긴급',g.urg,'#ff3b30','#ffb3ad',true)+grp('놓친 일',g.miss,'#ff922b','#ffb066')+grp('하는 중',g.ing,'#4dabf7','#74c0fc')+grp('기다리는 중',g.waiting,'#b197fc','#c4b5fd')+grp('해야 할 일',g.todo,'#8f9bb3','#dee2e6');
+  return '<div class="tvd-col">'+kpis+'<div class="tvd-glass tvd-list" id="tvd-list">'+(list||'<div class="tvd-empty">열린 할 일이 없습니다.</div>')+'</div></div>';
+}
+// 할 일 목록을 칸에 맞춘다: 글자 44→34px로 줄여 보고, 그래도 넘치면 2단으로 나눠 40→28px.
+//   그래도 넘치면(할 일이 아주 많을 때) 맨 아래에 「일부만 보임」을 알린다.
+function tvdFitList(){
+  const el=document.getElementById('tvd-list');if(!el)return;
+  const over=()=>el.scrollHeight>el.clientHeight+2||el.scrollWidth>el.clientWidth+2;
+  const tryFit=(from,to)=>{for(let fs=from;fs>=to;fs-=2){el.style.setProperty('--tfs',fs+'px');if(!over())return true;}return false;};
+  el.classList.remove('cols2');
+  if(tryFit(44,34))return;
+  el.classList.add('cols2');
+  if(tryFit(40,28))return;
+  const rows=[...el.querySelectorAll('.tvd-row')];const box=el.getBoundingClientRect();
+  const hidden=rows.filter(r=>{const b=r.getBoundingClientRect();return b.bottom>box.bottom+1||b.right>box.right+1;}).length;
+  if(hidden)el.insertAdjacentHTML('beforeend','<div class="tvd-more" style="position:absolute;right:40px;bottom:14px;background:rgba(10,16,32,0.9);border-radius:12px;padding:6px 16px">'+hidden+'건 더 있음 — 할 일 프로그램에서 전체 보기</div>');
+}
+function tvdDlHtml(dls){
+  const rows=dls.slice(0,8).map(it=>{const s=tvdDlSub(it);
+    return '<div class="tvd-dlrow"><div class="tvd-dd '+tvdDdCls(it.dd)+'">'+tvdDdTxt(it.dd)+'</div><div style="flex:1;min-width:0"><div class="t">'+tvdEsc(it.name)+' '+escAttr(it.what)+'</div><div class="s'+(s.warn?' warn':'')+'">'+escAttr(tvdMD(it.date))+' · '+escAttr(s.txt)+'</div></div></div>';}).join('');
+  return '<div class="tvd-glass tvd-dl"><div class="tvd-sec" style="font-size:44px">기한 알림</div>'+(rows||'<div class="tvd-empty">150일 안에 다가오는 기한이 없습니다.</div>')+'</div>';
+}
+function tvdTickText(){
+  const txt=(ovActs||[]).slice(0,6).map(a=>{const d=new Date(a.at);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+' '+(a.summary||'');}).join('  ·  ');
+  return tvdEsc(txt||'아직 기록이 없습니다.');
+}
+function tvdTickHtml(){return '<div class="tvd-tick"><div class="k">방금 바뀐 것</div><div class="v" id="tvd-tickv">'+tvdTickText()+'</div></div>';}
+function tvdClockTxt(){const d=new Date();return {date:d.getFullYear()+'년 '+(d.getMonth()+1)+'월 '+d.getDate()+'일 '+['일','월','화','수','목','금','토'][d.getDay()]+'요일',time:String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')};}
+function renderTvd(){
+  const main=document.getElementById('tvd-main');if(!tvdOn||!main)return;
+  try{
+    const g=tvdTodoGroups();const dls=tvdDeadlines();const ck=tvdClockTxt();
+    main.innerHTML='<div class="tvd-hd"><div style="display:flex;align-items:center;gap:30px"><div class="tvd-logo">SG</div><div class="tvd-title">SG솔루션 통합 현황</div></div>'
+      +'<div class="tvd-glass tvd-clockbox"><div class="tvd-date" id="tvd-date">'+ck.date+'</div><div class="tvd-clock" id="tvd-clock">'+ck.time+'</div></div></div>'
+      +'<div class="tvd-body">'+tvdTodoHtml(g)+tvdCalHtml()+'<div class="tvd-col">'+tvdDlHtml(dls)+tvdStatsHtml(g)+'</div></div>'
+      +tvdTickHtml();
+    tvdFitList();
+    tvdCheckAlerts(g,dls);
+  }catch(e){console.error('[TV] 그리기 오류',e);main.innerHTML='<div style="font-size:60px;padding:80px">화면을 그리는 중 오류가 났습니다: '+escAttr(e.message)+'</div>';}
+}
+function tvdTick(){const ck=tvdClockTxt();const a=document.getElementById('tvd-clock'),b=document.getElementById('tvd-date');if(a)a.textContent=ck.time;if(b)b.textContent=ck.date;}
+function tvdFit(){
+  const st=document.getElementById('tvd-stage');if(!st)return;
+  const w=window.innerWidth,h=window.innerHeight,k=Math.min(w/TVD_W,h/TVD_H);
+  st.style.transform='translate('+Math.round((w-TVD_W*k)/2)+'px,'+Math.round((h-TVD_H*k)/2)+'px) scale('+k+')';
+}
+
+// ── 경고창 ── 기한이 D-30·D-7·D-1 구간에 처음 들어설 때(각 1번) · 기한이 지났을 때(오전·오후 1번씩) · 새 긴급 할 일 · 평일 아침 9시 요약
+//   연결된 할 일이 「하는 중·기다리는 중·완료」면 기한 경고창은 띄우지 않는다(처리하면 알림이 멈춤).
+function tvdSeen(){try{return JSON.parse(localStorage.getItem(TVD_SEEN_KEY)||'{}')||{};}catch(e){return {};}}
+function tvdMarkSeen(k){const m=tvdSeen();m[k]=Date.now();const cut=Date.now()-90*86400000;Object.keys(m).forEach(x=>{if(m[x]<cut)delete m[x];});try{localStorage.setItem(TVD_SEEN_KEY,JSON.stringify(m));}catch(e){}}
+function tvdWorkHours(){const d=new Date();const h=d.getHours();return d.getDay()>=1&&d.getDay()<=5&&h>=TVD_WORK.from&&h<TVD_WORK.to;}
+function tvdCheckAlerts(g,dls){
+  const urgIds=g.urg.map(t=>t.id);
+  if(tvdUrgBase===null){tvdUrgBase=new Set(urgIds);}       // 화면을 연 순간 이미 있던 긴급은 알리지 않는다
+  if(!tvdWorkHours())return;
+  const seen=tvdSeen();const queued=new Set(tvdPopQ.map(p=>p.key).concat(tvdPopCur?[tvdPopCur.key]:[]));
+  const add=p=>{if(!seen[p.key]&&!queued.has(p.key)){tvdPopQ.push(p);queued.add(p.key);}};
+  const today=tvdTodayStr();
+  if(new Date().getHours()>=TVD_WORK.from)add({key:'am|'+today,type:'sum',dls,g,pri:0});
+  g.urg.forEach(t=>{if(!tvdUrgBase.has(t.id))add({key:'urg|'+t.id,type:'urg',t,pri:1});});
+  dls.forEach(it=>{
+    if(tvdHandled(it))return;
+    let stage=null;
+    if(it.dd<0)stage='over|'+today+'|'+(new Date().getHours()<13?'am':'pm');
+    else if(it.dd<=1)stage='1';else if(it.dd<=7)stage='7';else if(it.dd<=30)stage='30';
+    if(stage)add({key:'dl|'+it.kind+'|'+it.id+'|'+it.date+'|'+stage,type:'dl',it,pri:2+Math.max(it.dd,-1)});
+  });
+  tvdPopQ.sort((a,b)=>a.pri-b.pri);
+  if(!tvdPopCur)tvdNextPop();
+}
+function tvdPopHtml(p){
+  const foot=(msg)=>'<div class="foot"><div>'+msg+'</div><div style="display:flex;align-items:center;gap:20px;flex-shrink:0"><span style="color:#c3cde0">'+Math.round(TVD_POP_MS/1000)+'초 뒤 닫힘</span><div class="tvd-prog"><div style="animation-duration:'+TVD_POP_MS+'ms"></div></div></div></div>';
+  if(p.type==='sum'){
+    const near=p.dls.filter(it=>it.dd<=7).slice(0,6);
+    return '<div class="tvd-pop blue"><div class="kind">좋은 아침입니다 — 오늘 · 이번 주 요약</div>'
+      +'<div class="tvd-cells"><div class="tvd-cell"><div class="l">긴급</div><div class="v" style="color:#ffb3ad">'+p.g.urg.length+'건</div></div><div class="tvd-cell"><div class="l">놓친 일</div><div class="v" style="color:#ffb066">'+p.g.miss.length+'건</div></div><div class="tvd-cell"><div class="l">7일 안 기한</div><div class="v">'+near.length+'건</div></div></div>'
+      +'<div class="tvd-sum">'+(near.length?near.map(it=>'<div><b>'+tvdDdTxt(it.dd)+'</b> · '+tvdEsc(it.name)+' '+escAttr(it.what)+'</div>').join(''):'<div>이번 주에 다가오는 기한은 없습니다.</div>')+'</div>'
+      +foot('오늘도 놓친 일부터 정리해 주세요.')+'</div>';
+  }
+  if(p.type==='urg'){
+    const t=p.t;
+    return '<div class="tvd-pop"><div class="kind">★ 새 긴급 할 일</div>'
+      +'<div class="nm">'+escAttr(todoText(t))+'</div><div class="what">'+tvdEsc(tvdCoName(t.bizno,t.companyName)||'기업 없음')+'</div>'
+      +'<div class="tvd-cells"><div class="tvd-cell"><div class="l">번호</div><div class="v">'+escAttr(todoNoLabel(t)||'—')+'</div></div><div class="tvd-cell"><div class="l">마감</div><div class="v">'+escAttr(t.dueDate?tvdMD(t.dueDate)+' ('+tvdDueTxt(Object.assign({},t,{_col:''}))+')':'마감 없음')+'</div></div><div class="tvd-cell"><div class="l">넣은 사람</div><div class="v">'+escAttr(t.createdBy||t.updatedBy||'—')+'</div></div></div>'
+      +foot('긴급 표시를 풀거나 완료하면 목록에서 내려갑니다.')+'</div>';
+  }
+  const it=p.it;const s=tvdDlSub(it);const cls=it.dd<=7?'':'amb';
+  const kind=it.dd<0?it.label+' 기한이 지났습니다':it.label+' '+(it.dd===0?'오늘':it.dd+'일 전');
+  return '<div class="tvd-pop '+cls+'"><div class="kind">⚠ '+escAttr(kind)+'</div>'
+    +'<div style="display:flex;align-items:flex-end;gap:56px"><div class="big">'+tvdDdTxt(it.dd)+'</div><div style="padding-bottom:20px;min-width:0"><div class="nm">'+tvdEsc(it.name||'미상')+'</div><div class="what">'+escAttr(it.what)+'</div></div></div>'
+    +'<div class="tvd-cells"><div class="tvd-cell"><div class="l">기한</div><div class="v">'+escAttr(tvdMD(it.date))+' ('+['일','월','화','수','목','금','토'][new Date(it.date).getDay()]+')</div></div>'
+    +'<div class="tvd-cell" style="'+(s.warn?'border-color:rgba(255,170,90,0.6)':'')+'"><div class="l">연결된 할 일</div><div class="v" style="'+(s.warn?'color:#ffb066':'')+'">'+escAttr(s.txt.replace(/^⚠\s*/,''))+'</div></div>'
+    +'<div class="tvd-cell"><div class="l">담당</div><div class="v">'+escAttr((it.todo&&(it.todo.assignee||it.todo.createdBy))||'—')+'</div></div></div>'
+    +foot('연결된 할 일을 「하는 중」이나 「완료」로 바꾸면 다시 뜨지 않습니다.')+'</div>';
+}
+function tvdNextPop(){
+  const wrap=document.getElementById('tvd-popwrap');if(!wrap)return;
+  clearTimeout(tvdPopTimer);
+  tvdPopCur=tvdPopQ.shift()||null;
+  if(!tvdPopCur){wrap.innerHTML='';return;}
+  tvdMarkSeen(tvdPopCur.key);
+  wrap.innerHTML='<div class="tvd-veil"></div>'+tvdPopHtml(tvdPopCur);
+  tvdPopTimer=setTimeout(tvdNextPop,TVD_POP_MS);
+}
+
+// ── 열기·닫기 ──
+async function tvdWakeLock(){try{if(navigator.wakeLock&&document.visibilityState==='visible')tvdWake=await navigator.wakeLock.request('screen');}catch(e){}}
+function tvdOnKey(e){if(!tvdOn)return;if(e.key==='Escape'){tvdExit();}else if(e.key==='m'||e.key==='M'){tvMasked=!tvMasked;try{localStorage.setItem(TV_LS.mask,tvMasked?'1':'0');}catch(x){}renderTvd();}else if(e.key===' '&&tvdPopCur){tvdNextPop();}}
+function tvdOnMouse(){const el=document.getElementById('tvd');if(!el)return;el.classList.add('tvd-mouse');clearTimeout(tvdMouseTimer);tvdMouseTimer=setTimeout(()=>el.classList.remove('tvd-mouse'),3000);}
+function tvdOpen(){
+  const el=document.getElementById('tvd');if(!el)return;
+  if(tvMode)setTvMode(false);
+  tvdOn=true;tvMode=true;tvdOpenedAt=Date.now();tvdUrgBase=null;
+  el.hidden=false;document.body.classList.add('tvd-on');
+  document.getElementById('tvd-stage').innerHTML='<div id="tvd-main" style="display:contents"></div><div id="tvd-popwrap"></div>';
+  tvdFit();renderTvd();tvdLoadCal(true);tvdWakeLock();
+  tvdTimers.forEach(clearInterval);
+  tvdTimers=[
+    setInterval(tvdTick,10000),
+    setInterval(()=>{                              // 1분마다: 다시 그리기(며칠째·D-day 계산), 새벽 4시 넘으면 하루 한 번 새로 읽기(새 배포 반영)
+      if(new Date().getHours()===4&&Date.now()-tvdOpenedAt>3*3600000){location.reload();return;}
+      renderTvd();
+    },60000),
+    setInterval(()=>tvdLoadCal(false),5*60000)
+  ];
+}
+function tvdClose(){
+  if(!tvdOn)return;
+  tvdOn=false;tvMode=false;
+  tvdTimers.forEach(clearInterval);tvdTimers=[];clearTimeout(tvdPopTimer);tvdPopQ=[];tvdPopCur=null;
+  try{if(tvdWake)tvdWake.release();}catch(e){}tvdWake=null;
+  const el=document.getElementById('tvd');if(el)el.hidden=true;
+  document.body.classList.remove('tvd-on');
+}
+function tvdExit(){location.hash='';}
+window.addEventListener('resize',()=>{if(tvdOn)tvdFit();});
+document.addEventListener('keydown',tvdOnKey);
+document.addEventListener('mousemove',()=>{if(tvdOn)tvdOnMouse();});
+document.addEventListener('visibilitychange',()=>{if(tvdOn&&document.visibilityState==='visible')tvdWakeLock();});
+// 주소 끝(#todo, #tv 통합제어, #todo-tv 할 일만)으로 화면 열기
 function applyHashRoute(){
   const h=(location.hash||'').replace(/^#\/?/,'').toLowerCase();
-  if(h==='tv'||h==='todo-tv'){setTvMode(true);todoView='today';navTo('todo');}
+  if(h==='tv'){tvdOpen();return;}                       // 통합제어 TV 화면
+  if(tvdOn)tvdClose();
+  if(h==='todo-tv'){setTvMode(true);todoView='today';navTo('todo');}   // 예전 「할 일만」 TV 화면
   else{ if(tvMode)setTvMode(false); if(h&&document.getElementById('page-'+h))navTo(h); }
 }
 window.addEventListener('hashchange',applyHashRoute);
@@ -12106,7 +12516,7 @@ onAuthStateChanged(auth,(u)=>{
 // ── GLOBAL EXPORTS ──
 Object.assign(window,{
   crmSignIn,crmSignOut,todoGoApp,todoGoRef,
-  copyDriveScript,tvToggleMask,tvSetZoom,tvExit,
+  copyDriveScript,tvToggleMask,tvSetZoom,tvExit,tvdExit,
   navTo,manualSave,closeModal,
   downloadBackup,openRestorePicker,restoreBackupFile,
   openDriveImport,saveDriveKeyAndLoad,renderDriveImport,driveImportPick,
