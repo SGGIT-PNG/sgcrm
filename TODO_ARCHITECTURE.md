@@ -74,6 +74,8 @@ flowchart LR
 - **번호 없음.** 문서 ID는 Firestore 무작위 ID 또는 `voice_<MD5>`.
 - `app_state/config.todoRules` = 기준 숫자 `{stallDays:14, soonDays:3, horizonDays:30, leadDays:14}`.
 
+> ⚠️ **2026-10-11 세 칸으로 바뀜 — 아래 §1-2 표는 옛 규칙.** 새 규칙은 §3-7.
+
 ### 1-2. 화면 네 칸 (저장값이 아니라 계산 — `todoBucket()` L4697)
 
 | 순서 | 칸 | 규칙 |
@@ -248,6 +250,20 @@ flowchart LR
 - 사업자번호 변경(`TEMP-…` → 정식)은 창구 관리 기능 `rebizno`가 할 일 `bizno`를 옮긴다(CRM `moveBiznoData`가 호출).
 
 ---
+
+### 3-7. 세 칸 — 시작일 기준 (2026-10-11 사장님 지시, 권장안 확정)
+| 칸 | 조건 | 표시 |
+|---|---|---|
+| 하고 있는 업무 `ing` | `startDate` ≤ 오늘, 완료 전 | `N일째` (시작한 날 = 1일째) |
+| 해야 할 업무 `todo` | `startDate` > 오늘 | `D-n` — 그날이 되면 저절로 위 칸 |
+| 완료 업무 `done` | `done`·`cancel` | 완료한 날(`doneAt`) |
+- **`startDate`** 새 필드(YYYY-MM-DD). 만들 때 기본 = 오늘(한국). 채팅 「내일부터」→ `start`. 자동 생성(인증 갱신·ISO·연간신고)도 만든 날. 없으면 `createdAt` 날짜로 계산.
+- 칸이 아니라 **꼬리표**: 긴급(★ `priority:high`, 하고 있는 업무 맨 위) · ⏳ 기다리는 중(`status:waiting`+`waitingFor`) · 마감(`dueDate`, 선택 — `마감 D-3`). **빨간 표시**(`alert`) = 마감 지남 또는 `stallDays`(14)일째 이상. 「놓친 일」 칸은 없앰.
+- **완료한 날**: `todo_complete date`(어제·10/14…) / 웹 할 일 누르면 날짜 창 / `POST /complete {doneDate}`. 지난 날은 그날 정오(KST)로 `doneAt`. 앞날은 거절. 이미 완료면 완료일만 고침.
+- `status`는 그대로 저장(wait·ing·waiting·done·cancel)하지만 칸 계산엔 안 씀. `status:ing`으로 바꾸면 앞날 시작일을 오늘로 당김(「지금 시작」).
+- 반복 다음 회차: 시작일 = 다음 마감 − (이번 회차 시작~마감 간격), 오늘보다 앞이면 오늘.
+- 규칙 코드: `sg-todo/worker/src/core.js` `bucket()`·`startOf()`·`parseDoneDate()` ↔ CRM `todoBucket()`·`todoStart()` (같은 규칙 두 곳).
+- 기존 데이터: 웹 「관리 → 시작일 채우기」(`/api/admin/migrate-start`) — 시작일 없는 문서에 등록한 날. 미리보기 → 확인 → 적용, 여러 번 안전.
 
 ## 4. 로그인과 보안규칙 — **모든 것보다 먼저**
 

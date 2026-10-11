@@ -7,6 +7,12 @@
 
 ---
 
+## ⭐ 2026-10-11 — 할 일 세 칸(시작일 기준)으로 단순화 (sg-todo + CRM + TV)
+- **규칙**: 하고 있는 업무(시작일 ≤ 오늘, N일째) · 해야 할 업무(시작일 > 오늘, D-n) · 완료 업무. 긴급·기다리는 중·마감은 꼬리표, 마감 지남·14일째 이상 = 빨간 표시. 상세 `TODO_ARCHITECTURE.md` §3-7.
+- **sg-todo**: `core.js`(startDate·bucket·parseDoneDate), `todos.js`(완료일·목록 보기 ing/todo/done/open/alert·시작일 채우기), `index.js`(`/api/admin/migrate-start`), `mcp.js`(todo_add/update `start`, todo_complete `date`), 웹 화면(세 칸·할 일 누르면 완료일 창·관리 「시작일 채우기」), 스킬 `SKILL.md`. 시험 30개 통과.
+- **CRM `index.html`**: `todoBucket`·`todoGroups` 세 칸, 오늘/기업별/주간/휴대폰/대시보드/기업 창, TV(`#tv`) 할 일 목록·숫자 칸·알림 문구. 기한 경고창은 연결된 할 일을 **완료**해야 멈춤. `verify.mjs` 통과.
+- **⚠️ 배포 후(사장님)**: ① 웹 「관리 → 시작일 채우기」 미리보기 확인 후 적용 ② claude.ai Skills에 새 `sg-todo` 스킬 zip 다시 올리기.
+
 ## ⭐ 2026-08-12 — ISO 인증 캘린더를 iso-one 발급일 기준으로 통일 (구글 중복·오차 해결)
 - **배경**: 구글 캘린더에 `[인증만료] 태성 9001/14001 07.15` 2건이, iso-one 「인증완료 07.16」과 어긋남. 원인 = ISO 이중관리(CRM 수기 `certifications` 취득일+3년 자체계산 vs iso-one 발급일). ISO는 iso-one이 정답.
 - **CRM 변경(index.html)**:
