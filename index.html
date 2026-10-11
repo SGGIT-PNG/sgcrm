@@ -5278,7 +5278,7 @@ function renderTvd(){
   const main=document.getElementById('tvd-main');if(!tvdOn||!main)return;
   try{
     const g=tvdTodoGroups();const dls=tvdDeadlines();const ck=tvdClockTxt();
-    main.innerHTML='<div class="tvd-hd"><div style="display:flex;align-items:center;gap:30px"><div class="tvd-logo">SG</div><div class="tvd-title">(주)에스지솔루션 통합 제어 시스템 현황</div></div>'
+    main.innerHTML='<div class="tvd-hd"><div style="display:flex;align-items:center;gap:30px"><div class="tvd-logo">SG</div><div class="tvd-title">(주)에스지솔루션 통합 제어 시스템</div></div>'
       +'<div class="tvd-glass tvd-clockbox"><div class="tvd-date" id="tvd-date">'+ck.date+'</div><div class="tvd-clock" id="tvd-clock">'+ck.time+'</div></div></div>'
       +'<div class="tvd-body">'+tvdTodoHtml(g)+tvdCalHtml()+'<div class="tvd-col">'+tvdDlHtml(dls)+tvdStatsHtml(g)+'</div></div>'
       +tvdTickHtml();
