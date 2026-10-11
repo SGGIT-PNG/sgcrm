@@ -5199,7 +5199,7 @@ function tvdCalHtml(){
 // ── 통계: 열린 일 상태 비율 · 이번 달 완료 · 월별 완료(12개월) ──
 function tvdStatsHtml(g){
   const urgN=g.ing.filter(t=>t.priority==='high').length,redN=g.ing.filter(t=>t.priority!=='high'&&t._alert).length;
-  const parts=[['#ff3b30',urgN],['#ff922b',redN],['#4dabf7',g.ing.length-urgN-redN],['#8f9bb3',g.todo.length]];
+  const parts=[['#ff3b30',urgN],['#ff922b',redN],['#4dabf7',g.ing.length-urgN-redN],['#b197fc',g.todo.length]];
   const total=parts.reduce((a,p)=>a+p[1],0);
   let acc=0;const stops=total?parts.filter(p=>p[1]).map(p=>{const a=acc;acc+=p[1]/total*100;return p[0]+' '+a.toFixed(1)+'% '+acc.toFixed(1)+'%';}).join(','):'rgba(255,255,255,0.12) 0 100%';
   const now=new Date();const months=[];
@@ -5221,7 +5221,7 @@ function tvdTodoHtml(g){
   const kp=(lab,n,c,nc,extra)=>'<div class="tvd-glass tvd-kpi" style="'+(extra||'')+'"><div class="l"><span class="tvd-dot" style="background:'+c+';box-shadow:0 0 14px '+c+'"></span>'+lab+'</div><div class="n" style="color:'+nc+'">'+n+'</div></div>';
   const kpis='<div class="tvd-kpis">'
     +kp('★ 긴급',g.urg.length,'#ff3b30','#ffffff',g.urg.length?'background:linear-gradient(145deg,rgba(255,90,79,0.55),rgba(229,40,29,0.35));border-color:rgba(255,140,130,0.7);box-shadow:0 30px 60px rgba(0,0,0,0.45),0 0 80px rgba(255,59,48,0.35)':'')
-    +kp('하고 있는 업무',g.ing.length,'#4dabf7','#74c0fc')+kp('해야 할 업무',g.todo.length,'#8f9bb3','#e6ebf3')
+    +kp('하고 있는 업무',g.ing.length,'#4dabf7','#74c0fc')+kp('해야 할 업무',g.todo.length,'#b197fc','#d0bfff')
     +kp('빨간 표시',g.alert,'#ff922b',g.alert?'#ffb066':'#8a95ad')+kp('💡 제안',g.idea.length,'#38d9a9','#96f2d7')+'</div>';
   // 개수를 자르지 않는다 — 넘치면 tvdFitList()가 글자를 줄이고, 그래도 넘치면 2단으로 나눈다
   const grp=(title,arr,c,tc)=>{
@@ -5230,7 +5230,7 @@ function tvdTodoHtml(g){
       +arr.map(t=>{const urg=t.priority==='high';const pc=urg?'#ffffff':t._alert?'#ff8f85':tc;
         return '<div class="tvd-row'+(urg?' urg':'')+'"><div class="no">'+escAttr(todoNoLabel(t))+'</div><div class="t">'+(urg?'<span style="color:#ff6b5e">★ </span>':'')+tvdTodoName(t)+'</div><div class="tvd-pill" style="color:'+pc+(urg?';background:#ff3b30':t._alert?';background:rgba(255,59,48,0.22)':'')+'">'+escAttr(tvdDueTxt(t))+'</div></div>';}).join('');
   };
-  const list=grp('하고 있는 업무',g.ing,'#4dabf7','#74c0fc')+grp('해야 할 업무',g.todo,'#8f9bb3','#dee2e6')
+  const list=grp('하고 있는 업무',g.ing,'#4dabf7','#74c0fc')+grp('해야 할 업무',g.todo,'#b197fc','#d0bfff')   // 해야 할 업무 = 라벤더 (제목·숫자·D-n만, 할 일 글자는 흰색)
     +(g.idea.length?'<div class="tvd-idea">'+grp('💡 제안 업무',g.idea,'#38d9a9','#96f2d7')+'</div>':'');   // 제안은 맨 아래 흐리게
   return '<div class="tvd-col">'+kpis+'<div class="tvd-glass tvd-list" id="tvd-list">'+(list||'<div class="tvd-empty">열린 할 일이 없습니다.</div>')+'</div></div>';
 }
