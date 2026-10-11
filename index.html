@@ -354,6 +354,9 @@ body.tvd-on{overflow:hidden;}
 .tvd-list.cols2 .tvd-row{padding-left:0;}
 .tvd-grp{break-inside:avoid-column;}
 .tvd-grp-hd{display:flex;align-items:baseline;gap:18px;padding:calc(var(--tfs)*0.32) 0 6px;font-size:calc(var(--tfs)*0.92);font-weight:700;break-after:avoid;}
+.tvd-subhd{display:flex;align-items:baseline;gap:12px;padding:calc(var(--tfs)*0.28) 0 2px 36px;font-size:calc(var(--tfs)*0.6);font-weight:700;color:#aeb8cc;break-after:avoid;}
+.tvd-subhd span{font-weight:400;color:#7d889e;}
+.tvd-list.cols2 .tvd-subhd{padding-left:0;}
 .tvd-grp-hd .c{font-size:calc(var(--tfs)*0.82);color:#9aa7bf;font-weight:400;}
 .tvd-row{display:flex;align-items:center;gap:22px;padding:calc(var(--tfs)*0.22) 0 calc(var(--tfs)*0.22) 36px;border-top:1px solid rgba(255,255,255,0.08);break-inside:avoid;}
 .tvd-row.urg{background:linear-gradient(90deg,rgba(255,59,48,0.22),rgba(255,59,48,0.04));border-radius:18px;border-top-color:transparent;margin-top:6px;padding-left:22px;padding-right:12px;box-shadow:inset 0 0 0 1px rgba(255,120,110,0.45);}
@@ -454,6 +457,8 @@ body.tvd-on{overflow:hidden;}
 .tdl-sec{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px;}
 .tdl-sec-hd{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;padding:10px 16px;font-size:13px;}
 .tdl-sec-hd span{font-size:12px;opacity:.85;}
+.tdl-subhd{padding:6px 16px 4px;font-size:12px;font-weight:700;color:var(--text2);background:var(--surface2);border-top:1px solid var(--border);}
+.tdl-subhd span{font-weight:400;color:var(--text4);}
 .tdl-ro-banner{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A;border-radius:10px;padding:10px 14px;margin:0 0 12px;font-size:13px}
 .tdl-no{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text4);margin-right:6px}
 .todo-ro .tdl-act,.todo-ro .todo-btn,.todo-ro .tdl-x{display:none!important}
@@ -2636,7 +2641,7 @@ const CRM_RETIRED={cons:true,work:true};
 const DEFAULT_CAT_META = {
   policy:{name:'정책자금',    icon:'💰',color:'#3B82F6',requiresCert:false},
   support:{name:'지원사업',   icon:'🏆',color:'#8B5CF6',requiresCert:false},
-  ven:{name:'벤처·이노비즈',  icon:'🚀',color:'#0D9488',requiresCert:true},
+  ven:{name:'벤처·이노비즈·메인비즈',icon:'🚀',color:'#0D9488',requiresCert:true},
   lab:{name:'기업부설연구소', icon:'🔬',color:'#F59E0B',requiresCert:true},
   pat:{name:'특허·지재',      icon:'💡',color:'#EC4899',requiresCert:false},
   iso:{name:'ISO 인증',       icon:'🏅',color:'#10B981',requiresCert:true},
@@ -5224,11 +5229,13 @@ function tvdTodoHtml(g){
     +kp('하고 있는 업무',g.ing.length,'#4dabf7','#74c0fc')+kp('해야 할 업무',g.todo.length,'#b197fc','#d0bfff')
     +kp('빨간 표시',g.alert,'#ff922b',g.alert?'#ffb066':'#8a95ad')+kp('💡 제안',g.idea.length,'#38d9a9','#96f2d7')+'</div>';
   // 개수를 자르지 않는다 — 넘치면 tvdFitList()가 글자를 줄이고, 그래도 넘치면 2단으로 나눈다
+  // 칸(대분류) → 업무 분야(중분류) 작은 제목 → 할 일
   const grp=(title,arr,c,tc)=>{
     if(!arr.length)return '';
+    const row=t=>{const urg=t.priority==='high';const pc=urg?'#ffffff':t._alert?'#ff8f85':tc;
+        return '<div class="tvd-row'+(urg?' urg':'')+'"><div class="no">'+escAttr(todoNoLabel(t))+'</div><div class="t">'+(urg?'<span style="color:#ff6b5e">★ </span>':'')+tvdTodoName(t)+'</div><div class="tvd-pill" style="color:'+pc+(urg?';background:#ff3b30':t._alert?';background:rgba(255,59,48,0.22)':'')+'">'+escAttr(tvdDueTxt(t))+'</div></div>';};
     return '<div class="tvd-grp-hd" style="color:'+tc+'"><span class="tvd-dot" style="background:'+c+';box-shadow:0 0 14px '+c+'"></span>'+title+'<span class="c">'+arr.length+'</span></div>'
-      +arr.map(t=>{const urg=t.priority==='high';const pc=urg?'#ffffff':t._alert?'#ff8f85':tc;
-        return '<div class="tvd-row'+(urg?' urg':'')+'"><div class="no">'+escAttr(todoNoLabel(t))+'</div><div class="t">'+(urg?'<span style="color:#ff6b5e">★ </span>':'')+tvdTodoName(t)+'</div><div class="tvd-pill" style="color:'+pc+(urg?';background:#ff3b30':t._alert?';background:rgba(255,59,48,0.22)':'')+'">'+escAttr(tvdDueTxt(t))+'</div></div>';}).join('');
+      +todoCatGroups(arr).map(gr=>'<div class="tvd-subhd">'+escAttr(gr.name)+'<span>'+gr.items.length+'</span></div>'+gr.items.map(row).join('')).join('');
   };
   const list=grp('하고 있는 업무',g.ing,'#4dabf7','#74c0fc')+grp('해야 할 업무',g.todo,'#b197fc','#d0bfff')   // 해야 할 업무 = 라벤더 (제목·숫자·D-n만, 할 일 글자는 흰색)
     +(g.idea.length?'<div class="tvd-idea">'+grp('💡 제안 업무',g.idea,'#38d9a9','#96f2d7')+'</div>':'');   // 제안은 맨 아래 흐리게
@@ -5460,18 +5467,29 @@ function todoRowHtml(t){
       +'<button class="tdl-x" data-id="'+id+'" onclick="deleteTodoItem(this.dataset.id)" aria-label="삭제" title="삭제">×</button></div>'
   +'</div>';
 }
-function todoSectionHtml(title,sub,color,bg,list,emptyText){
+// 칸 안을 업무 분야(중분류, CAT_META)로 묶는다 — 긴급(★) 묶음 → 빨간 표시 묶음 → 분야 순서. 묶음 안 순서는 그대로 (sg-todo 웹과 같은 규칙)
+function todoCatGroups(list){
+  const groups=new Map();
+  list.forEach(t=>{const k=t.lead?'_lead':CAT_META[t.category]?t.category:'_none';if(!groups.has(k))groups.set(k,[]);groups.get(k).push(t);});
+  const hot=k=>groups.get(k).some(t=>t.priority==='high')?2:groups.get(k).some(t=>t._alert)?1:0;
+  const ord=k=>k==='_lead'?-1:k==='_none'?999:Math.max(0,CAT_IDS.indexOf(k));
+  return [...groups.keys()].sort((a,b)=>hot(b)-hot(a)||ord(a)-ord(b)).map(k=>({key:k,
+    name:k==='_lead'?'📞 잠재고객 후속':k==='_none'?'미분류':(CAT_META[k].icon+' '+CAT_META[k].name),items:groups.get(k)}));
+}
+function todoSectionHtml(title,sub,color,bg,list,emptyText,grouped){
   return '<section class="tdl-sec">'
     +'<div class="tdl-sec-hd" style="background:'+bg+';color:'+color+'"><b>'+title+' '+list.length+'</b>'+(sub?'<span>'+sub+'</span>':'')+'</div>'
-    +(list.length?list.map(todoRowHtml).join(''):'<div class="tdl-empty">'+emptyText+'</div>')
+    +(!list.length?'<div class="tdl-empty">'+emptyText+'</div>'
+      :grouped?todoCatGroups(list).map(gr=>'<div class="tdl-subhd">'+escAttr(gr.name)+' <span>'+gr.items.length+'</span></div>'+gr.items.map(todoRowHtml).join('')).join('')
+      :list.map(todoRowHtml).join(''))
   +'</section>';
 }
 function todoTodayHtml(g){
   const weekAgo=Date.now()-7*86400000;
   const doneRecent=g.done.filter(t=>(t.doneAt||t.updatedAt||t.createdAt||0)>=weekAgo);
-  return todoSectionHtml('하고 있는 업무','시작일이 온 일 · 며칠째인지 · 긴급(★)·빨간 표시 먼저','#9A3412','#FFF7ED',g.ing,'하고 있는 업무가 없습니다')
-    +todoSectionHtml('해야 할 업무','시작일이 아직 · 그날이 되면 위로 올라감','#1E40AF','#EFF6FF',g.todo,'없음')
-    +(g.idea.length?todoSectionHtml('💡 제안 업무','업체가 맡기기 전, 우리가 먼저 제안할 일','#0F766E','#F0FDFA',g.idea,''):'')
+  return todoSectionHtml('하고 있는 업무','시작일이 온 일 · 며칠째인지 · 업무 분야별','#9A3412','#FFF7ED',g.ing,'하고 있는 업무가 없습니다',true)
+    +todoSectionHtml('해야 할 업무','시작일이 아직 · 그날이 되면 위로 올라감','#1E40AF','#EFF6FF',g.todo,'없음',true)
+    +(g.idea.length?todoSectionHtml('💡 제안 업무','업체가 맡기기 전, 우리가 먼저 제안할 일','#0F766E','#F0FDFA',g.idea,'',true):'')
     +'<button class="tdl-fold" onclick="todoToggleLater()">'+(todoLaterOpen?'▾':'▸')+' 완료 업무 (최근 7일) '+doneRecent.length+'건</button>'
     +(todoLaterOpen&&doneRecent.length?todoSectionHtml('완료 업무','최근 7일','#065F46','#ECFDF5',doneRecent,''):'');
 }
