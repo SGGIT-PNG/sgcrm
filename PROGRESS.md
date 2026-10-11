@@ -7,6 +7,11 @@
 
 ---
 
+## ⭐ 2026-10-11 (2) — 💡 제안 업무 칸 추가
+- 업체가 맡기기 전 우리가 먼저 제안할 일(`status: idea`). 시작일과 상관없이 제안 칸, 빨간 표시 없음. 맡으면 「지금 시작」/「날짜 정해 시작」으로 하고 있는·해야 할 업무로(번호 그대로), 접으면 취소.
+- sg-todo: core·todos(보기 idea·all)·mcp(status idea 설명)·웹(제안 칸·제안 창·빠른 입력 「제안 」)·스킬. 시험 31개. CRM: 할 일 화면 전체·기업 창·TV(숫자 칸 「💡 제안」, 목록 맨 아래 흐리게), 캘린더에서 제외. `verify.mjs` 통과.
+- ⚠️ 배포 후: 스킬 zip 다시 올리기.
+
 ## ⭐ 2026-10-11 — 할 일 세 칸(시작일 기준)으로 단순화 (sg-todo + CRM + TV)
 - **규칙**: 하고 있는 업무(시작일 ≤ 오늘, N일째) · 해야 할 업무(시작일 > 오늘, D-n) · 완료 업무. 긴급·기다리는 중·마감은 꼬리표, 마감 지남·14일째 이상 = 빨간 표시. 상세 `TODO_ARCHITECTURE.md` §3-7.
 - **sg-todo**: `core.js`(startDate·bucket·parseDoneDate), `todos.js`(완료일·목록 보기 ing/todo/done/open/alert·시작일 채우기), `index.js`(`/api/admin/migrate-start`), `mcp.js`(todo_add/update `start`, todo_complete `date`), 웹 화면(세 칸·할 일 누르면 완료일 창·관리 「시작일 채우기」), 스킬 `SKILL.md`. 시험 30개 통과.
