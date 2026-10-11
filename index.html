@@ -379,14 +379,21 @@ body.tvd-on{overflow:hidden;}
 .tvd-ev{font-size:26px;line-height:1.25;color:#fff;border-radius:10px;padding:4px 10px;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;word-break:keep-all;flex-shrink:0;}
 .tvd-ev.meet{background:rgba(77,171,247,0.45);} .tvd-ev.todo{background:rgba(250,176,5,0.42);} .tvd-ev.iso{background:rgba(151,117,250,0.5);} .tvd-ev.gov{background:rgba(64,192,87,0.42);}
 .tvd-ev-more{font-size:24px;color:#c3cde0;padding-left:6px;}
-.tvd-dl{background:linear-gradient(160deg,rgba(196,181,253,0.16),rgba(255,255,255,0.05));border-color:rgba(196,181,253,0.35);padding:26px 32px;display:flex;flex-direction:column;gap:6px;min-height:0;overflow:hidden;}
-.tvd-dlrow{display:flex;align-items:center;gap:20px;padding:12px 0;border-top:1px solid rgba(255,255,255,0.1);}
-.tvd-dd{font-size:36px;font-weight:900;border-radius:16px;width:150px;text-align:center;padding:6px 0;flex-shrink:0;}
+.tvd-dl{background:linear-gradient(160deg,rgba(196,181,253,0.16),rgba(255,255,255,0.05));border-color:rgba(196,181,253,0.35);padding:26px 32px;display:flex;flex-direction:column;gap:6px;flex:1.5;min-height:0;overflow:hidden;}
+.tvd-ctiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:6px 0 8px;}
+.tvd-ctile{background:rgba(10,16,32,0.45);border:1px solid rgba(255,255,255,0.12);border-radius:22px;padding:10px 18px;}
+.tvd-ctile .l{font-size:26px;color:#c3cde0;white-space:nowrap;}
+.tvd-ctile .n{font-size:72px;font-weight:900;line-height:1.05;}
+.tvd-ctile.hot{background:linear-gradient(145deg,rgba(255,90,79,0.6),rgba(229,40,29,0.4));border-color:rgba(255,140,130,0.7);box-shadow:0 0 50px rgba(255,59,48,0.3);}
+.tvd-ctile.hot .l{color:#ffe3e0;}
+.tvd-dlist{position:relative;--dfs:36px;flex:1;min-height:0;overflow:hidden;}
+.tvd-dlrow{display:flex;align-items:center;gap:20px;padding:calc(var(--dfs)*0.3) 0;border-top:1px solid rgba(255,255,255,0.1);}
+.tvd-dd{font-size:var(--dfs,36px);font-weight:900;border-radius:16px;min-width:calc(var(--dfs,36px)*4.2);text-align:center;padding:6px 10px;flex-shrink:0;box-sizing:border-box;}
 .tvd-dd.red{color:#fff;background:#ff3b30;box-shadow:0 8px 20px rgba(255,59,48,0.45);}
 .tvd-dd.amb{color:#1a1300;background:#ffd43b;}
 .tvd-dd.gry{color:#e6ebf3;background:rgba(255,255,255,0.12);}
-.tvd-dlrow .t{font-size:36px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.tvd-dlrow .s{font-size:27px;color:#c3cde0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tvd-dlrow .t{font-size:var(--dfs);font-weight:700;line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;word-break:keep-all;}
+.tvd-dlrow .s{font-size:calc(var(--dfs)*0.75);color:#c3cde0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .tvd-dlrow .s.warn{color:#ffb066;}
 .tvd-st{padding:26px 32px;display:flex;flex-direction:column;gap:22px;flex:1;min-height:0;}
 .tvd-donut{width:220px;height:220px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 20px 50px rgba(255,59,48,0.22);}
@@ -5086,21 +5093,24 @@ function tvdLinkedTodo(kind,item){
 }
 function tvdDeadlines(){
   const out=[];const lo=-30,hi=150;
-  const isoBiz=new Set((isoAudits||[]).map(a=>a.bizno).filter(Boolean));
+  // 인증은 CRM 「인증 알림」 탭과 같은 기준(certCountable·certIsExpired) — 만료된 것은 기간 제한 없이 모두 보인다
+  const isoBiz=new Set((isoAudits||[]).filter(a=>a.nextDeadline).map(a=>a.bizno).filter(Boolean));
   certifications.forEach(c=>{
-    if(!c||!c.expDate||c.status==='완료'||c.status==='제외')return;
+    if(!certCountable(c)||!c.expDate)return;
     const m=getCertMasterInfo(c.certMasterId);
     if(m.reportType==='annual')return;
-    if(isIsoStdMaster(m)&&isoBiz.has(c.bizno))return;           // ISO는 iso-one 기준(아래)
-    const dd=tvdDays(c.expDate);if(dd<lo||dd>hi)return;
-    const it={kind:'cert',id:c.id,bizno:c.bizno,date:c.expDate,dd,
+    if(isIsoStdMaster(m)&&isoBiz.has(c.bizno))return;           // 차기심사 일정이 있는 ISO는 iso-one 기준(아래)으로 한 번만
+    const expired=certIsExpired(c);
+    let dd=tvdDays(c.expDate);if(expired&&dd>=0)dd=-1;
+    if(!expired&&dd>hi)return;
+    const it={kind:'cert',id:c.id,bizno:c.bizno,date:c.expDate,dd,expired,
       name:tvdCoName(c.bizno,c.companyName),what:(m.certName||c.certName||'인증')+(c.cycleType==='complex'?' '+(c.currentPhase||'심사'):' 만료'),
       label:c.cycleType==='complex'?'인증 심사':'인증 만료'};
     it.todo=tvdLinkedTodo('cert',it);out.push(it);
   });
   isoCalTargets().forEach(t=>{
     if(!t.dueDate)return;const dd=tvdDays(t.dueDate);if(dd<lo||dd>hi)return;
-    const it={kind:'iso',id:t.id,bizno:t.bizno,date:t.dueDate,dd,name:String(t.companyName||'').replace(/주식회사\s*|\(주\)\s*|㈜\s*/g,'').trim(),what:t.certName||'ISO 심사',label:'ISO 심사'};
+    const it={kind:'iso',id:t.id,bizno:t.bizno,date:t.dueDate,dd,expired:dd<0,name:String(t.companyName||'').replace(/주식회사\s*|\(주\)\s*|㈜\s*/g,'').trim(),what:t.certName||'ISO 심사',label:'ISO 심사'};
     it.todo=tvdLinkedTodo('iso',it);out.push(it);
   });
   annualReports.forEach(r=>{
@@ -5109,9 +5119,10 @@ function tvdDeadlines(){
     const it={kind:'annual',id:r.id,ref:(r.certId||'')+':'+r.year,bizno:r.bizno,date:r.dueDate,dd,name:tvdCoName(r.bizno,r.companyName),what:(m.certName||'연구소')+' '+(r.year||'')+'년 연간신고',label:'연간신고'};
     it.todo=tvdLinkedTodo('annual',it);out.push(it);
   });
-  return out.sort((a,b)=>a.dd-b.dd);
+  return out.sort((a,b)=>((b.expired?1:0)-(a.expired?1:0))||a.dd-b.dd);   // 만료 먼저, 그다음 가까운 순
 }
 function tvdDdTxt(dd){return dd===0?'D-day':dd>0?'D-'+dd:'D+'+(-dd);}
+function tvdDdLabel(it){return it.expired&&it.kind!=='annual'?(it.dd<0?'만료 '+(-it.dd)+'일':'만료'):tvdDdTxt(it.dd);}
 function tvdDdCls(dd){return dd<=7?'red':dd<=30?'amb':'gry';}
 function tvdHandled(it){return !!(it.todo&&['ing','waiting','done'].includes(it.todo.status));}
 function tvdDlSub(it){
@@ -5213,9 +5224,24 @@ function tvdFitList(){
   if(hidden)el.insertAdjacentHTML('beforeend','<div class="tvd-more" style="position:absolute;right:40px;bottom:14px;background:rgba(10,16,32,0.9);border-radius:12px;padding:6px 16px">'+hidden+'건 더 있음 — 할 일 프로그램에서 전체 보기</div>');
 }
 function tvdDlHtml(dls){
-  const rows=dls.slice(0,8).map(it=>{const s=tvdDlSub(it);
-    return '<div class="tvd-dlrow"><div class="tvd-dd '+tvdDdCls(it.dd)+'">'+tvdDdTxt(it.dd)+'</div><div style="flex:1;min-width:0"><div class="t">'+tvdEsc(it.name)+' '+escAttr(it.what)+'</div><div class="s'+(s.warn?' warn':'')+'">'+escAttr(tvdMD(it.date))+' · '+escAttr(s.txt)+'</div></div></div>';}).join('');
-  return '<div class="tvd-glass tvd-dl"><div class="tvd-sec" style="font-size:44px">기한 알림</div>'+(rows||'<div class="tvd-empty">150일 안에 다가오는 기한이 없습니다.</div>')+'</div>';
+  const renew=dls.filter(i=>i.kind!=='annual');
+  const cnt={expired:renew.filter(i=>i.expired).length,d30:renew.filter(i=>!i.expired&&i.dd<=30).length,
+    d90:renew.filter(i=>!i.expired&&i.dd>30&&i.dd<=90).length,annual:dls.filter(i=>i.kind==='annual'&&i.dd<=60).length};
+  const tile=(l,n,c,hot)=>'<div class="tvd-ctile'+(hot&&n?' hot':'')+'"><div class="l">'+l+'</div><div class="n" style="color:'+(hot&&n?'#fff':c)+'">'+n+'</div></div>';
+  const rows=dls.map(it=>{const s=tvdDlSub(it);
+    return '<div class="tvd-dlrow"><div class="tvd-dd '+tvdDdCls(it.dd)+'">'+tvdDdLabel(it)+'</div><div style="flex:1;min-width:0"><div class="t">'+tvdEsc(it.name)+' '+escAttr(it.what)+'</div><div class="s'+(s.warn?' warn':'')+'">'+escAttr(tvdMD(it.date))+' · '+escAttr(s.txt)+'</div></div></div>';}).join('');
+  return '<div class="tvd-glass tvd-dl"><div class="tvd-sec" style="font-size:44px">인증 · 기한 알림</div>'
+    +'<div class="tvd-ctiles">'+tile('만료',cnt.expired,'#e6ebf3',true)+tile('D-30 이내',cnt.d30,cnt.d30?'#ffd43b':'#c3cde0')+tile('D-90 이내',cnt.d90,'#e6ebf3')+tile('연간신고',cnt.annual,cnt.annual?'#ffd43b':'#c3cde0')+'</div>'
+    +'<div class="tvd-dlist" id="tvd-dlist">'+(rows||'<div class="tvd-empty">150일 안에 다가오는 기한이 없습니다.</div>')+'</div></div>';
+}
+// 인증·기한 목록을 칸에 맞춘다(글자 36→26px). 그래도 넘치면 「N건 더」를 알린다
+function tvdFitDl(){
+  const el=document.getElementById('tvd-dlist');if(!el)return;
+  const over=()=>el.scrollHeight>el.clientHeight+2;
+  for(let fs=36;fs>=26;fs-=2){el.style.setProperty('--dfs',fs+'px');if(!over())return;}
+  const box=el.getBoundingClientRect();
+  const hidden=[...el.querySelectorAll('.tvd-dlrow')].filter(r=>r.getBoundingClientRect().bottom>box.bottom+1).length;
+  if(hidden)el.insertAdjacentHTML('beforeend','<div class="tvd-more" style="position:absolute;right:6px;bottom:4px;background:#1a2238;border-radius:12px;padding:4px 14px">'+hidden+'건 더 — CRM 인증 알림 탭</div>');
 }
 function tvdTickText(){
   const txt=(ovActs||[]).slice(0,6).map(a=>{const d=new Date(a.at);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+' '+(a.summary||'');}).join('  ·  ');
@@ -5231,7 +5257,7 @@ function renderTvd(){
       +'<div class="tvd-glass tvd-clockbox"><div class="tvd-date" id="tvd-date">'+ck.date+'</div><div class="tvd-clock" id="tvd-clock">'+ck.time+'</div></div></div>'
       +'<div class="tvd-body">'+tvdTodoHtml(g)+tvdCalHtml()+'<div class="tvd-col">'+tvdDlHtml(dls)+tvdStatsHtml(g)+'</div></div>'
       +tvdTickHtml();
-    tvdFitList();
+    tvdFitList();tvdFitDl();
     tvdCheckAlerts(g,dls);
   }catch(e){console.error('[TV] 그리기 오류',e);main.innerHTML='<div style="font-size:60px;padding:80px">화면을 그리는 중 오류가 났습니다: '+escAttr(e.message)+'</div>';}
 }
@@ -5259,7 +5285,7 @@ function tvdCheckAlerts(g,dls){
   dls.forEach(it=>{
     if(tvdHandled(it))return;
     let stage=null;
-    if(it.dd<0)stage='over|'+today+'|'+(new Date().getHours()<13?'am':'pm');
+    if(it.dd<0){if(it.dd>=-30)stage='over|'+today+'|'+(new Date().getHours()<13?'am':'pm');}
     else if(it.dd<=1)stage='1';else if(it.dd<=7)stage='7';else if(it.dd<=30)stage='30';
     if(stage)add({key:'dl|'+it.kind+'|'+it.id+'|'+it.date+'|'+stage,type:'dl',it,pri:2+Math.max(it.dd,-1)});
   });
@@ -5272,7 +5298,7 @@ function tvdPopHtml(p){
     const near=p.dls.filter(it=>it.dd<=7).slice(0,6);
     return '<div class="tvd-pop blue"><div class="kind">좋은 아침입니다 — 오늘 · 이번 주 요약</div>'
       +'<div class="tvd-cells"><div class="tvd-cell"><div class="l">긴급</div><div class="v" style="color:#ffb3ad">'+p.g.urg.length+'건</div></div><div class="tvd-cell"><div class="l">놓친 일</div><div class="v" style="color:#ffb066">'+p.g.miss.length+'건</div></div><div class="tvd-cell"><div class="l">7일 안 기한</div><div class="v">'+near.length+'건</div></div></div>'
-      +'<div class="tvd-sum">'+(near.length?near.map(it=>'<div><b>'+tvdDdTxt(it.dd)+'</b> · '+tvdEsc(it.name)+' '+escAttr(it.what)+'</div>').join(''):'<div>이번 주에 다가오는 기한은 없습니다.</div>')+'</div>'
+      +'<div class="tvd-sum">'+(near.length?near.map(it=>'<div><b>'+tvdDdLabel(it)+'</b> · '+tvdEsc(it.name)+' '+escAttr(it.what)+'</div>').join(''):'<div>이번 주에 다가오는 기한은 없습니다.</div>')+'</div>'
       +foot('오늘도 놓친 일부터 정리해 주세요.')+'</div>';
   }
   if(p.type==='urg'){
@@ -5285,9 +5311,9 @@ function tvdPopHtml(p){
   const it=p.it;const s=tvdDlSub(it);const cls=it.dd<=7?'':'amb';
   const kind=it.dd<0?it.label+' 기한이 지났습니다':it.label+' '+(it.dd===0?'오늘':it.dd+'일 전');
   return '<div class="tvd-pop '+cls+'"><div class="kind">⚠ '+escAttr(kind)+'</div>'
-    +'<div style="display:flex;align-items:flex-end;gap:56px"><div class="big">'+tvdDdTxt(it.dd)+'</div><div style="padding-bottom:20px;min-width:0"><div class="nm">'+tvdEsc(it.name||'미상')+'</div><div class="what">'+escAttr(it.what)+'</div></div></div>'
+    +'<div style="display:flex;align-items:flex-end;gap:56px"><div class="big">'+tvdDdLabel(it)+'</div><div style="padding-bottom:20px;min-width:0"><div class="nm">'+tvdEsc(it.name||'미상')+'</div><div class="what">'+escAttr(it.what)+'</div></div></div>'
     +'<div class="tvd-cells"><div class="tvd-cell"><div class="l">기한</div><div class="v">'+escAttr(tvdMD(it.date))+' ('+['일','월','화','수','목','금','토'][new Date(it.date).getDay()]+')</div></div>'
-    +'<div class="tvd-cell" style="'+(s.warn?'border-color:rgba(255,170,90,0.6)':'')+'"><div class="l">연결된 할 일</div><div class="v" style="'+(s.warn?'color:#ffb066':'')+'">'+escAttr(s.txt.replace(/^⚠\s*/,''))+'</div></div>'
+    +'<div class="tvd-cell" style="'+(s.warn?'border-color:rgba(255,170,90,0.6)':'')+'"><div class="l">연결된 할 일</div><div class="v" style="'+(s.warn?'color:#ffb066':'')+'">'+escAttr(it.todo?s.txt.replace(/^⚠\s*/,''):'없음')+'</div></div>'
     +'<div class="tvd-cell"><div class="l">담당</div><div class="v">'+escAttr((it.todo&&(it.todo.assignee||it.todo.createdBy))||'—')+'</div></div></div>'
     +foot('연결된 할 일을 「하는 중」이나 「완료」로 바꾸면 다시 뜨지 않습니다.')+'</div>';
 }
