@@ -366,6 +366,7 @@ body.tvd-on{overflow:hidden;}
 .tvd-tag.red{background:rgba(255,59,48,0.22);color:#ff8f85;}
 .tvd-tag.amber{background:rgba(255,146,43,0.2);color:#ffb066;}
 .tvd-tag.wait{background:rgba(177,151,252,0.2);color:#c4b5fd;}
+.tvd-tag.mute{background:rgba(255,255,255,0.05);color:#7d889e;}
 .tvd-more{padding:10px 0 0 36px;font-size:30px;color:#ffb066;}
 .tvd-empty{font-size:36px;color:#9aa7bf;padding:16px 0;}
 .tvd-cal{padding:28px 32px 32px;display:flex;flex-direction:column;gap:16px;min-height:0;}
@@ -4099,7 +4100,7 @@ function collectGanttEvents(rs,re){
   // 4) ToDo (마감일 있는 건만, 상태 필터 공유)
   todos.forEach(t=>{
     if(!t.dueDate||!overlap(t.dueDate,t.dueDate))return;
-    if(t.status==='idea')return;   // 제안 업무의 날짜는 「제안 목표」라 일정에 넣지 않는다
+    if(t.status==='idea')return;   // 제안 업무의 날짜는 보여 주기만 — 일정에 넣지 않는다
     if(ganttFilter!=='all'&&t.status!==ganttFilter)return;
     evs.push({start:t.dueDate,end:t.dueDate,label:'✅ '+(t.text||''),type:'todo',color:(ST[t.status]&&ST[t.status].dot)||'#94A3B8',click:"openTodoModal('"+(t.status||'ing')+"','"+t.id+"')"});
   });
@@ -4858,7 +4859,8 @@ async function deleteConsulting(){
 // 2026-10-11 세 칸으로 바꿈 (sg-todo worker/src/core.js bucket과 같은 규칙):
 //   하고 있는 업무(시작일 ≤ 오늘, N일째) · 해야 할 업무(시작일 > 오늘, D-n) · 완료 업무
 //   긴급(★)·기다리는 중·마감은 칸이 아니라 꼬리표. 마감 지남·stallDays(14)일째 넘김은 빨간 표시(alert)
-//   + 제안 업무(status idea, col 'idea'): 업체가 맡기기 전 우리가 먼저 제안할 일. 시작일과 상관없이 제안 칸, 빨간 표시 없음
+//   + 제안 업무(status idea, col 'idea'): 업체가 맡기기 전 우리가 먼저 제안할 일. 날짜와 상관없이 제안 칸, 빨간 표시 없음
+//     시작일·종료일은 사람이 넣은 것만 보여 준다(등록한 날로 채우지 않음). 종료일이 지나면 회색 「종료일 지남」 — sg-todo core.js와 같은 규칙(2026-10-12 A안)
 const TODO_RULES_DEFAULT={stallDays:14,soonDays:3,horizonDays:30,leadDays:14};
 // ── 2026-10-08 5단계: 할 일은 독립 할 일 프로그램(sg-todo)이 쓴다. CRM은 보기만 (TODO_ARCHITECTURE.md) ──
 //   입력·완료·수정은 할 일 프로그램 또는 Claude 창에서. 자동 생성(인증 갱신·ISO·연간신고)은 쓰기 창구가 매일 06:00.
@@ -4892,7 +4894,7 @@ function todoSource(t){return t.source||(t.certTaskId?'cert':t.isoAuditId?'iso':
 // 멈춤 판정 기준 시각 — 상태·마감·메모가 바뀐 때(statusAt). 기업 연결·분야 수정은 진행으로 보지 않는다
 function todoTouched(t){return t.statusAt||t.createdAt||0;}
 // 시작일 — 없으면 등록한 날(옛 할 일)
-function todoStart(t){if(t.startDate)return t.startDate;if(t.createdAt){const d=new Date(t.createdAt);return dateStr(d.getFullYear(),d.getMonth(),d.getDate());}return todoToday();}
+function todoStart(t){if(t.status==='idea')return t.startDate||'';if(t.startDate)return t.startDate;if(t.createdAt){const d=new Date(t.createdAt);return dateStr(d.getFullYear(),d.getMonth(),d.getDate());}return todoToday();}
 // 할 일 하나 → {col:'ing'|'todo'|'done', days, alert, tags:[{t,tone}], reason}
 function todoBucket(t){
   if(t.status==='done'||t.status==='cancel')return {col:'done',days:0,alert:false,tags:[],reason:t.status==='cancel'?'취소':''};   // cancel = 할 일 프로그램의 「취소」
@@ -4900,7 +4902,8 @@ function todoBucket(t){
   if(t.status==='idea'){   // 제안 업무 — 얼마나 묵었는지만, 압박(빨간 표시) 없음
     let age=0;if(t.createdAt){const d=new Date(t.createdAt);age=todoDaysFrom(dateStr(d.getFullYear(),d.getMonth(),d.getDate()),today);}
     if(t.priority==='high')tags.push({t:'긴급',tone:'red'});
-    if(t.dueDate)tags.push({t:'제안 목표 '+t.dueDate.slice(5).replace('-','/'),tone:'plain'});
+    if(start)tags.push({t:'시작 '+start.slice(5).replace('-','/'),tone:'plain'});
+    if(t.dueDate)tags.push(t.dueDate<today?{t:'종료일 지남',tone:'mute'}:{t:'종료 '+t.dueDate.slice(5).replace('-','/'),tone:'plain'});
     return {col:'idea',days:age,alert:false,tags,reason:[age===0?'오늘 등록':'등록 '+age+'일 전'].concat(tags.map(x=>x.t)).join(' · ')};
   }
   if(t.priority==='high')tags.push({t:'긴급',tone:'red'});
@@ -4955,7 +4958,7 @@ const TODO_COLS=[
   {k:'todo',label:'해야 할 업무',color:'#2563EB',bg:'#EFF6FF'},
   {k:'idea',label:'제안 업무',color:'#0D9488',bg:'#F0FDFA'},
 ];
-const TODO_TONE={red:'background:#FEE2E2;color:#B91C1C',amber:'background:#FFF7ED;color:#C2410C',wait:'background:#F5F3FF;color:#6D28D9',plain:''};
+const TODO_TONE={red:'background:#FEE2E2;color:#B91C1C',amber:'background:#FFF7ED;color:#C2410C',wait:'background:#F5F3FF;color:#6D28D9',plain:'',mute:'background:#F1F5F9;color:#94A3B8'};
 function todoTagChips(t){return (todoBucket(t).tags||[]).map(x=>'<span class="todo-chip" style="'+(TODO_TONE[x.tone]||'')+'">'+escAttr(x.t)+'</span>').join('');}
 function todoCardHtml(t){
   if(t.lead){
@@ -5275,7 +5278,7 @@ function renderTvd(){
   const main=document.getElementById('tvd-main');if(!tvdOn||!main)return;
   try{
     const g=tvdTodoGroups();const dls=tvdDeadlines();const ck=tvdClockTxt();
-    main.innerHTML='<div class="tvd-hd"><div style="display:flex;align-items:center;gap:30px"><div class="tvd-logo">SG</div><div class="tvd-title">SG솔루션 통합 현황</div></div>'
+    main.innerHTML='<div class="tvd-hd"><div style="display:flex;align-items:center;gap:30px"><div class="tvd-logo">SG</div><div class="tvd-title">(주)에스지솔루션 통합 제어 시스템 현황</div></div>'
       +'<div class="tvd-glass tvd-clockbox"><div class="tvd-date" id="tvd-date">'+ck.date+'</div><div class="tvd-clock" id="tvd-clock">'+ck.time+'</div></div></div>'
       +'<div class="tvd-body">'+tvdTodoHtml(g)+tvdCalHtml()+'<div class="tvd-col">'+tvdDlHtml(dls)+tvdStatsHtml(g)+'</div></div>'
       +tvdTickHtml();
@@ -5505,7 +5508,7 @@ function todoWeekHtml(){
   const base=new Date(today);const dow=(base.getDay()+6)%7;
   base.setDate(base.getDate()-dow+todoWeekOffset*7);
   const days=[...Array(7)].map((_,i)=>{const d=new Date(base);d.setDate(base.getDate()+i);return d;});
-  const open=todoOpen();
+  const open=todoOpen().filter(t=>t.status!=='idea');   // 제안 업무는 주간 칸에 넣지 않는다(날짜는 보여 주기만)
   const card=(t,mark)=>'<div class="tdl-wcard" draggable="true" data-id="'+escAttr(t.id)+'" ondragstart="todoDragStart(event,this.dataset.id)" onclick="openTodoModal(null,this.dataset.id)" title="끌어서 다른 날로 옮기기">'
     +(t.companyName?'<div class="tdl-memo">'+escAttr(todoCoShort(t))+'</div>':'')+(mark||'')+escAttr(todoText(t))
     +(t.priority==='high'?' <span style="color:#DC2626">★</span>':'')+'</div>';
