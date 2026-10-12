@@ -335,7 +335,10 @@ body.tvd-on{overflow:hidden;}
 .tvd-clockbox{display:flex;align-items:center;gap:40px;padding:14px 52px;border-radius:999px;}
 .tvd-date{font-size:46px;color:#c3cde0;}
 .tvd-clock{font-size:86px;font-weight:700;font-variant-numeric:tabular-nums;}
-.tvd-body{display:grid;grid-template-columns:minmax(0,1.42fr) minmax(0,1.05fr) minmax(0,0.72fr);gap:36px;flex:1;min-height:0;}
+.tvd-body{display:grid;grid-template-columns:minmax(0,1.42fr) minmax(0,1.77fr);gap:36px;flex:1;min-height:0;}
+.tvd-right{display:flex;flex-direction:column;gap:30px;min-height:0;}
+.tvd-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:30px;flex:1;min-height:0;}
+.tvd-cards>*{min-height:0;}
 .tvd-col{display:flex;flex-direction:column;gap:30px;min-height:0;}
 .tvd-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:22px;}
 /* 숫자 칸: 이름 위 · 숫자 아래 — 이름이 길거나 숫자가 두세 자리여도 옆 칸을 침범하지 않게 (2026-10-12) */
@@ -350,7 +353,7 @@ body.tvd-on{overflow:hidden;}
 .tvd-sub{font-size:32px;color:#c3cde0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .tvd-pill{font-weight:700;border-radius:999px;padding:6px 20px;white-space:nowrap;background:rgba(0,0,0,0.25);font-size:32px;}
 .tvd-due-red{font-size:40px;font-weight:900;color:#fff;background:#ff3b30;border-radius:18px;padding:8px 24px;box-shadow:0 10px 26px rgba(255,59,48,0.45);white-space:nowrap;}
-.tvd-list{position:relative;--tfs:40px;padding:18px 38px 22px;flex:1;min-height:0;overflow:hidden;column-fill:auto;}
+.tvd-list{position:relative;--tfs:36px;padding:18px 38px 22px;flex:1;min-height:0;overflow:hidden;column-fill:auto;}
 .tvd-list.cols2{column-count:2;column-gap:48px;column-rule:1px solid rgba(255,255,255,0.10);}
 .tvd-list.cols2 .tvd-row{padding-left:0;}
 .tvd-grp{break-inside:avoid-column;}
@@ -365,7 +368,14 @@ body.tvd-on{overflow:hidden;}
 .tvd-row .t{flex:1;min-width:0;font-size:var(--tfs);line-height:1.25;font-weight:700;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;word-break:keep-all;}
 .tvd-row .t small{font-size:calc(var(--tfs)*0.74);font-weight:400;color:#9aa7bf;}
 .tvd-row .tvd-pill{font-size:calc(var(--tfs)*0.74);}
-.tvd-idea{opacity:0.62;}
+.tvd-idea{opacity:0.7;}
+/* 칸 상자 — --bc = 칸 색. 두 단으로 나뉘어도 양쪽에 바탕·띠가 이어지도록 box-decoration-break */
+.tvd-blk{position:relative;border-left:10px solid var(--bc);background:color-mix(in srgb,var(--bc) 9%,transparent);border-radius:22px;padding:4px 18px 10px 0;margin:0 0 20px;-webkit-box-decoration-break:clone;box-decoration-break:clone;}
+.tvd-blk .tvd-grp-hd{background:color-mix(in srgb,var(--bc) 26%,transparent);border-radius:0 16px 16px 0;margin:6px 0 4px;padding:calc(var(--tfs)*0.18) 24px;}
+.tvd-blk .tvd-row{padding-left:26px;}
+.tvd-urgblk{background:color-mix(in srgb,var(--bc) 16%,transparent);box-shadow:0 0 50px rgba(255,59,48,0.18);}
+.tvd-blk .tvd-subhd{padding-left:26px;}
+.tvd-list.cols2 .tvd-blk .tvd-row,.tvd-list.cols2 .tvd-blk .tvd-subhd{padding-left:18px;}
 .tvd-tag{display:inline-block;font-size:calc(var(--tfs)*0.6);font-weight:600;border-radius:999px;padding:0 14px;margin-left:12px;vertical-align:middle;background:rgba(255,255,255,0.08);color:#c3cde0;}
 .tvd-tag.red{background:rgba(255,59,48,0.22);color:#ff8f85;}
 .tvd-tag.amber{background:rgba(255,146,43,0.2);color:#ffb066;}
@@ -373,7 +383,7 @@ body.tvd-on{overflow:hidden;}
 .tvd-tag.mute{background:rgba(255,255,255,0.05);color:#7d889e;}
 .tvd-more{padding:10px 0 0 36px;font-size:30px;color:#ffb066;}
 .tvd-empty{font-size:36px;color:#9aa7bf;padding:16px 0;}
-.tvd-cal{padding:28px 32px 32px;display:flex;flex-direction:column;gap:16px;min-height:0;}
+.tvd-cal{padding:24px 30px 26px;display:flex;flex-direction:column;gap:12px;min-height:0;flex:1.25;}
 .tvd-sec{font-size:50px;font-weight:700;}
 .tvd-legend{display:flex;gap:28px;font-size:30px;color:#c3cde0;}
 .tvd-wk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;font-size:30px;text-align:center;color:#c3cde0;}
@@ -388,6 +398,30 @@ body.tvd-on{overflow:hidden;}
 .tvd-day.today .d{color:#fff;}
 .tvd-ev{font-size:26px;line-height:1.25;color:#fff;border-radius:10px;padding:4px 10px;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;word-break:keep-all;flex-shrink:0;}
 .tvd-ev.meet{background:rgba(77,171,247,0.45);} .tvd-ev.todo{background:rgba(250,176,5,0.42);} .tvd-ev.iso{background:rgba(151,117,250,0.5);} .tvd-ev.gov{background:rgba(64,192,87,0.42);}
+.tvd-ag{padding:24px 32px 22px;display:flex;flex-direction:column;gap:10px;flex:1;min-height:0;}
+.tvd-ag-list{position:relative;--afs:34px;flex:1;min-height:0;overflow:hidden;}
+.tvd-ag-hd{display:flex;align-items:baseline;gap:16px;font-size:calc(var(--afs)*1.05);font-weight:700;color:#e6ebf3;padding:calc(var(--afs)*0.35) 0 6px;border-bottom:1px solid rgba(255,255,255,0.12);}
+.tvd-ag-hd span{font-size:calc(var(--afs)*0.8);font-weight:400;color:#9aa7bf;}
+.tvd-ag-hd .c{margin-left:auto;}
+.tvd-ag-row{display:flex;align-items:center;gap:18px;padding:calc(var(--afs)*0.22) 0;border-bottom:1px solid rgba(255,255,255,0.06);font-size:var(--afs);}
+.tvd-ag-row .tm{width:calc(var(--afs)*3);flex-shrink:0;color:#9fd0ff;font-variant-numeric:tabular-nums;font-weight:700;}
+.tvd-ag-row .tx{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#f3f6fb;}
+.tvd-calls .tvd-ag-row .tm{width:calc(var(--afs)*3.6);}
+.tvd-ag-row.soon{background:linear-gradient(90deg,rgba(77,171,247,0.35),rgba(77,171,247,0.05));border-radius:12px;}
+.tvd-ag-row.soon .tm{color:#fff;}
+.tvd-ag-row.miss .tm{color:#ff8f85;}
+.tvd-ag-hd.miss{color:#ff8f85;}
+.tvd-ag-row .tx b{font-weight:700;}
+.tvd-ag-row .tm.tag{color:#c3cde0;font-weight:500;}
+.tvd-ag-dot{width:16px;height:16px;border-radius:5px;flex-shrink:0;background:#8a95ad;}
+.tvd-ag-dot.meet{background:#4dabf7;} .tvd-ag-dot.todo{background:#fab005;} .tvd-ag-dot.iso{background:#9775fa;} .tvd-ag-dot.gov{background:#40c057;} .tvd-ag-dot.start{background:#b197fc;}
+.tvd-ag-empty{font-size:calc(var(--afs)*0.85);color:#7d889e;padding:10px 0;}
+.tvd-ag-foot{font-size:30px;color:#c3cde0;border-top:1px solid rgba(255,255,255,0.12);padding-top:12px;}
+.tvd-ag-foot b{color:#8ce99a;font-size:40px;}
+.tvd-day-s{padding:8px 12px;gap:5px;}
+.tvd-day-s .d{font-size:30px;line-height:1.1;}
+.tvd-day-s .tvd-ev{font-size:24px;-webkit-line-clamp:1;padding:2px 10px;}
+.tvd-day-s+.tvd-ev-more,.tvd-day-s .tvd-ev-more{font-size:20px;}
 .tvd-ev-more{font-size:24px;color:#c3cde0;padding-left:6px;}
 .tvd-dl{background:linear-gradient(160deg,rgba(196,181,253,0.16),rgba(255,255,255,0.05));border-color:rgba(196,181,253,0.35);padding:26px 32px;display:flex;flex-direction:column;gap:6px;flex:1.5;min-height:0;overflow:hidden;}
 .tvd-ctiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:6px 0 8px;}
@@ -408,7 +442,7 @@ body.tvd-on{overflow:hidden;}
 .tvd-st{padding:26px 32px;display:flex;flex-direction:column;gap:22px;flex:1;min-height:0;}
 .tvd-donut{width:220px;height:220px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 20px 50px rgba(255,59,48,0.22);}
 .tvd-donut>div{width:152px;height:152px;border-radius:50%;background:#121a2e;box-shadow:inset 0 8px 20px rgba(0,0,0,0.6);display:flex;flex-direction:column;align-items:center;justify-content:center;}
-.tvd-bars{flex:1;display:flex;align-items:flex-end;gap:10px;min-height:160px;}
+.tvd-bars{flex:1;display:flex;align-items:flex-end;gap:10px;min-height:110px;}
 .tvd-bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;justify-content:flex-end;}
 .tvd-bar .v{font-size:26px;font-weight:700;color:#c3cde0;}
 .tvd-bar .b{width:100%;border-radius:12px 12px 4px 4px;background:linear-gradient(180deg,rgba(255,255,255,0.32),rgba(255,255,255,0.12));min-height:4px;}
@@ -4863,7 +4897,7 @@ async function deleteConsulting(){
 // ── TODO ──
 // ── 할 일 체계화 (2026-10, TODO_DESIGN.md) ──
 // 2026-10-11 세 칸으로 바꿈 (sg-todo worker/src/core.js bucket과 같은 규칙):
-//   하고 있는 업무(시작일 ≤ 오늘, N일째) · 해야 할 업무(시작일 > 오늘, D-n) · 완료 업무
+//   진행 업무(시작일 ≤ 오늘, N일째) · 예정 업무(시작일 > 오늘, D-n) · 완료 업무
 //   긴급(★)·기다리는 중·마감은 칸이 아니라 꼬리표. 마감 지남·stallDays(14)일째 넘김은 빨간 표시(alert)
 //   + 제안 업무(status idea, col 'idea'): 업체가 맡기기 전 우리가 먼저 제안할 일. 날짜와 상관없이 제안 칸, 빨간 표시 없음
 //     시작일·종료일은 사람이 넣은 것만 보여 준다(등록한 날로 채우지 않음). 종료일이 지나면 회색 「종료일 지남」 — sg-todo core.js와 같은 규칙(2026-10-12 A안)
@@ -4924,7 +4958,7 @@ function todoBucket(t){
   if(days>=todoRules.stallDays)alert=true;
   return {col:'ing',days,alert,tags,reason:[days===1?'오늘 시작':days+'일째'].concat(tags.map(x=>x.t)).join(' · ')};
 }
-// 잠재고객 후속: 그룹 「잠재고객」 + 열린 할 일 없음 + 마지막 기록 후 leadDays 경과 → 하고 있는 업무 맨 위에 빨간 표시(가상 카드)
+// 잠재고객 후속: 그룹 「잠재고객」 + 열린 할 일 없음 + 마지막 기록 후 leadDays 경과 → 진행 업무 맨 위에 빨간 표시(가상 카드)
 function todoLeadItems(){
   const out=[];const now=Date.now();
   companies.filter(c=>c.group==='잠재고객'&&c.active!=='N').forEach(c=>{
@@ -4945,7 +4979,7 @@ function todoPassFilter(t){
   if(todoFilter.source&&todoSource(t)!==todoFilter.source)return false;
   return true;
 }
-// 하고 있는 업무: 긴급 → 빨간 표시 → 마감 가까운 순 → 오래된 순 / 해야 할 업무: 시작일 가까운 순
+// 진행 업무: 긴급 → 빨간 표시 → 마감 가까운 순 → 오래된 순 / 예정 업무: 시작일 가까운 순
 function todoSortIng(a,b){return ((b.priority==='high')-(a.priority==='high'))||((b._alert?1:0)-(a._alert?1:0))||(a.dueDate||'9999').localeCompare(b.dueDate||'9999')||((b._days||0)-(a._days||0))||((a.no||0)-(b.no||0));}
 function todoSortTodo(a,b){return (a._start||'').localeCompare(b._start||'')||((b.priority==='high')-(a.priority==='high'))||((a.no||0)-(b.no||0));}
 function todoSortIdea(a,b){return ((b.priority==='high')-(a.priority==='high'))||(a.dueDate||'9999').localeCompare(b.dueDate||'9999')||((b._days||0)-(a._days||0))||((a.no||0)-(b.no||0));}
@@ -4960,8 +4994,8 @@ function todoGroups(){
   return g;
 }
 const TODO_COLS=[
-  {k:'ing',label:'하고 있는 업무',color:'#EA580C',bg:'#FFF7ED'},
-  {k:'todo',label:'해야 할 업무',color:'#2563EB',bg:'#EFF6FF'},
+  {k:'ing',label:'진행 업무',color:'#EA580C',bg:'#FFF7ED'},
+  {k:'todo',label:'예정 업무',color:'#2563EB',bg:'#EFF6FF'},
   {k:'idea',label:'제안 업무',color:'#0D9488',bg:'#F0FDFA'},
 ];
 const TODO_TONE={red:'background:#FEE2E2;color:#B91C1C',amber:'background:#FFF7ED;color:#C2410C',wait:'background:#F5F3FF;color:#6D28D9',plain:'',mute:'background:#F1F5F9;color:#94A3B8'};
@@ -5083,7 +5117,7 @@ function tvdMD(ds){return ds?(+ds.slice(5,7))+'/'+(+ds.slice(8,10)):'';}
 function tvdCoName(bz,fallback){const c=bz?companies.find(x=>x._id===bz):null;return String((c&&c.name)||fallback||'').replace(/주식회사\s*|\(주\)\s*|㈜\s*/g,'').trim();}
 function tvdOpenTodo(t){return t&&t.status!=='done'&&t.status!=='cancel';}
 
-// ── 할 일 묶기: 세 칸 규칙(todoBucket) — 하고 있는 업무(긴급·빨간 표시 먼저) · 해야 할 업무(시작 가까운 순) ──
+// ── 할 일 묶기: 세 칸 규칙(todoBucket) — 진행 업무(긴급·빨간 표시 먼저) · 예정 업무(시작 가까운 순) ──
 function tvdTodoGroups(){
   const g={ing:[],todo:[],idea:[],urg:[],alert:0,doneToday:0};
   const today=tvdTodayStr();
@@ -5097,7 +5131,7 @@ function tvdTodoGroups(){
   g.ing.sort(todoSortIng);g.todo.sort(todoSortTodo);g.idea.sort(todoSortIdea);
   return g;
 }
-// 오른쪽 알약: 하고 있는 업무 = N일째, 해야 할 업무 = D-n
+// 오른쪽 알약: 진행 업무 = N일째, 예정 업무 = D-n
 function tvdDueTxt(t){
   if(t._col==='idea')return '💡 제안';
   if(t._col==='todo')return t._days===1?'내일 시작':'D-'+t._days;
@@ -5158,48 +5192,85 @@ function tvdDlSub(it){
   if(t.status==='cancel')return {txt:lab+' 취소',warn:false};
   if(t.status==='idea')return {txt:'⚠ '+lab+' 아직 제안 단계',warn:true};
   const b=todoBucket(t);
-  return {txt:lab+' '+(b.col==='todo'?(b.days===1?'내일 시작':'D-'+b.days+' 시작'):'하는 중 · '+(b.days===1?'오늘 시작':b.days+'일째')),warn:false};
+  return {txt:lab+' '+(b.col==='todo'?(b.days===1?'내일 시작':'D-'+b.days+' 시작'):'진행 · '+(b.days===1?'오늘 시작':b.days+'일째')),warn:false};
 }
 
 // ── 달력: 이번 달(월요일 시작) — 간트 캘린더와 같은 일정 모음(collectGanttEvents)을 쓴다 ──
 function tvdEvClass(type){return type==='gcal'?'meet':type==='todo'?'todo':type==='cons'?'gov':'iso';}
-function tvdMonthRange(){
+// ── 달력: 이번 달(월요일 시작) — 간트 캘린더와 같은 일정 모음(collectGanttEvents). 위쪽 절반, 아래는 오늘·내일 일정표 (2026-10-12)
+//   구글 일정은 달력 범위 + 내일까지 읽는다(말일에도 일정표의 「내일」이 비지 않게)
+function tvdCalRange(){
   const now=new Date();const y=now.getFullYear(),m=now.getMonth();
   const first=new Date(y,m,1);const off=(first.getDay()+6)%7;
   const start=new Date(y,m,1-off);
   const days=new Date(y,m+1,0).getDate();const weeks=Math.ceil((off+days)/7);
   const end=new Date(start.getFullYear(),start.getMonth(),start.getDate()+weeks*7-1);
-  return {y,m,start,end,weeks,rs:todoDayStr(start),re:todoDayStr(end)};
+  const tmr=addDaysStr(todoDayStr(now),1);
+  return {y,m,start,end,weeks,rs:todoDayStr(start),re:todoDayStr(end)>tmr?todoDayStr(end):tmr,calEnd:todoDayStr(end)};
 }
 let tvdCalLoadedAt=0;
 async function tvdLoadCal(force){
-  const r=tvdMonthRange();const key=r.rs+'~'+r.re;
+  const r=tvdCalRange();const key=r.rs+'~'+r.re;
   if(!force&&gcalExternal.key===key&&Date.now()-tvdCalLoadedAt<30*60000)return;
   if(gcalExternal.loading)return;
   gcalExternal.key='';tvdCalLoadedAt=Date.now();
   try{await loadGcalExternal(r.rs,r.re);}catch(e){console.warn('[TV] 구글 일정 조회 실패:',e.message);}
   if(tvdOn)renderTvd();
 }
-function tvdCalHtml(){
-  const r=tvdMonthRange();const today=tvdTodayStr();
+function tvdEvLabel(e){return String(e.label||'').replace(/^\d{1,2}:\d{2}\s+/,'').replace(/^[^\w가-힣\[(]+\s*/,'').replace(/^\[[^\]]*\]\s*/,'');}
+function tvdCalEvents(rs,re){
   const gf=ganttFilter;ganttFilter='all';
-  let evs=[];try{evs=collectGanttEvents(r.rs,r.re);}finally{ganttFilter=gf;}
+  try{return collectGanttEvents(rs,re);}finally{ganttFilter=gf;}
+}
+function tvdCalHtml(evs){
+  const r=tvdCalRange();const today=tvdTodayStr();
   let cells='';
   for(let i=0;i<r.weeks*7;i++){
     const d=new Date(r.start.getFullYear(),r.start.getMonth(),r.start.getDate()+i);
-    const ds=todoDayStr(d);const inM=d.getMonth()===r.m;const dow=i%7;
+    const ds=todoDayStr(d);const dow=i%7;const inM=d.getMonth()===r.m;
     const mine=evs.filter(e=>e.start<=ds&&(e.end||e.start)>=ds);
-    const cls=['tvd-day',dow>=5?'off':'',inM?'':'out',ds===today?'today':(inM&&ds<today?'past':'')].filter(Boolean).join(' ');
-    const max=r.weeks>5?2:3;
+    const cls=['tvd-day','tvd-day-s',dow>=5?'off':'',inM?'':'out',ds===today?'today':(inM&&ds<today?'past':'')].filter(Boolean).join(' ');
+    const max=r.weeks>5?2:3;   // 하루 2~3건, 나머지는 +N건 (전체는 아래 일정표·간트 캘린더)
     cells+='<div class="'+cls+'"><div class="d">'+(inM?d.getDate():(d.getMonth()+1)+'/'+d.getDate())+'</div>'
-      +mine.slice(0,max).map(e=>'<div class="tvd-ev '+tvdEvClass(e.type)+'">'+tvdEsc(String(e.label||'').replace(/^[^\w가-힣\[(]+\s*/,'').replace(/^\[[^\]]*\]\s*/,''))+'</div>').join('')
+      +mine.slice(0,max).map(e=>'<div class="tvd-ev '+tvdEvClass(e.type)+'">'+tvdEsc((e.sTime?e.sTime+' ':'')+tvdEvLabel(e))+'</div>').join('')
       +(mine.length>max?'<div class="tvd-ev-more">+'+(mine.length-max)+'건</div>':'')+'</div>';
   }
-  return '<div class="tvd-glass tvd-cal">'
+  const cal='<div class="tvd-glass tvd-cal">'
     +'<div style="display:flex;justify-content:space-between;align-items:baseline"><div class="tvd-sec">'+(r.m+1)+'월 일정</div>'
     +'<div class="tvd-legend"><div><span style="color:#74c0fc">●</span> 구글 일정</div><div><span style="color:#ffd43b">●</span> 할 일 마감</div><div><span style="color:#c4b5fd">●</span> ISO·인증·신고</div></div></div>'
     +'<div class="tvd-wk">'+['월','화','수','목','금','토','일'].map((w,i)=>'<div style="'+(i>=5?'color:#8a95ad':'')+'">'+w+'</div>').join('')+'</div>'
     +'<div class="tvd-grid" style="grid-template-rows:repeat('+r.weeks+',minmax(0,1fr))">'+cells+'</div></div>';
+  return cal;
+}
+// ── 📞 통화 일정 (2026-10-12) — 할 일 중 종류가 「전화」(kind call)인 것. 날짜 = 마감일 또는 시작일, 시각 = callTime(있으면)
+//   놓친 통화(날짜 지남·미완료) → 오늘 → 내일 → 이후 7일. 오늘 1시간 안의 통화는 강조
+function tvdCallDate(t){return t.dueDate||t.startDate||(t.createdAt?todoDayStr(new Date(t.createdAt)):'');}
+function tvdCallsHtml(){
+  const today=tvdTodayStr(),tmr=addDaysStr(today,1),wk=addDaysStr(today,7);
+  const nowMin=new Date().getHours()*60+new Date().getMinutes();
+  const calls=todos.filter(t=>t.kind==='call'&&!['done','cancel','idea'].includes(t.status))
+    .map(t=>({t,d:tvdCallDate(t),tm:t.callTime||''})).filter(x=>x.d&&x.d<=wk)
+    .sort((a,b)=>a.d.localeCompare(b.d)||(a.tm?0:1)-(b.tm?0:1)||a.tm.localeCompare(b.tm));
+  const row=(x,miss)=>{const t=x.t;const tmMin=x.tm?(+x.tm.slice(0,2))*60+(+x.tm.slice(3,5)):null;
+    const soon=!miss&&x.d===today&&tmMin!==null&&tmMin>=nowMin-10&&tmMin<=nowMin+60;
+    const co=todoCoShort(t);
+    return '<div class="tvd-ag-row'+(soon?' soon':'')+(miss?' miss':'')+'"><div class="tm'+(x.tm?'':' tag')+'">'+(x.tm||(miss?tvdMD(x.d):'시간 미정'))+'</div>'
+      +'<div class="tx">'+(co?'<b>'+escAttr(co)+'</b> — ':'')+escAttr(todoText(t))+'</div></div>';};
+  const sec=(lab,arr,miss)=>arr.length?'<div class="tvd-ag-hd'+(miss?' miss':'')+'">'+lab+'<span class="c">'+arr.length+'건</span></div>'+arr.map(x=>row(x,miss)).join(''):'';
+  const miss=calls.filter(x=>x.d<today),tod=calls.filter(x=>x.d===today),tom=calls.filter(x=>x.d===tmr),later=calls.filter(x=>x.d>tmr);
+  const body=sec('⚠ 놓친 통화',miss,true)+sec('오늘',tod)+sec('내일',tom)
+    +(later.length?'<div class="tvd-ag-hd">이번 주<span class="c">'+later.length+'건</span></div>'+later.map(x=>row(Object.assign({},x,{tm:tvdMD(x.d)+(x.tm?' '+x.tm:'')}))).join(''):'');
+  return '<div class="tvd-glass tvd-ag tvd-calls"><div class="tvd-sec">📞 통화 일정</div><div class="tvd-ag-list" id="tvd-ag">'
+    +(body||'<div class="tvd-ag-empty">예정된 통화가 없습니다.</div>')+'</div></div>';
+}
+// 일정표 글자를 칸에 맞춘다(34→24px). 그래도 넘치면 「N건 더」
+function tvdFitAgenda(){
+  const el=document.getElementById('tvd-ag');if(!el)return;
+  const over=()=>el.scrollHeight>el.clientHeight+2;
+  for(let fs=34;fs>=24;fs-=2){el.style.setProperty('--afs',fs+'px');if(!over())return;}
+  const box=el.getBoundingClientRect();
+  const hidden=[...el.querySelectorAll('.tvd-ag-row')].filter(r=>r.getBoundingClientRect().bottom>box.bottom+1).length;
+  if(hidden)el.insertAdjacentHTML('beforeend','<div class="tvd-more" style="position:absolute;right:6px;bottom:4px;background:#1a2238;border-radius:12px;padding:4px 14px">'+hidden+'건 더</div>');
 }
 
 // ── 통계: 열린 일 상태 비율 · 이번 달 완료 · 월별 완료(12개월) ──
@@ -5209,50 +5280,65 @@ function tvdStatsHtml(g){
   const total=parts.reduce((a,p)=>a+p[1],0);
   let acc=0;const stops=total?parts.filter(p=>p[1]).map(p=>{const a=acc;acc+=p[1]/total*100;return p[0]+' '+a.toFixed(1)+'% '+acc.toFixed(1)+'%';}).join(','):'rgba(255,255,255,0.12) 0 100%';
   const now=new Date();const months=[];
-  for(let i=11;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({y:d.getFullYear(),m:d.getMonth(),v:0});}
+  for(let i=5;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({y:d.getFullYear(),m:d.getMonth(),v:0});}   // 카드가 좁아져 최근 6개월만
   todos.forEach(t=>{if(t.status!=='done'||!t.doneAt)return;const d=new Date(t.doneAt);const mm=months.find(x=>x.y===d.getFullYear()&&x.m===d.getMonth());if(mm)mm.v++;});
-  const max=Math.max(1,...months.map(x=>x.v));const thisM=months[11].v;
+  const max=Math.max(1,...months.map(x=>x.v));const thisM=months[months.length-1].v;
+  // 회사 숫자: 보유 고객사(잠재고객 제외) · 이번 달 신규 · 진행 중 고객사(열린 업무가 있는 곳)
+  const live=companies.filter(c=>c.active!=='N');
+  const custN=live.filter(c=>c.group!=='잠재고객').length;
+  const ym=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  const newN=live.filter(c=>{const d=c.createdAt?todoDayStr(new Date(c.createdAt)):(c.joinDate||'');return String(d).slice(0,7)===ym;}).length;
+  const activeN=new Set(g.ing.concat(g.todo).map(t=>t.bizno).filter(Boolean)).size;
+  const tile=(l,n,c)=>'<div class="tvd-ctile"><div class="l">'+l+'</div><div class="n" style="color:'+c+'">'+n+'</div></div>';
   return '<div class="tvd-glass tvd-st"><div class="tvd-sec" style="font-size:44px">통계</div>'
+    +'<div class="tvd-ctiles" style="grid-template-columns:repeat(3,minmax(0,1fr));margin:0">'+tile('보유 고객사',custN,'#e6ebf3')+tile('이번 달 신규',newN,'#8ce99a')+tile('진행 중 고객사',activeN,'#74c0fc')+'</div>'
     +'<div style="display:flex;align-items:center;gap:30px">'
       +'<div class="tvd-donut" style="background:conic-gradient('+stops+')"><div><div style="font-size:64px;font-weight:900;line-height:1">'+total+'</div><div style="font-size:24px;color:#c3cde0">열린 일</div></div></div>'
       +'<div><div style="font-size:30px;color:#c3cde0">이번 달 완료</div><div style="font-size:100px;font-weight:900;line-height:1">'+thisM+'<span style="font-size:36px;color:#c3cde0"> 건</span></div></div>'
     +'</div>'
-    +'<div style="flex:1;display:flex;flex-direction:column;min-height:0"><div style="font-size:30px;color:#c3cde0;margin-bottom:12px">월별 완료 (최근 12개월)</div>'
-    +'<div class="tvd-bars">'+months.map((x,i)=>'<div class="tvd-bar'+(i===11?' now':'')+'"><div class="v">'+x.v+'</div><div class="b" style="height:'+Math.round(x.v/max*80)+'%"></div><div class="m">'+(x.m+1)+'월</div></div>').join('')+'</div></div>'
+    +'<div style="flex:1;display:flex;flex-direction:column;min-height:0"><div style="font-size:30px;color:#c3cde0;margin-bottom:12px">월별 완료 (최근 6개월)</div>'
+    +'<div class="tvd-bars">'+months.map((x,i)=>'<div class="tvd-bar'+(i===months.length-1?' now':'')+'"><div class="v">'+x.v+'</div><div class="b" style="height:'+Math.round(x.v/max*80)+'%"></div><div class="m">'+(x.m+1)+'월</div></div>').join('')+'</div></div>'
   +'</div>';
 }
 
 // ── 화면 전체 ──
 function tvdTodoHtml(g){
+  // ★ 긴급 업무는 따로 칸으로 맨 위에 — 진행·예정 칸에서는 빼서 두 번 보이지 않게 (2026-10-12)
+  const ingRest=g.ing.filter(t=>t.priority!=='high'),todoRest=g.todo.filter(t=>t.priority!=='high');
   const kp=(lab,n,c,nc,extra)=>'<div class="tvd-glass tvd-kpi" style="'+(extra||'')+'"><div class="l"><span class="tvd-dot" style="background:'+c+';box-shadow:0 0 14px '+c+'"></span>'+lab+'</div><div class="n" style="color:'+nc+'">'+n+'</div></div>';
   const kpis='<div class="tvd-kpis">'
     +kp('★ 긴급',g.urg.length,'#ff3b30','#ffffff',g.urg.length?'background:linear-gradient(145deg,rgba(255,90,79,0.55),rgba(229,40,29,0.35));border-color:rgba(255,140,130,0.7);box-shadow:0 30px 60px rgba(0,0,0,0.45),0 0 80px rgba(255,59,48,0.35)':'')
-    +kp('하고 있는 업무',g.ing.length,'#4dabf7','#74c0fc')+kp('해야 할 업무',g.todo.length,'#b197fc','#d0bfff')
+    +kp('진행 업무',ingRest.length,'#4dabf7','#74c0fc')+kp('예정 업무',todoRest.length,'#b197fc','#d0bfff')
     +kp('빨간 표시',g.alert,'#ff922b',g.alert?'#ffb066':'#8a95ad')+kp('💡 제안',g.idea.length,'#38d9a9','#96f2d7')+'</div>';
   // 개수를 자르지 않는다 — 넘치면 tvdFitList()가 글자를 줄이고, 그래도 넘치면 2단으로 나눈다
   // 칸(대분류) → 업무 분야(중분류) 작은 제목 → 할 일
-  const grp=(title,arr,c,tc)=>{
+  const grp=(title,arr,c,tc,extra,flat)=>{   // flat: 분야로 묶지 않고 그대로 (긴급 칸)
     if(!arr.length)return '';
-    const row=t=>{const urg=t.priority==='high';const pc=urg?'#ffffff':t._alert?'#ff8f85':tc;
+    const row=t=>{const urg=t.priority==='high'&&!flat;const pc=urg?'#ffffff':t._alert?'#ff8f85':tc;
         return '<div class="tvd-row'+(urg?' urg':'')+'"><div class="no">'+escAttr(todoNoLabel(t))+'</div><div class="t">'+(urg?'<span style="color:#ff6b5e">★ </span>':'')+tvdTodoName(t)+'</div><div class="tvd-pill" style="color:'+pc+(urg?';background:#ff3b30':t._alert?';background:rgba(255,59,48,0.22)':'')+'">'+escAttr(tvdDueTxt(t))+'</div></div>';};
-    return '<div class="tvd-grp-hd" style="color:'+tc+'"><span class="tvd-dot" style="background:'+c+';box-shadow:0 0 14px '+c+'"></span>'+title+'<span class="c">'+arr.length+'</span></div>'
-      +todoCatGroups(arr).map(gr=>'<div class="tvd-subhd">'+escAttr(gr.name)+'<span>'+gr.items.length+'</span></div>'+gr.items.map(row).join('')).join('');
+    // 칸마다 색 상자(연한 바탕 + 왼쪽 굵은 띠 + 색 제목 띠)로 감싸 멀리서도 구분 (2026-10-12)
+    return '<div class="tvd-blk'+(extra||'')+'" style="--bc:'+c+'">'
+      +'<div class="tvd-grp-hd" style="color:'+tc+'">'+title+'<span class="c">'+arr.length+'</span></div>'
+      +(flat?arr.map(row).join(''):todoCatGroups(arr).map(gr=>'<div class="tvd-subhd">'+escAttr(gr.name)+'<span>'+gr.items.length+'</span></div>'+gr.items.map(row).join('')).join(''))
+      +'</div>';
   };
-  const list=grp('하고 있는 업무',g.ing,'#4dabf7','#74c0fc')+grp('해야 할 업무',g.todo,'#b197fc','#d0bfff')   // 해야 할 업무 = 라벤더 (제목·숫자·D-n만, 할 일 글자는 흰색)
-    +(g.idea.length?'<div class="tvd-idea">'+grp('💡 제안 업무',g.idea,'#38d9a9','#96f2d7')+'</div>':'');   // 제안은 맨 아래 흐리게
+  const urgList=g.urg.slice().sort((a,b)=>(a._col===b._col?0:a._col==='ing'?-1:1)||((b._alert?1:0)-(a._alert?1:0))||(a.dueDate||'9999').localeCompare(b.dueDate||'9999'));
+  const list=grp('★ 긴급 업무',urgList,'#ff3b30','#ffb3ad',' tvd-urgblk',true)
+    +grp('진행 업무',ingRest,'#4dabf7','#74c0fc')+grp('예정 업무',todoRest,'#b197fc','#d0bfff')   // 예정 업무 = 라벤더 (제목·숫자·D-n만, 할 일 글자는 흰색)
+    +grp('💡 제안 업무',g.idea,'#38d9a9','#96f2d7',' tvd-idea');   // 제안은 맨 아래 흐리게
   return '<div class="tvd-col">'+kpis+'<div class="tvd-glass tvd-list" id="tvd-list">'+(list||'<div class="tvd-empty">열린 할 일이 없습니다.</div>')+'</div></div>';
 }
-// 할 일 목록을 칸에 맞춘다: 글자 40→30px로 줄여 보고, 그래도 넘치면 2단으로 나눠 36→26px.
+// 할 일 목록을 칸에 맞춘다: 글자 36→28px로 줄여 보고, 그래도 넘치면 2단으로 나눠 32→24px.
 //   그래도 넘치면(할 일이 아주 많을 때) 맨 아래에 「일부만 보임」을 알린다.
 function tvdFitList(){
   const el=document.getElementById('tvd-list');if(!el)return;
   const over=()=>el.scrollHeight>el.clientHeight+2||el.scrollWidth>el.clientWidth+2;
   const tryFit=(from,to)=>{for(let fs=from;fs>=to;fs-=2){el.style.setProperty('--tfs',fs+'px');if(!over())return true;}return false;};
   el.classList.remove('cols2');
-  // 2026-10-12 사장님: 한 단계씩 작게 — 한 단 40→30px, 두 단 36→26px (예전 44→34 · 40→28)
-  if(tryFit(40,30))return;
+  // 2026-10-12 사장님: 한 단계씩 작게(두 번) — 한 단 36→28px, 두 단 32→24px (처음 44→34 · 40→28)
+  if(tryFit(36,28))return;
   el.classList.add('cols2');
-  if(tryFit(36,26))return;
+  if(tryFit(32,24))return;
   const rows=[...el.querySelectorAll('.tvd-row')];const box=el.getBoundingClientRect();
   const hidden=rows.filter(r=>{const b=r.getBoundingClientRect();return b.bottom>box.bottom+1||b.right>box.right+1;}).length;
   if(hidden)el.insertAdjacentHTML('beforeend','<div class="tvd-more" style="position:absolute;right:40px;bottom:14px;background:rgba(10,16,32,0.9);border-radius:12px;padding:6px 16px">'+hidden+'건 더 있음 — 할 일 프로그램에서 전체 보기</div>');
@@ -5287,11 +5373,14 @@ function renderTvd(){
   const main=document.getElementById('tvd-main');if(!tvdOn||!main)return;
   try{
     const g=tvdTodoGroups();const dls=tvdDeadlines();const ck=tvdClockTxt();
+    const cr=tvdCalRange();const evs=tvdCalEvents(cr.rs,cr.re);
     main.innerHTML='<div class="tvd-hd"><div style="display:flex;align-items:center;gap:30px"><div class="tvd-logo">SG</div><div class="tvd-title">(주)에스지솔루션 통합 제어 시스템</div></div>'
       +'<div class="tvd-glass tvd-clockbox"><div class="tvd-date" id="tvd-date">'+ck.date+'</div><div class="tvd-clock" id="tvd-clock">'+ck.time+'</div></div></div>'
-      +'<div class="tvd-body">'+tvdTodoHtml(g)+tvdCalHtml()+'<div class="tvd-col">'+tvdDlHtml(dls)+tvdStatsHtml(g)+'</div></div>'
+      // 화면 구성(2026-10-12 1안): 왼쪽 할 일 · 오른쪽 위 한 달 달력(넓게) · 오른쪽 아래 카드 3개(📞 통화 일정 / 인증·기한 알림 / 통계)
+      +'<div class="tvd-body">'+tvdTodoHtml(g)
+        +'<div class="tvd-right">'+tvdCalHtml(evs)+'<div class="tvd-cards">'+tvdCallsHtml()+tvdDlHtml(dls)+tvdStatsHtml(g)+'</div></div></div>'
       +tvdTickHtml();
-    tvdFitList();tvdFitDl();
+    tvdFitList();tvdFitDl();tvdFitAgenda();
     tvdCheckAlerts(g,dls);
   }catch(e){console.error('[TV] 그리기 오류',e);main.innerHTML='<div style="font-size:60px;padding:80px">화면을 그리는 중 오류가 났습니다: '+escAttr(e.message)+'</div>';}
 }
@@ -5355,6 +5444,7 @@ function tvdNextPop(){
   const wrap=document.getElementById('tvd-popwrap');if(!wrap)return;
   clearTimeout(tvdPopTimer);
   tvdPopCur=tvdPopQ.shift()||null;
+  if(!tvdPopCur&&tvdReloadPending){location.reload();return;}   // 경고창 때문에 미룬 새로고침
   if(!tvdPopCur){wrap.innerHTML='';return;}
   tvdMarkSeen(tvdPopCur.key);
   wrap.innerHTML='<div class="tvd-veil"></div>'+tvdPopHtml(tvdPopCur);
@@ -5379,8 +5469,24 @@ function tvdOpen(){
       if(new Date().getHours()===4&&Date.now()-tvdOpenedAt>3*3600000){location.reload();return;}
       renderTvd();
     },60000),
-    setInterval(()=>tvdLoadCal(false),5*60000)
+    setInterval(()=>tvdLoadCal(false),5*60000),
+    setInterval(tvdCheckDeploy,5*60000)            // 5분마다 새 배포가 올라왔는지 → 있으면 새로고침 (F5 없이)
   ];
+  tvdCheckDeploy();
+}
+// ── 새 배포 알아채기 ── 이 페이지(index.html)를 캐시 없이 다시 받아 처음 받은 것과 다르면 새로고침.
+//   경고창이 떠 있으면 닫힌 뒤로 미룬다. 받기 실패(인터넷 끊김 등)는 조용히 넘어간다.
+let tvdPageSig=null,tvdReloadPending=false;
+function tvdSig(txt){let h=5381;for(let i=0;i<txt.length;i++)h=((h<<5)+h+txt.charCodeAt(i))|0;return txt.length+':'+h;}
+async function tvdCheckDeploy(){
+  if(!tvdOn)return;
+  try{
+    const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});if(!r.ok)return;
+    const sig=tvdSig(await r.text());
+    if(tvdPageSig===null){tvdPageSig=sig;return;}
+    if(sig!==tvdPageSig){tvdReloadPending=true;console.log('[TV] 새 배포 감지 → 새로고침');}
+  }catch(e){}
+  if(tvdReloadPending&&!tvdPopCur)location.reload();
 }
 function tvdClose(){
   if(!tvdOn)return;
@@ -5498,8 +5604,8 @@ function todoSectionHtml(title,sub,color,bg,list,emptyText,grouped){
 function todoTodayHtml(g){
   const weekAgo=Date.now()-7*86400000;
   const doneRecent=g.done.filter(t=>(t.doneAt||t.updatedAt||t.createdAt||0)>=weekAgo);
-  return todoSectionHtml('하고 있는 업무','시작일이 온 일 · 며칠째인지 · 업무 분야별','#9A3412','#FFF7ED',g.ing,'하고 있는 업무가 없습니다',true)
-    +todoSectionHtml('해야 할 업무','시작일이 아직 · 그날이 되면 위로 올라감','#1E40AF','#EFF6FF',g.todo,'없음',true)
+  return todoSectionHtml('진행 업무','시작일이 온 일 · 며칠째인지 · 업무 분야별','#9A3412','#FFF7ED',g.ing,'진행 업무가 없습니다',true)
+    +todoSectionHtml('예정 업무','시작일이 아직 · 그날이 되면 위로 올라감','#1E40AF','#EFF6FF',g.todo,'없음',true)
     +(g.idea.length?todoSectionHtml('💡 제안 업무','업체가 맡기기 전, 우리가 먼저 제안할 일','#0F766E','#F0FDFA',g.idea,'',true):'')
     +'<button class="tdl-fold" onclick="todoToggleLater()">'+(todoLaterOpen?'▾':'▸')+' 완료 업무 (최근 7일) '+doneRecent.length+'건</button>'
     +(todoLaterOpen&&doneRecent.length?todoSectionHtml('완료 업무','최근 7일','#065F46','#ECFDF5',doneRecent,''):'');
@@ -5518,7 +5624,7 @@ function todoCompanyHtml(g){
   if(!rows.length)return '<div class="tdl-empty" style="background:var(--surface);border:1px solid var(--border);border-radius:12px">열린 할 일이 없습니다</div>';
   return '<div class="tdl-cotable"><div class="tdl-co-hd"><div>기업</div><div>상태</div><div>열린 할 일</div><div style="text-align:right">가장 가까운 마감</div></div>'
     +rows.map(r=>{
-      const st=r.miss?['빨간 표시 '+r.miss,'#991B1B','#FEE2E2']:r.ing?['하고 있음','#9A3412','#FFEDD5']:r.idea===r.items.length?['💡 제안만','#0F766E','#CCFBF1']:['해야 할 업무','#1E40AF','#DBEAFE'];
+      const st=r.miss?['빨간 표시 '+r.miss,'#991B1B','#FEE2E2']:r.ing?['진행','#9A3412','#FFEDD5']:r.idea===r.items.length?['💡 제안만','#0F766E','#CCFBF1']:['예정 업무','#1E40AF','#DBEAFE'];
       const days=r.last?Math.floor((Date.now()-r.last)/86400000):null;
       return '<div class="tdl-co-row'+(r.key===''?' tdl-co-none':'')+'">'
         +'<div>'+(r.key?'<button class="tdl-link" style="font-weight:700;font-size:15px" data-b="'+escAttr(r.key)+'" onclick="openCompanyModal(this.dataset.b)">'+escAttr(tvMask(r.name))+'</button>':'<b style="color:var(--text2)">기업 연결 없음</b>')
@@ -5593,10 +5699,10 @@ function todoMobileHtml(g){
   const b=todoBriefData(g);
   const list=[].concat(g.ing.map(t=>['ing',t]),g.todo.map(t=>['todo',t]),g.idea.map(t=>['idea',t]));
   let last='';
-  const head={ing:['하고 있는 업무','#9A3412'],todo:['해야 할 업무','#1E40AF'],idea:['💡 제안 업무','#0F766E']};
+  const head={ing:['진행 업무','#9A3412'],todo:['예정 업무','#1E40AF'],idea:['💡 제안 업무','#0F766E']};
   return '<div class="tdl-m-stats">'
-      +'<div style="background:#FFF7ED"><span>하고 있는 업무</span><b style="color:#C2410C">'+g.ing.length+'</b></div>'
-      +'<div style="background:#EFF6FF"><span>해야 할 업무</span><b style="color:#1D4ED8">'+g.todo.length+'</b></div>'
+      +'<div style="background:#FFF7ED"><span>진행 업무</span><b style="color:#C2410C">'+g.ing.length+'</b></div>'
+      +'<div style="background:#EFF6FF"><span>예정 업무</span><b style="color:#1D4ED8">'+g.todo.length+'</b></div>'
       +'<div style="background:#FEF2F2"><span>빨간 표시</span><b style="color:#B91C1C">'+g.alert+'</b></div>'
     +'</div>'
     +list.map(([col,t])=>{
@@ -5618,14 +5724,14 @@ function renderTodo(sfx){
   const grid=document.getElementById('todo-grid'+s);if(!grid)return;
   const g=todoGroups();
   const cnt=document.getElementById('ov-todo-cnt');
-  if(cnt)cnt.textContent='하고 있는 '+g.ing.length+' · 해야 할 '+g.todo.length+(g.idea.length?' · 제안 '+g.idea.length:'')+(g.alert?' · 빨간 표시 '+g.alert:'');
+  if(cnt)cnt.textContent='진행 '+g.ing.length+' · 예정 '+g.todo.length+(g.idea.length?' · 제안 '+g.idea.length:'')+(g.alert?' · 빨간 표시 '+g.alert:'');
   if(!sfx){
-    // 대시보드: 할 일 화면과 같은 모양 — 접힌 브리핑 + 하고 있는 업무 상위 6줄 + 곧 시작할 업무 3줄
+    // 대시보드: 할 일 화면과 같은 모양 — 접힌 브리핑 + 진행 업무 상위 6줄 + 곧 시작할 업무 3줄
     grid.className=TODO_READONLY?'todo-ro':'';
     grid.innerHTML=todoBriefHtml(g)
-      +todoSectionHtml('하고 있는 업무','긴급(★)·빨간 표시 먼저','#9A3412','#FFF7ED',g.ing.slice(0,6),'하고 있는 업무가 없습니다')
-      +(g.todo.length?todoSectionHtml('해야 할 업무','곧 시작하는 순','#1E40AF','#EFF6FF',g.todo.slice(0,3),''):'')
-      +'<button class="tdl-fold" onclick="navTo(\'todo\')">할 일 전체 보기 (하고 있는 '+g.ing.length+' · 해야 할 '+g.todo.length+' · 💡 제안 '+g.idea.length+') →</button>';
+      +todoSectionHtml('진행 업무','긴급(★)·빨간 표시 먼저','#9A3412','#FFF7ED',g.ing.slice(0,6),'진행 업무가 없습니다')
+      +(g.todo.length?todoSectionHtml('예정 업무','곧 시작하는 순','#1E40AF','#EFF6FF',g.todo.slice(0,3),''):'')
+      +'<button class="tdl-fold" onclick="navTo(\'todo\')">할 일 전체 보기 (진행 '+g.ing.length+' · 예정 '+g.todo.length+' · 💡 제안 '+g.idea.length+') →</button>';
     return;
   }
   grid.className=TODO_READONLY?'todo-ro':'';
@@ -5874,7 +5980,7 @@ function renderCompanyTodos(bizno){
     +'</div>';
   h+=open.length?'<div style="display:grid;gap:6px">'+open.map(t=>{
       return '<div style="display:flex;gap:8px;align-items:center;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px'+(t._alert?';border-left:3px solid #DC2626':'')+'">'
-        +'<span style="font-size:11px;color:'+(t._col==='ing'?'#C2410C':t._col==='idea'?'#0F766E':'#1D4ED8')+';flex-shrink:0">'+(t._col==='ing'?'하고 있음':t._col==='idea'?'💡 제안':'해야 할')+'</span>'
+        +'<span style="font-size:11px;color:'+(t._col==='ing'?'#C2410C':t._col==='idea'?'#0F766E':'#1D4ED8')+';flex-shrink:0">'+(t._col==='ing'?'진행':t._col==='idea'?'💡 제안':'예정')+'</span>'
         +'<span style="flex:1;font-size:13px;cursor:pointer" data-id="'+escAttr(t.id)+'" onclick="openTodoModal(null,this.dataset.id)">'+escAttr(t.text)+'</span>'
         +(t._reason?'<span style="font-size:11px;color:'+(t._alert?'#DC2626':'var(--text3)')+';flex-shrink:0">'+escAttr(t._reason)+'</span>':'')
         +'<button class="btn btn-ghost btn-sm todo-btn" data-id="'+escAttr(t.id)+'" onclick="todoSetStatus(this.dataset.id,\'done\')">완료</button>'
@@ -12591,7 +12697,7 @@ onAuthStateChanged(auth,(u)=>{
 // ── GLOBAL EXPORTS ──
 Object.assign(window,{
   crmSignIn,crmSignOut,todoGoApp,todoGoRef,
-  copyDriveScript,tvToggleMask,tvSetZoom,tvExit,tvdExit,
+  copyDriveScript,tvToggleMask,tvSetZoom,tvExit,tvdExit,tvdCheckDeploy,
   navTo,manualSave,closeModal,
   downloadBackup,openRestorePicker,restoreBackupFile,
   openDriveImport,saveDriveKeyAndLoad,renderDriveImport,driveImportPick,
