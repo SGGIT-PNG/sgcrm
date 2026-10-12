@@ -350,7 +350,7 @@ body.tvd-on{overflow:hidden;}
 .tvd-sub{font-size:32px;color:#c3cde0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .tvd-pill{font-weight:700;border-radius:999px;padding:6px 20px;white-space:nowrap;background:rgba(0,0,0,0.25);font-size:32px;}
 .tvd-due-red{font-size:40px;font-weight:900;color:#fff;background:#ff3b30;border-radius:18px;padding:8px 24px;box-shadow:0 10px 26px rgba(255,59,48,0.45);white-space:nowrap;}
-.tvd-list{position:relative;--tfs:44px;padding:18px 38px 22px;flex:1;min-height:0;overflow:hidden;column-fill:auto;}
+.tvd-list{position:relative;--tfs:40px;padding:18px 38px 22px;flex:1;min-height:0;overflow:hidden;column-fill:auto;}
 .tvd-list.cols2{column-count:2;column-gap:48px;column-rule:1px solid rgba(255,255,255,0.10);}
 .tvd-list.cols2 .tvd-row{padding-left:0;}
 .tvd-grp{break-inside:avoid-column;}
@@ -5242,16 +5242,17 @@ function tvdTodoHtml(g){
     +(g.idea.length?'<div class="tvd-idea">'+grp('💡 제안 업무',g.idea,'#38d9a9','#96f2d7')+'</div>':'');   // 제안은 맨 아래 흐리게
   return '<div class="tvd-col">'+kpis+'<div class="tvd-glass tvd-list" id="tvd-list">'+(list||'<div class="tvd-empty">열린 할 일이 없습니다.</div>')+'</div></div>';
 }
-// 할 일 목록을 칸에 맞춘다: 글자 44→34px로 줄여 보고, 그래도 넘치면 2단으로 나눠 40→28px.
+// 할 일 목록을 칸에 맞춘다: 글자 40→30px로 줄여 보고, 그래도 넘치면 2단으로 나눠 36→26px.
 //   그래도 넘치면(할 일이 아주 많을 때) 맨 아래에 「일부만 보임」을 알린다.
 function tvdFitList(){
   const el=document.getElementById('tvd-list');if(!el)return;
   const over=()=>el.scrollHeight>el.clientHeight+2||el.scrollWidth>el.clientWidth+2;
   const tryFit=(from,to)=>{for(let fs=from;fs>=to;fs-=2){el.style.setProperty('--tfs',fs+'px');if(!over())return true;}return false;};
   el.classList.remove('cols2');
-  if(tryFit(44,34))return;
+  // 2026-10-12 사장님: 한 단계씩 작게 — 한 단 40→30px, 두 단 36→26px (예전 44→34 · 40→28)
+  if(tryFit(40,30))return;
   el.classList.add('cols2');
-  if(tryFit(40,28))return;
+  if(tryFit(36,26))return;
   const rows=[...el.querySelectorAll('.tvd-row')];const box=el.getBoundingClientRect();
   const hidden=rows.filter(r=>{const b=r.getBoundingClientRect();return b.bottom>box.bottom+1||b.right>box.right+1;}).length;
   if(hidden)el.insertAdjacentHTML('beforeend','<div class="tvd-more" style="position:absolute;right:40px;bottom:14px;background:rgba(10,16,32,0.9);border-radius:12px;padding:6px 16px">'+hidden+'건 더 있음 — 할 일 프로그램에서 전체 보기</div>');
