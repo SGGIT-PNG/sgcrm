@@ -5287,7 +5287,7 @@ function tvdLeadsHtml(){
   const rows=xs.map(x=>{const p=LEAD_PRODUCT[x.l.product]||LEAD_PRODUCT.etc;
       const info=[leadPick(x.l,'city'),leadPick(x.l,'industry')].filter(Boolean).join(' · ');
       return '<div class="tvd-ag-row'+(x.alert?' lead-alert':'')+'"><div class="tm ld" style="color:'+p[1]+'">'+p[0]+'</div>'
-        +'<div class="tx"><b>'+escAttr(leadMaskName(x.l.name))+'</b>'+(info?' · '+escAttr(info):'')+' — '+escAttr(x.why)+'</div></div>';}).join('');
+        +'<div class="tx"><b>'+escAttr(leadMaskName(x.l.name))+'</b>'+(x.l.company?' · '+escAttr(tvMask(x.l.company)):'')+(info?' · '+escAttr(info):'')+' — '+escAttr(x.why)+'</div></div>';}).join('');
   // 4건이 넘으면 자동으로 흘러가게(한 건에 3초) — 2026-10-13 사장님: 다 보여 주기보다 스크롤 효과
   const body=xs.length>4?'<div class="tvd-ld-roll"><div class="tvd-ld-track" style="animation-duration:'+(xs.length*3)+'s">'+rows+rows+'</div></div>':rows;
   return '<div class="tvd-ag-hd lead">📣 광고 DB<span class="c">새 '+nN+' · 재통화 '+nC+'</span></div>'+body;
