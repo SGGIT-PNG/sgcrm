@@ -155,7 +155,8 @@ iso-one ─┐                          ┌─ 인증·갱신 화면 (현황·�
 
 - 인증·갱신 화면: `cert_status`를 기업·인증별 한 줄로 표시. 「○○에서 열기」 버튼 = `link`. 입력 버튼은 해당 프로그램이 주인인 인증부터 없앤다.
 - 갱신 알림: `certified` + `expiresAt` D-90 이내 → 갱신 대상, 지남 → 만료(표시만). `nextDue`가 있으면 그 날짜 우선.
-- 할 일 자동 생성: 지금 `createCertTasks`·`createIsoTasks`가 하는 일을 `cert_status` 기준으로 옮긴다(`source:'cert'`, `sourceRef` = 문서 ID, 중복 생성 없음). 할 일 쓰기 창구가 가동되면 그쪽 예약 작업으로 이전.
+- 할 일 자동 생성: **할 일 쓰기 창구(할 일 프로그램 Worker)의 매일 06:00 예약 작업**이 맡는다(CRM은 2026-10부터 할 일을 직접 쓰지 않음, `TODO_READONLY`). 그 예약 작업에 `cert_status` 읽기를 추가해야 한다 — `certified` + `expiresAt` D-90 이내면 「[기업] ○○ 갱신 준비」(마감=만료일, `source:'cert'`, `dedupeKey='cert:cs:'+문서ID`), `nextDue`가 있으면 「[기업] nextAction」(마감=nextDue, `dedupeKey='cert:cs:'+문서ID+':'+nextDue`). 같은 기업·인증의 옛 수기 기록(`certifications`)으로는 만들지 않는다. **→ 할 일 프로그램 개발 창 작업.**
+- (2026-10-13 구현) CRM 인증·갱신 화면 「🔗 연동 현황」 탭, 대시보드 갱신 배너·인증 요약·사이드바 숫자에 반영, 겹치는 수기 기록은 갱신 알림에서 뺌.
 - 통계: 인증별 취득·갱신·만료 건수, 월별 발급, 기업별 보유 인증.
 - 구글 캘린더: 인증 갱신 일정만(약속 위주 원칙, `WORK_STRUCTURE.md` 8장).
 - **기존 수기 기록(`certifications`)과의 관계**: 같은 기업·인증의 `cert_status`가 들어오면 CRM 화면은 `cert_status`를 우선 보여 주고, 수기 기록은 「옛 기록」으로 접는다. 수기 기록 정리(삭제)는 확인 후 따로 한다.

@@ -1172,10 +1172,28 @@ body.tvd-on{overflow:hidden;}
       <div id="iso-sync-banner" style="display:none;margin-bottom:14px"></div>
       <!-- 탭 -->
       <div style="display:flex;gap:2px;margin-bottom:18px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:4px;width:fit-content">
+        <button class="toggle-opt" id="cert-tab-linked" onclick="setCertTab('linked')">🔗 연동 현황</button>
         <button class="toggle-opt active" id="cert-tab-alert" onclick="setCertTab('alert')">⚠️ 갱신 알림</button>
         <button class="toggle-opt" id="cert-tab-by-cert" onclick="setCertTab('by-cert')">📋 인증별 기업</button>
         <button class="toggle-opt" id="cert-tab-by-comp" onclick="setCertTab('by-comp')">🏢 기업별 인증</button>
         <button class="toggle-opt" id="cert-tab-master" onclick="setCertTab('master')">⚙️ 인증 종류 관리</button>
+      </div>
+
+      <!-- 탭0: 연동 현황 — iso-one·메인이노가 보낸 cert_status (읽기 전용) -->
+      <div id="cert-pane-linked" style="display:none">
+        <div style="display:flex;gap:10px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
+          <div class="search-wrap" style="flex:1;max-width:280px;margin-bottom:0">
+            <span class="search-ico">🔍</span>
+            <input class="search-inp" id="cert-linked-search" placeholder="기업명 검색" oninput="renderCertLinked()">
+          </div>
+          <select class="fs" id="cert-linked-state" onchange="renderCertLinked()" style="width:150px" aria-label="상태">
+            <option value="">전체 상태</option><option value="renew">갱신 대상(D-90)</option><option value="expired">만료</option>
+            <option value="certified">유효</option><option value="progress">진행 중</option><option value="closed">불합격·중단</option>
+          </select>
+          <select class="fs" id="cert-linked-cert" onchange="renderCertLinked()" style="width:170px" aria-label="인증"></select>
+          <select class="fs" id="cert-linked-src" onchange="renderCertLinked()" style="width:150px" aria-label="출처"></select>
+        </div>
+        <div id="cert-linked-list"></div>
       </div>
 
       <!-- 탭1: 갱신 알림 -->
@@ -2671,7 +2689,9 @@ const COL = {
   certifications:     ()=>collection(db,'certifications'),
   cert_master:        ()=>collection(db,'cert_master'),
   annual_reports:     ()=>collection(db,'annual_reports'), // 연구소 연간 신고 이력
-  iso_audits:         ()=>collection(db,'iso_audits'),     // [iso-one 연동] ISO 심사 일정 (읽기 전용 — iso-one이 원본)
+  iso_audits:         ()=>collection(db,'iso_audits'),
+  cert_status:        ()=>collection(db,'cert_status'),   // [인증 연동] 각 프로그램이 쓰는 기업×인증 현재 상태 (읽기 전용, CERT_STATUS_SPEC.md)
+  cert_events:        ()=>collection(db,'cert_events'),   // [인증 연동] 진행 기록 (읽기 전용, 선택)     // [iso-one 연동] ISO 심사 일정 (읽기 전용 — iso-one이 원본)
   app_state:          ()=>doc(db,'app_state','config'),
 };
 
@@ -2724,6 +2744,8 @@ let certMaster = [];
 let annualReports = []; // 연구소 연간 신고 이력
 // [iso-one 연동] ISO 심사 일정 — iso-one이 원본이고 CRM은 읽어서 표시만 한다(쓰기 금지).
 let isoAudits = [];
+let certStatus = [];   // cert_status — iso-one·메인이노가 보낸 인증 현재 상태
+let certEvents = [];   // cert_events — 진행 기록
 let calY = new Date().getFullYear();
 let calM = new Date().getMonth();
 let expandedCats = new Set();
@@ -2922,6 +2944,9 @@ function startRealtimeSync(){
   onSnapshot(COL.annual_reports(),(s)=>{annualReports=s.docs.map(d=>({id:d.id,...d.data()}));renderAll();});
   // [iso-one 연동] iso-one에서 심사를 저장하면 여기로 바로 반영됨
   onSnapshot(COL.iso_audits(),(s)=>{isoAudits=s.docs.map(d=>({id:d.id,...d.data()}));renderAll();updateCounts();if(typeof scheduleIsoGcalSync==='function')scheduleIsoGcalSync();});
+  // [인증 연동] 각 업무 프로그램이 보낸 인증 상태 — CRM은 읽기만 (CERT_STATUS_SPEC.md)
+  onSnapshot(COL.cert_status(),(s)=>{certStatus=s.docs.map(d=>({id:d.id,...d.data()}));renderAll();updateCounts();},(e)=>console.warn('인증 연동(cert_status) 구독 실패:',e.message));
+  onSnapshot(COL.cert_events(),(s)=>{certEvents=s.docs.map(d=>({id:d.id,...d.data()}));if(currentPage==='cert')renderAll();},(e)=>console.warn('인증 연동(cert_events) 구독 실패:',e.message));
 }
 
 // 사용자 추가 분야를 CAT_META에 병합
@@ -3288,7 +3313,7 @@ async function manualSave(){
 // 대개편(2026-10) 전후로 "이전 상태로 되돌리기"가 필요할 때를 위한 장치.
 // 백업 = Firestore 전체를 JSON 한 파일로 내려받기 (읽기만 하므로 언제 눌러도 안전)
 // 복원 = 그 파일 상태로 되돌리기 (현재 데이터를 먼저 자동 백업한 뒤 덮어씀)
-const BACKUP_COLS=['companies','consulting','consulting_company','work_items','todos','categories','certifications','cert_master','annual_reports','iso_audits'];
+const BACKUP_COLS=['companies','consulting','consulting_company','work_items','todos','categories','certifications','cert_master','annual_reports','iso_audits','cert_status','cert_events'];
 function backupStamp(){const d=new Date();return d.getFullYear()+p2(d.getMonth()+1)+p2(d.getDate())+'_'+p2(d.getHours())+p2(d.getMinutes());}
 async function collectBackup(){
   const out={app:'SG솔루션 CRM',project:'sg-crm-f9adc',format:'sgcrm-backup-v1',exportedAt:new Date().toISOString(),collections:{},appState:null};
@@ -3405,13 +3430,13 @@ function updateCounts(){
   const cc=document.getElementById('sb-cert-cnt');
   if(cc){
     const now=Date.now();
-    const urgent=certifications.filter(c=>{
+    const urgent=certsForView().filter(c=>{
       if(!c.expDate||c.status==='만료')return false;
       if(!certCountable(c))return false;   // 끝난 단계·제외는 세지 않는다
       const diff=Math.ceil((new Date(c.expDate)-now)/(1000*60*60*24));
       return diff<=90&&diff>=0;
     }).length;
-    cc.textContent=urgent||certifications.length;
+    cc.textContent=urgent||certsForView().length;
   }
 }
 
@@ -3483,6 +3508,98 @@ function certIsActive(c){
 //   ⚠️ 끝난 심사(완료)와 제외는 만료가 아니다. ISO 사후·갱신심사는 완료하면
 //      예정일이 과거가 되므로, status를 보지 않으면 완료할수록 만료가 늘어난다
 //      (2026-08-27에 대시보드가 '인증 만료 41건'으로 뜬 원인).
+// ── [인증 연동] cert_status 읽기 (CERT_STATUS_SPEC.md v1) ──────────────────
+//   각 업무 프로그램(iso-one·메인이노)이 「기업 × 인증」 하나당 문서 하나를 최신 상태로 덮어쓴다.
+//   CRM은 읽어서 보여 주고, 갱신 대상·만료는 expiresAt으로 여기서 계산한다(프로그램이 따로 보내지 않음).
+const CS_RENEW_DAYS=90;
+const CS_STATUS={preparing:['준비','#6B7280','#F3F4F6'],in_progress:['진행 중','#92400E','#FEF3C7'],certified:['유효','#065F46','#D1FAE5'],
+  expired:['만료','#991B1B','#FEE2E2'],failed:['불합격','#991B1B','#FEE2E2'],dropped:['중단','#374151','#E5E7EB']};
+const CS_SOURCE={'iso-one':'iso-one','mainbiz-innobiz':'메인이노'};
+function certLinkedFor(bizno,code){
+  if(!bizno||!code)return null;
+  return certStatus.find(function(x){return x.bizno===bizno&&x.cert===code;})||null;
+}
+// 화면용 상태 — 유효인데 만료일이 지났으면 만료, 90일 안이면 갱신 대상
+function csState(x){
+  const d=x.expiresAt?getCertDday(x.expiresAt):null;
+  if(x.status==='certified'){
+    if(d!==null&&d<0)return {key:'expired',label:'만료 (갱신 안 됨)',d};
+    if(d!==null&&d<=CS_RENEW_DAYS)return {key:'renew',label:'갱신 대상',d};
+    return {key:'certified',label:'유효',d};
+  }
+  if(x.status==='expired')return {key:'expired',label:'만료',d};
+  if(x.status==='preparing'||x.status==='in_progress')return {key:'progress',label:(CS_STATUS[x.status]||[])[0]||'진행',d};
+  return {key:'closed',label:(CS_STATUS[x.status]||[x.status||'—'])[0],d};
+}
+// 갱신 알림·대시보드용 — 수기 인증 중 연동 기록이 생긴 것은 빼고, 연동 기록(유효)을 인증서 모양으로 넣는다
+function certsForView(){
+  const linked=new Set(certStatus.map(function(x){return x.bizno+'__'+x.cert;}));
+  const manual=certifications.filter(function(c){return !linked.has(c.bizno+'__'+c.certMasterId);});
+  const fromCs=certStatus.filter(function(x){return x.status==='certified'&&x.expiresAt;}).map(function(x){
+    return {id:'cs:'+x.id,bizno:x.bizno,companyName:x.companyName,certMasterId:x.cert,acqDate:x.issuedAt||'',expDate:x.expiresAt,status:'유효',_cs:true};
+  });
+  return manual.concat(fromCs);
+}
+function renderCertLinked(){
+  const el=document.getElementById('cert-linked-list');if(!el)return;
+  const q=(document.getElementById('cert-linked-search')?.value||'').trim().toLowerCase();
+  const fState=document.getElementById('cert-linked-state')?.value||'';
+  const certSel=document.getElementById('cert-linked-cert');
+  const srcSel=document.getElementById('cert-linked-src');
+  const fCert=certSel?.value||'',fSrc=srcSel?.value||'';
+  if(certSel){const codes=[...new Set(certStatus.map(x=>x.cert))].filter(Boolean);
+    certSel.innerHTML='<option value="">전체 인증</option>'+codes.map(c=>{const m=getCertMasterInfo(c);return '<option value="'+escAttr(c)+'"'+(fCert===c?' selected':'')+'>'+escAttr((m.icon||'')+' '+(m.certName||c))+'</option>';}).join('');}
+  if(srcSel){const srcs=[...new Set(certStatus.map(x=>x.source))].filter(Boolean);
+    srcSel.innerHTML='<option value="">전체 출처</option>'+srcs.map(c=>'<option value="'+escAttr(c)+'"'+(fSrc===c?' selected':'')+'>'+escAttr(CS_SOURCE[c]||c)+'</option>').join('');}
+  if(!certStatus.length){
+    el.innerHTML='<div class="card" style="padding:22px;font-size:13px;color:var(--text2);line-height:1.8">'
+      +'<b>아직 연동된 인증 기록이 없습니다.</b><br>iso-one·메인이노가 <code>CERT_STATUS_SPEC.md</code> 양식으로 결과를 보내기 시작하면 여기에 자동으로 나타납니다.<br>'
+      +'그 전까지 인증 현황은 「갱신 알림」·「인증별 기업」 탭(CRM 수기 기록)에서 보세요.</div>';
+    return;
+  }
+  const rows=certStatus.map(x=>Object.assign({},x,{_st:csState(x)})).filter(x=>{
+    if(fCert&&x.cert!==fCert)return false;
+    if(fSrc&&x.source!==fSrc)return false;
+    if(fState&&x._st.key!==fState)return false;
+    if(q){const comp=companies.find(c=>c._id===x.bizno);const nm=((comp&&comp.name)||x.companyName||'')+' '+x.bizno;if(nm.toLowerCase().indexOf(q)<0)return false;}
+    return true;
+  });
+  const order={expired:0,renew:1,progress:2,certified:3,closed:4};
+  rows.sort((a,b)=>(order[a._st.key]-order[b._st.key])||((a.nextDue||a.expiresAt||'9999').localeCompare(b.nextDue||b.expiresAt||'9999')));
+  const cnt=k=>certStatus.filter(x=>csState(x).key===k).length;
+  const chip=(k,label,c1,c2)=>'<button class="pg-btn'+(fState===k?' active':'')+'" style="background:'+c2+';color:'+c1+';border-color:'+c2+'" onclick="document.getElementById(\'cert-linked-state\').value=\''+k+'\';renderCertLinked()">'+label+' <b>'+cnt(k)+'</b></button>';
+  let h='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'
+    +chip('expired','만료','#991B1B','#FEE2E2')+chip('renew','갱신 대상','#92400E','#FEF3C7')+chip('progress','진행 중','#1E40AF','#DBEAFE')
+    +chip('certified','유효','#065F46','#D1FAE5')+chip('closed','불합격·중단','#374151','#E5E7EB')
+    +'<span style="margin-left:auto;font-size:12px;color:var(--text3);align-self:center">총 '+certStatus.length+'건 · 각 프로그램에서 보낸 기록 (CRM에서는 고치지 않습니다)</span></div>';
+  h+='<div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr>'
+    +'<th>기업</th><th>인증</th><th>상태</th><th>취득일</th><th>만료일</th><th>다음 할 일</th><th>출처</th><th></th></tr></thead><tbody>';
+  h+=rows.map(x=>{
+    const comp=companies.find(c=>c._id===x.bizno);
+    const m=getCertMasterInfo(x.cert);
+    const st=x._st;const col=CS_STATUS[x.status]||['','#374151','#E5E7EB'];
+    const badgeC=st.key==='expired'?['#991B1B','#FEE2E2']:st.key==='renew'?['#92400E','#FEF3C7']:[col[1],col[2]];
+    const dd=st.d===null?'':(st.d<0?' <span style="color:#B91C1C;font-weight:700">('+(-st.d)+'일 지남)</span>':st.d<=CS_RENEW_DAYS?' <span style="color:#92400E;font-weight:700">(D-'+st.d+')</span>':'');
+    const upd=x.updatedAt?new Date(+x.updatedAt).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'}):'';
+    return '<tr>'
+      +'<td>'+(comp?'<button class="tdl-link" data-b="'+escAttr(x.bizno)+'" onclick="openCompanyModal(this.dataset.b)">'+escAttr(comp.name)+'</button>':escAttr(x.companyName||x.bizno)+' <span style="color:#B91C1C;font-size:11px">CRM 미등록</span>')+'</td>'
+      +'<td>'+escAttr((m.icon||'')+' '+(m.certName||x.cert))+(x.grade?' <span style="color:var(--text3);font-size:11px">'+escAttr(x.grade)+'</span>':'')+'</td>'
+      +'<td><span class="todo-chip" style="background:'+badgeC[1]+';color:'+badgeC[0]+';font-weight:700">'+escAttr(st.label)+'</span>'+(x.stage?'<div style="font-size:11px;color:var(--text3)">'+escAttr(x.stage)+'</div>':'')+'</td>'
+      +'<td style="font-family:\'JetBrains Mono\',monospace;font-size:12px">'+escAttr(x.issuedAt||'—')+'</td>'
+      +'<td style="font-family:\'JetBrains Mono\',monospace;font-size:12px">'+escAttr(x.expiresAt||'—')+dd+'</td>'
+      +'<td style="font-size:12px">'+escAttr(x.nextAction||'')+(x.nextDue?'<div style="color:var(--text3)">'+escAttr(x.nextDue)+'</div>':'')+'</td>'
+      +'<td style="font-size:12px;color:var(--text3)">'+escAttr(CS_SOURCE[x.source]||x.source||'')+(upd?'<div>'+upd+(x.updatedBy?' · '+escAttr(x.updatedBy):'')+'</div>':'')+'</td>'
+      +'<td>'+(x.link&&/^https:\/\//.test(x.link)?'<a class="btn btn-ghost btn-sm" href="'+escAttr(x.link)+'" target="_blank" rel="noopener">열기 ↗</a>':'')+'</td>'
+      +'</tr>';
+  }).join('')||'<tr><td colspan="8" style="padding:16px;color:var(--text3)">조건에 맞는 기록이 없습니다</td></tr>';
+  h+='</tbody></table></div></div>';
+  // 수기 기록 중 연동 기록과 겹치는 것 — 옛 기록으로 접어 보여 줌
+  const legacy=certifications.filter(c=>certLinkedFor(c.bizno,c.certMasterId));
+  if(legacy.length)h+='<details style="margin-top:12px;font-size:12px;color:var(--text3)"><summary style="cursor:pointer">CRM 수기 기록 중 연동 기록과 겹치는 것 '+legacy.length+'건 (옛 기록 — 갱신 알림에서 빠짐)</summary>'
+    +'<div style="padding:8px 4px;line-height:1.8">'+legacy.map(c=>{const comp=companies.find(z=>z._id===c.bizno);const m=getCertMasterInfo(c.certMasterId);
+      return escAttr((comp?comp.name:c.companyName||c.bizno)+' · '+(m.certName||c.certMasterId)+' · 만료 '+(c.expDate||'—'));}).join('<br>')+'</div></details>';
+  el.innerHTML=h;
+}
 function certIsExpired(c){
   if(!c||c.status==='제외'||c.status==='완료')return false;
   if(c.status==='만료')return true;
@@ -7520,20 +7637,21 @@ function certMasterOptions(selectedId='', collapseIso=false){
   return html;
 }
 
-let certTabCurrent='alert';
+let certTabCurrent='';   // 첫 진입: 연동 기록이 있으면 「연동 현황」, 없으면 「갱신 알림」
 
 function setCertTab(tab){
   certTabCurrent=tab;
-  ['alert','by-cert','by-comp','master'].forEach(t=>{
+  ['linked','alert','by-cert','by-comp','master'].forEach(t=>{
     document.getElementById('cert-tab-'+t)?.classList.toggle('active',t===tab);
     const pane=document.getElementById('cert-pane-'+t);
     if(pane)pane.style.display=t===tab?'':'none';
   });
   // 탭 전환 시 검색창 초기화
-  ['cert-alert-search','cert-by-cert-search','cert-by-comp-search','cert-master-search'].forEach(id=>{
+  ['cert-linked-search','cert-alert-search','cert-by-cert-search','cert-by-comp-search','cert-master-search'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.value='';
   });
-  if(tab==='alert')renderCertAlert();
+  if(tab==='linked')renderCertLinked();
+  else if(tab==='alert')renderCertAlert();
   else if(tab==='by-cert')renderCertByCert();
   else if(tab==='by-comp')renderCertByComp();
   else if(tab==='master')renderCertMaster();
@@ -7976,7 +8094,7 @@ function renderCertPage(){
       usedMasters.map(m=>`<option value="${m.id}"${cur===m.id?' selected':''}>${m.icon} ${m.certName}</option>`).join('');
   }
   renderIsoSyncBanner();
-  setCertTab(certTabCurrent);
+  setCertTab(certTabCurrent||(certStatus.length?'linked':'alert'));
 }
 
 // ── [iso-one 대조] ────────────────────────────────────────────────────────
@@ -8174,6 +8292,7 @@ function certUpcomingRenewals(days){
     if(c.status==='제외'||c.status==='완료')return;
     if(inactive.has(c.bizno))return;
     if(c.cycleType==='complex')return;          // ISO → iso-one이 담당
+    if(certLinkedFor(c.bizno,c.certMasterId))return;   // 연동 기록(cert_status)이 있으면 그쪽이 정본
     const m=getCertMasterInfo(c.certMasterId);
     if(m.reportType==='annual')return;          // 연간신고는 별도 관리
     const d=getCertDday(c.expDate);
@@ -9118,7 +9237,7 @@ function renderCertAlertBanner(){
     if(summaryEl)summaryEl.innerHTML='';
     return;
   }
-  var renewalCerts=certifications.filter(function(c){return getCertMasterInfo(c.certMasterId).reportType!=='annual';});
+  var renewalCerts=certsForView().filter(function(c){return getCertMasterInfo(c.certMasterId).reportType!=='annual';});
   var annualCerts=certifications.filter(function(c){return getCertMasterInfo(c.certMasterId).reportType==='annual';});
   var rCountable=renewalCerts.filter(certCountable);   // 끝난 단계·제외는 통계에서 뺀다
   var rExpired=rCountable.filter(certIsExpired);
@@ -9188,12 +9307,12 @@ function renderCertAlertBanner(){
 
   // 요약 카드
   if(summaryEl){
-    if(!certifications.length){summaryEl.innerHTML='';return;}
+    if(!certsForView().length){summaryEl.innerHTML='';return;}
     var h='<div style="background:#FFFFFF;border:1px solid #E5E5E5;border-radius:10px;padding:16px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,.06)">';
     h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">';
     h+='<div style="display:flex;align-items:center;gap:8px">';
     h+='<span style="font-size:15px;font-weight:600;color:#1C1C1E">📋 인증·갱신 현황</span>';
-    h+='<span style="font-size:12px;color:#6C6C70;background:#F5F5F7;padding:2px 8px;border-radius:10px">총 '+certifications.length+'건</span>';
+    h+='<span style="font-size:12px;color:#6C6C70;background:#F5F5F7;padding:2px 8px;border-radius:10px">총 '+certsForView().length+'건</span>';
     h+='</div>';
     h+='<button onclick="navTo(\'cert\')" style="background:#F5F5F7;border:1px solid #D0D0D0;border-radius:7px;color:#6C6C70;font-size:12px;padding:5px 12px;cursor:pointer;font-family:Pretendard,sans-serif">자세히 보기 →</button>';
     h+='</div>';
@@ -12771,7 +12890,7 @@ onAuthStateChanged(auth,(u)=>{
 // ── GLOBAL EXPORTS ──
 Object.assign(window,{
   crmSignIn,crmSignOut,todoGoApp,todoGoRef,
-  copyDriveScript,tvToggleMask,tvSetZoom,tvExit,tvdExit,tvdCheckDeploy,
+  copyDriveScript,renderCertLinked,tvToggleMask,tvSetZoom,tvExit,tvdExit,tvdCheckDeploy,
   navTo,manualSave,closeModal,
   downloadBackup,openRestorePicker,restoreBackupFile,
   openDriveImport,saveDriveKeyAndLoad,renderDriveImport,driveImportPick,
