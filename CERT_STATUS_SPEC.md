@@ -156,6 +156,7 @@ iso-one ─┐                          ┌─ 인증·갱신 화면 (현황·�
 - 인증·갱신 화면: `cert_status`를 기업·인증별 한 줄로 표시. 「○○에서 열기」 버튼 = `link`. 입력 버튼은 해당 프로그램이 주인인 인증부터 없앤다.
 - 갱신 알림: `certified` + `expiresAt` D-90 이내 → 갱신 대상, 지남 → 만료(표시만). `nextDue`가 있으면 그 날짜 우선.
 - 할 일 자동 생성: **할 일 쓰기 창구(할 일 프로그램 Worker)의 매일 06:00 예약 작업**이 맡는다(CRM은 2026-10부터 할 일을 직접 쓰지 않음, `TODO_READONLY`). 그 예약 작업에 `cert_status` 읽기를 추가해야 한다 — `certified` + `expiresAt` D-90 이내면 「[기업] ○○ 갱신 준비」(마감=만료일, `source:'cert'`, `dedupeKey='cert:cs:'+문서ID`), `nextDue`가 있으면 「[기업] nextAction」(마감=nextDue, `dedupeKey='cert:cs:'+문서ID+':'+nextDue`). 같은 기업·인증의 옛 수기 기록(`certifications`)으로는 만들지 않는다. **→ 할 일 프로그램 개발 창 작업.**
+- (2026-10-13 구현) 할 일 프로그램 `worker/src/auto.js` — 매일 06:00 `cert_status` 읽어 위 규칙대로 생성. **`nextDue`가 있으면 그것만**(없을 때만 만료 D-90 갱신 준비), 둘 다 **D-90 안**일 때만. ISO 통합심사처럼 같은 기업·같은 nextDue·같은 nextAction은 할 일 하나. 연동된 기업·인증은 `certifications`·`iso_audits`(같은 마감)로 만들지 않음. `expired`·`failed`·`dropped`는 안 만듦.
 - (2026-10-13 구현) CRM 인증·갱신 화면 「🔗 연동 현황」 탭, 대시보드 갱신 배너·인증 요약·사이드바 숫자에 반영, 겹치는 수기 기록은 갱신 알림에서 뺌.
 - 통계: 인증별 취득·갱신·만료 건수, 월별 발급, 기업별 보유 인증.
 - 구글 캘린더: 인증 갱신 일정만(약속 위주 원칙, `WORK_STRUCTURE.md` 8장).
