@@ -2798,7 +2798,7 @@ async function loadAll(){
     const cfg=await getDoc(COL.app_state());
     if(cfg.exists()){
       const d=cfg.data();
-      calY=d.calY||calY; calM=d.calM||calM;
+      // 캘린더는 열 때마다 이번 달로(2026-10-13 사장님: 지난번에 보던 8월로 열려 「일정이 안 나온다」로 보임). 저장값 calY·calM은 읽지 않는다
       tempBiznoCounter=d.tempBiznoCounter||1;
       expandedCats=new Set(d.expandedCats||[]);
       ganttViewMode=d.ganttViewMode==='calendar'?'calendar':'gantt';
