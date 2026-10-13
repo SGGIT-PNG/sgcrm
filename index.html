@@ -411,6 +411,9 @@ body.tvd-on{overflow:hidden;}
 .tvd-ag-row.soon .tm{color:#fff;}
 .tvd-ag-row.miss .tm{color:#ff8f85;}
 .tvd-ag-hd.miss{color:#ff8f85;}
+.tvd-ag-hd.lead{color:#f9a8d4;}
+.tvd-ag-row .tm.ld{font-weight:800;white-space:nowrap;}
+.tvd-ag-row.lead-alert .tx{color:#ffb4ad;}
 .tvd-ag-row .tx b{font-weight:700;}
 .tvd-ag-row .tm.tag{color:#c3cde0;font-weight:500;}
 .tvd-ag-dot{width:16px;height:16px;border-radius:5px;flex-shrink:0;background:#8a95ad;}
@@ -2710,6 +2713,7 @@ let consulting = [];
 let consCompanies = [];
 let workItems = [];
 let todos = [];
+let leads = [];   // 📣 광고 DB (sg-todo 쓰기 창구가 Meta에서 5분마다 가져옴 — 여기서는 보기만)
 let certifications = [];
 let certMaster = [];
 let annualReports = []; // 연구소 연간 신고 이력
@@ -2906,6 +2910,7 @@ function startRealtimeSync(){
   onSnapshot(COL.work_items(),(s)=>{workItems=s.docs.map(d=>({id:d.id,...d.data()}));renderAll();updateCounts();});
   onSnapshot(COL.todos(),(s)=>{todos=s.docs.map(d=>({id:d.id,...d.data()})).filter(t=>!t.deletedAt).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));renderAll();updateCounts();
     const cm=document.getElementById('company-modal');if(cm&&cm.classList.contains('open'))renderCompanyTodos(document.getElementById('comp-edit-bizno').value);});
+  onSnapshot(collection(db,'leads'),(s)=>{leads=s.docs.map(d=>({id:d.id,...d.data()}));if(tvMode)renderAll();},(e)=>console.warn('광고 DB 구독 실패:',e.message));
   onSnapshot(COL.categories(),(s)=>{applyCategories(s.docs.map(d=>({id:d.id,...d.data()})));renderAll();});
   onSnapshot(COL.certifications(),(s)=>{certifications=s.docs.map(d=>({id:d.id,...d.data()}));renderAll();updateCounts();});
   onSnapshot(COL.cert_master(),(s)=>{certMaster=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.sortOrder||99)-(b.sortOrder||99));renderAll();});
@@ -5254,6 +5259,29 @@ function tvdCalHtml(evs){
 }
 // ── 📞 통화 일정 (2026-10-12) — 할 일 중 종류가 「전화」(kind call)인 것. 날짜 = 시작일(sg-todo와 같은 규칙, 옛 값은 마감일), 시각 = callTime(있으면)
 //   놓친 통화(날짜 지남·미완료) → 오늘 → 내일 → 이후 7일. 오늘 1시간 안의 통화는 강조
+// ── 📣 광고 DB (2026-10-13) — sg-todo worker/src/leads.js leadState와 같은 규칙(간단판)
+//   새 DB = 아직 한 번도 안 건 곳(24시간 지나면 빨강) · 오늘 걸 곳 = 재통화·상담 약속 날짜가 오늘이거나 지남(지났으면 빨강). TV에는 이름 가운데·전화번호를 가린다
+const LEAD_PRODUCT={iso:['ISO','#74c0fc'],venture:['벤처','#b197fc'],cert:['기업','#63e6be'],esg:['ESG','#8ce99a'],etc:['기타','#ced4da']};
+function leadCol(l){
+  if(['won','lost','unreach'].includes(l.status))return {col:'closed'};
+  const today=tvdTodayStr();
+  if(!l.status||l.status==='new'){const h=Math.floor((Date.now()-(l.receivedAt||l.createdAt||Date.now()))/3600000);
+    return {col:'new',alert:h>=24,why:h<1?'방금 들어옴':h<24?h+'시간 전 들어옴':Math.floor(h/24)+'일 전 들어옴 · 아직 전화 안 함'};}
+  const head=l.status==='noans'?'부재 '+(l.tries||0)+'/3':'상담';
+  if(l.nextCallDate&&l.nextCallDate<=today)return {col:'call',alert:l.nextCallDate<today,why:head+' · '+(l.nextCallDate<today?tvdMD(l.nextCallDate)+' 약속 지남':'오늘 '+(l.nextCallTime||'재통화'))};
+  return {col:'later'};
+}
+function leadMaskName(n){n=String(n||'').trim();if(!n)return '(이름 없음)';return n.length<=1?n:n.length===2?n[0]+'*':n[0]+'*'.repeat(n.length-2)+n.slice(-1);}
+function tvdLeadsHtml(){
+  const xs=leads.map(l=>Object.assign({l},leadCol(l))).filter(x=>x.col==='new'||x.col==='call')
+    .sort((a,b)=>(b.alert?1:0)-(a.alert?1:0)||(a.col==='new'?0:1)-(b.col==='new'?0:1)||(a.l.receivedAt||0)-(b.l.receivedAt||0));
+  if(!xs.length)return '';
+  const nN=xs.filter(x=>x.col==='new').length,nC=xs.length-nN;
+  return '<div class="tvd-ag-hd lead">📣 광고 DB<span class="c">새 '+nN+' · 재통화 '+nC+'</span></div>'
+    +xs.map(x=>{const p=LEAD_PRODUCT[x.l.product]||LEAD_PRODUCT.etc;
+      return '<div class="tvd-ag-row'+(x.alert?' lead-alert':'')+'"><div class="tm ld" style="color:'+p[1]+'">'+p[0]+'</div>'
+        +'<div class="tx"><b>'+escAttr(leadMaskName(x.l.name))+'</b>'+(x.l.company?' · '+escAttr(tvMask(x.l.company)):'')+' — '+escAttr(x.why)+'</div></div>';}).join('');
+}
 function tvdCallDate(t){return t.startDate||t.dueDate||(t.createdAt?todoDayStr(new Date(t.createdAt)):'');}
 function tvdCallsHtml(){
   const today=tvdTodayStr(),tmr=addDaysStr(today,1),wk=addDaysStr(today,7);
@@ -5268,9 +5296,9 @@ function tvdCallsHtml(){
       +'<div class="tx">'+(co?'<b>'+escAttr(co)+'</b> — ':'')+escAttr(todoText(t))+'</div></div>';};
   const sec=(lab,arr,miss)=>arr.length?'<div class="tvd-ag-hd'+(miss?' miss':'')+'">'+lab+'<span class="c">'+arr.length+'건</span></div>'+arr.map(x=>row(x,miss)).join(''):'';
   const miss=calls.filter(x=>x.d<today),tod=calls.filter(x=>x.d===today),tom=calls.filter(x=>x.d===tmr),later=calls.filter(x=>x.d>tmr);
-  const body=sec('⚠ 놓친 통화',miss,true)+sec('오늘',tod)+sec('내일',tom)
+  const body=tvdLeadsHtml()+sec('⚠ 놓친 통화',miss,true)+sec('오늘',tod)+sec('내일',tom)
     +(later.length?'<div class="tvd-ag-hd">이번 주<span class="c">'+later.length+'건</span></div>'+later.map(x=>row(Object.assign({},x,{tm:tvdMD(x.d)+(x.tm?' '+x.tm:'')}))).join(''):'');
-  return '<div class="tvd-glass tvd-ag tvd-calls"><div class="tvd-sec">📞 통화 일정</div><div class="tvd-ag-list" id="tvd-ag">'
+  return '<div class="tvd-glass tvd-ag tvd-calls"><div class="tvd-sec">'+(leads.some(l=>{const c=leadCol(l).col;return c==='new'||c==='call';})?'📞 통화 · 광고 DB':'📞 통화 일정')+'</div><div class="tvd-ag-list" id="tvd-ag">'
     +(body||'<div class="tvd-ag-empty">예정된 통화가 없습니다.</div>')+'</div></div>';
 }
 // 일정표 글자를 칸에 맞춘다(28→20px). 그래도 넘치면 「N건 더」

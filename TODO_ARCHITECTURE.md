@@ -265,6 +265,7 @@ flowchart LR
 - 규칙 코드: `sg-todo/worker/src/core.js` `bucket()`·`startOf()`·`parseDoneDate()` ↔ CRM `todoBucket()`·`todoStart()` (같은 규칙 두 곳).
 - **💡 제안 업무**(10/11 추가): `status: idea` — 업체가 맡기기 전 우리가 먼저 제안할 일. 시작일과 상관없이 제안 칸(`col: idea`), 빨간 표시 없음, `등록 N일 전`. 시작일·종료일(`startDate`·`dueDate`)은 **사람이 넣을 때만 저장·표시**(등록한 날로 채우지 않음, 시작일이 와도 제안 칸, 종료일 지나면 회색 「종료일 지남」 — 10/12 A안). 캘린더·주간 칸에는 넣지 않음. 맡게 되면 `status ing`(시작일 오늘로) 또는 `wait`+`start` → 하고 있는·해야 할 업무, 번호 그대로, 기록 「제안 → 진행」. 접으면 `cancel`. 목록 보기 `idea`·`all`. 웹 빠른 입력 맨 앞 「제안 」. TV는 목록 맨 아래 흐리게 + 숫자 칸.
 - **📞 통화**(10/12 추가): `kind: call` — 「언제 몇 시에 누구에게 전화」. 날짜 = `startDate`, 시각 = `callTime`(HH:MM, 빈 값 = 시간 미정). `col: call` — 진행·예정 업무 칸과 숫자에서 빠지고 통화 칸에만(제안 상태면 제안 칸). 날짜 지난 미완료 = 놓친 통화(빨간 표시). 창구는 `time`(「오후 2시」「2시 반」, 오전/오후 없는 1~7시 = 오후)도 받고, 시각을 넣으면 `kind: call`. 목록 보기 `call`(open에는 없음, all에는 있음). TV는 오른쪽 📞 통화 카드에만.
+- **📣 광고 DB**(10/13 추가, 할 일과 별도 모음 `leads`): Meta 리드 광고 신청자. sg-todo `worker/src/leads.js` — 5분 cron `syncMeta`(Secret `META_TOKEN`, `META_PAGE_ID`), 예비 엑셀 `/api/leads/import`, 결과 `/api/leads/D-0001/act`(noans·talk·schedule·won·lost·reopen·memo). 칸 new·call(오늘 걸 곳)·later·closed. 고객 전환 → 할 일(source lead, sourceRef D-번호). CRM은 보기만(TV 통화 카드 `tvdLeadsHtml`).
 - 기존 데이터: 웹 「관리 → 시작일 채우기」(`/api/admin/migrate-start`) — 시작일 없는 문서에 등록한 날. 미리보기 → 확인 → 적용, 여러 번 안전.
 
 ## 4. 로그인과 보안규칙 — **모든 것보다 먼저**
