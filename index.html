@@ -416,6 +416,7 @@ body.tvd-on{overflow:hidden;}
 .tvd-ag-row.lead-alert .tx{color:#ffb4ad;}
 /* 광고 DB 4줄이 넘으면 천천히 위로 흘러감(같은 목록을 두 번 이어 붙여 끊김 없이) */
 .tvd-ld-roll{height:calc(var(--afs)*1.8*4);overflow:hidden;position:relative;}
+.tvd-ld-roll.still .tvd-ld-track{animation:none;}
 .tvd-ld-track{animation:tvdLdRoll linear infinite;}
 @keyframes tvdLdRoll{from{transform:translateY(0)}to{transform:translateY(-50%)}}
 .tvd-ag-row .tx b{font-weight:700;}
@@ -5288,8 +5289,9 @@ function tvdLeadsHtml(){
       const info=[leadPick(x.l,'city'),leadPick(x.l,'industry')].filter(Boolean).join(' · ');
       return '<div class="tvd-ag-row'+(x.alert?' lead-alert':'')+'"><div class="tm ld" style="color:'+p[1]+'">'+p[0]+'</div>'
         +'<div class="tx"><b>'+escAttr(leadMaskName(x.l.name))+'</b>'+(x.l.company?' · '+escAttr(tvMask(x.l.company)):'')+(info?' · '+escAttr(info):'')+' — '+escAttr(x.why)+'</div></div>';}).join('');
-  // 4건이 넘으면 자동으로 흘러가게(한 건에 3초) — 2026-10-13 사장님: 다 보여 주기보다 스크롤 효과
-  const body=xs.length>4?'<div class="tvd-ld-roll"><div class="tvd-ld-track" style="animation-duration:'+(xs.length*3)+'s">'+rows+rows+'</div></div>':rows;
+  // 칸에 다 안 들어가면 자동으로 흘러가게(한 건에 3초) — 2026-10-13 사장님: 다 보여 주기보다 스크롤 효과
+  // 높이는 tvdFitAgenda가 카드의 남은 세로 길이에 맞춘다(10/13 사장님: 4줄만 말고 칸 높이만큼). 다 들어가면 흐르지 않고 멈춰 있음
+  const body='<div class="tvd-ld-roll"><div class="tvd-ld-track" style="animation-duration:'+(xs.length*3)+'s">'+rows+rows+'</div></div>';
   return '<div class="tvd-ag-hd lead">📣 광고 DB<span class="c">새 '+nN+' · 재통화 '+nC+'</span></div>'+body;
 }
 function tvdCallDate(t){return t.startDate||t.dueDate||(t.createdAt?todoDayStr(new Date(t.createdAt)):'');}
@@ -5314,8 +5316,21 @@ function tvdCallsHtml(){
 // 일정표 글자를 칸에 맞춘다(28→20px). 그래도 넘치면 「N건 더」
 function tvdFitAgenda(){
   const el=document.getElementById('tvd-ag');if(!el)return;
+  el.querySelectorAll('.tvd-more').forEach(x=>x.remove());   // 다시 맞출 때 지난 「N건 더」 지움
   const over=()=>el.scrollHeight>el.clientHeight+2;
-  for(let fs=28;fs>=20;fs-=2){el.style.setProperty('--afs',fs+'px');if(!over())return;}   // 2026-10-12 사장님: 두 단계 작게(34→28)
+  // 광고 DB 흐르는 칸 = 통화 줄을 뺀 남은 세로 길이 전부(통화가 많으면 카드 절반). 목록이 다 들어가면 흐르지 않고 멈춤
+  const roll=el.querySelector('.tvd-ld-roll'),track=roll&&roll.firstElementChild;
+  const fitRoll=()=>{
+    if(!roll)return;
+    roll.style.height='0px';
+    // scrollHeight는 칸 높이보다 작아지지 않으므로 줄들의 실제 아래 끝으로 잰다
+    const used=Math.max(0,...[...el.children].filter(c=>!c.classList.contains('tvd-more')).map(c=>c.offsetTop+c.offsetHeight));
+    const free=el.clientHeight-used-4,full=track.scrollHeight/2;
+    const h=Math.max(Math.min(free,full),Math.min(full,el.clientHeight*0.5));   // 통화가 많아도 광고 DB는 카드 절반까지는 차지
+    roll.style.height=Math.floor(h)+'px';
+    roll.classList.toggle('still',full<=h+1);
+  };
+  for(let fs=28;fs>=20;fs-=2){el.style.setProperty('--afs',fs+'px');fitRoll();if(!over())return;}   // 2026-10-12 사장님: 두 단계 작게(34→28)
   const box=el.getBoundingClientRect();
   const hidden=[...el.querySelectorAll('.tvd-ag-row')].filter(r=>!r.closest('.tvd-ld-roll')&&r.getBoundingClientRect().bottom>box.bottom+1).length;   // 흘러가는 광고 DB 줄은 빼고 셈
   if(hidden)el.insertAdjacentHTML('beforeend','<div class="tvd-more" style="position:absolute;right:6px;bottom:4px;background:#1a2238;border-radius:12px;padding:4px 14px">'+hidden+'건 더</div>');
@@ -5429,6 +5444,7 @@ function renderTvd(){
         +'<div class="tvd-right">'+tvdCalHtml(evs)+'<div class="tvd-cards">'+tvdCallsHtml()+tvdDlHtml(dls)+tvdStatsHtml(g)+'</div></div></div>'
       +tvdTickHtml();
     tvdFitList();tvdFitDl();tvdFitAgenda();
+    setTimeout(tvdFitAgenda,700);   // 화면 배치가 다 잡힌 뒤 한 번 더(광고 DB 칸 높이가 처음엔 작게 잡히는 경우)
     tvdCheckAlerts(g,dls);
   }catch(e){console.error('[TV] 그리기 오류',e);main.innerHTML='<div style="font-size:60px;padding:80px">화면을 그리는 중 오류가 났습니다: '+escAttr(e.message)+'</div>';}
 }
