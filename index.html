@@ -2748,7 +2748,8 @@ let certStatus = [];   // cert_status — iso-one·메인이노가 보낸 인증
 let certEvents = [];   // cert_events — 진행 기록
 let calY = new Date().getFullYear();
 let calM = new Date().getMonth();
-let driveConn = {};   // 드라이브 스크립트 연결 {url,key} — app_state 공용(getDriveUrl·getDriveKey 참고)
+let driveConn = {};
+let appStateLoaded = false;   // loadAll이 app_state(구글 연동·드라이브 연결 설정)를 다 읽었나 — TV 달력이 그 전에 불러오면 0건으로 굳음(10/13)   // 드라이브 스크립트 연결 {url,key} — app_state 공용(getDriveUrl·getDriveKey 참고)
 let expandedCats = new Set();
 let tempBiznoCounter = 1;
 let currentWorkCat = null;
@@ -2831,6 +2832,8 @@ async function loadAll(){
         if(u&&k){driveConn={url:u,key:k};console.log('[마이그레이션] 드라이브 연결을 이 기기 → Firestore 공용으로 이전했습니다.');await setDoc(COL.app_state(),appStatePayload());}
       }catch(e){console.warn('드라이브 연결 이전 실패:',e.message);}
     }
+    appStateLoaded=true;
+    if(typeof tvdOn!=='undefined'&&tvdOn)tvdLoadCal(true);   // TV를 먼저 열었으면 설정을 읽은 지금 구글 일정 다시
     // 컬렉션 병렬 로드
     const [cSnap,conSnap,ccSnap,wiSnap,tSnap,catSnap,certSnap,cmSnap,arSnap,iaSnap]=await Promise.all([
       getDocs(COL.companies()),
@@ -2915,6 +2918,7 @@ async function loadAll(){
     setBadge('✅ 로드 완료',2000);
     startRealtimeSync();
   }catch(e){
+    if(!appStateLoaded){appStateLoaded=true;if(typeof tvdOn!=='undefined'&&tvdOn)tvdLoadCal(true);}   // 설정을 못 읽었어도 TV 달력은 시도
     console.error('loadAll 오류:', e);
     setBadge('⚠️ 오류: '+e.message);
     // 오류가 있어도 기본 렌더는 시도
@@ -5363,11 +5367,13 @@ async function tvdLoadCal(force){
   const r=tvdCalRange();const key=r.rs+'~'+r.re;
   if(!force&&gcalExternal.key===key&&Date.now()-tvdCalLoadedAt<30*60000)return;
   if(gcalExternal.loading)return;
+  if(!appStateLoaded)return;   // 설정(app_state)을 읽기 전이면 기다림 — loadAll이 다 읽고 다시 부름
   gcalExternal.key='';tvdCalLoadedAt=Date.now();
   if(!getDriveUrl()||!getDriveKey()){   // TV를 켠 뒤 다른 기기가 공용 연결을 넣었을 수 있음 → 다시 읽기
     try{const st=await getDoc(COL.app_state());if(st.exists()&&st.data().driveConn)driveConn=st.data().driveConn;}catch(e){}
   }
   try{await loadGcalExternal(r.rs,r.re);}catch(e){console.warn('[TV] 구글 일정 조회 실패:',e.message);}
+  if(gcalExternal.error)tvdCalLoadedAt=0;   // 실패면 30분 기다리지 않고 5분 뒤 다시
   if(tvdOn)renderTvd();
 }
 function tvdEvLabel(e){return String(e.label||'').replace(/^\d{1,2}:\d{2}\s+/,'').replace(/^[^\w가-힣\[(]+\s*/,'').replace(/^\[[^\]]*\]\s*/,'');}
