@@ -4946,6 +4946,8 @@ function todoTouched(t){return t.statusAt||t.createdAt||0;}
 // 시작일 — 없으면 등록한 날(옛 할 일)
 function todoStart(t){if(t.status==='idea')return t.startDate||'';if(t.startDate)return t.startDate;if(t.createdAt){const d=new Date(t.createdAt);return dateStr(d.getFullYear(),d.getMonth(),d.getDate());}return todoToday();}
 // 할 일 하나 → {col:'call'|'ing'|'todo'|'idea'|'done', days, alert, tags:[{t,tone}], reason}
+// 칸 앞머리 날짜 표시 (2026-10-13 사장님) — sg-todo core.js dayTag와 같음: 진행 = 오늘 시작·+1일·+2일 / 예정 = -1일·-2일
+function todoDayTag(col,days){if(col==='ing')return days<=1?'오늘 시작':'+'+(days-1)+'일';if(col==='todo')return '-'+days+'일';return '';}
 function todoBucket(t){
   if(t.status==='done'||t.status==='cancel')return {col:'done',days:0,alert:false,tags:[],reason:t.status==='cancel'?'취소':''};   // cancel = 할 일 프로그램의 「취소」
   const today=todoToday(),start=todoStart(t),tags=[];
@@ -4971,10 +4973,10 @@ function todoBucket(t){
     if(dl<0){tags.push({t:'마감 '+(-dl)+'일 지남',tone:'red'});alert=true;}
     else tags.push({t:'마감 '+(dl===0?'오늘':'D-'+dl),tone:dl<=todoRules.soonDays?'amber':'plain'});}
   if(start>today){const left=todoDaysFrom(today,start);
-    return {col:'todo',days:left,alert,tags,reason:[left===1?'내일 시작':'D-'+left].concat(tags.map(x=>x.t)).join(' · ')};}
+    return {col:'todo',days:left,alert,tags,reason:[todoDayTag('todo',left)].concat(tags.map(x=>x.t)).join(' · ')};}
   const days=todoDaysFrom(start,today)+1;   // 시작한 날 = 1일째
   if(days>=todoRules.stallDays)alert=true;
-  return {col:'ing',days,alert,tags,reason:[days===1?'오늘 시작':days+'일째'].concat(tags.map(x=>x.t)).join(' · ')};
+  return {col:'ing',days,alert,tags,reason:[todoDayTag('ing',days)].concat(tags.map(x=>x.t)).join(' · ')};
 }
 // 잠재고객 후속: 그룹 「잠재고객」 + 열린 할 일 없음 + 마지막 기록 후 leadDays 경과 → 진행 업무 맨 위에 빨간 표시(가상 카드)
 function todoLeadItems(){
@@ -5151,11 +5153,11 @@ function tvdTodoGroups(){
   g.ing.sort(todoSortIng);g.todo.sort(todoSortTodo);g.idea.sort(todoSortIdea);
   return g;
 }
-// 오른쪽 알약: 진행 업무 = N일째, 예정 업무 = D-n
+// 오른쪽 알약: 진행 업무 = 오늘 시작·+N일, 예정 업무 = -N일
 function tvdDueTxt(t){
   if(t._col==='idea')return '💡 제안';
-  if(t._col==='todo')return t._days===1?'내일 시작':'D-'+t._days;
-  return t._days===1?'오늘 시작':t._days+'일째';
+  if(t._col==='todo')return todoDayTag('todo',t._days);
+  return todoDayTag('ing',t._days);
 }
 // 이름 뒤 작은 꼬리표(기다림·마감) — 긴급은 줄 색으로 보이므로 뺀다
 function tvdTagTxt(t){return (t._tags||[]).filter(x=>x.t!=='긴급').map(x=>'<span class="tvd-tag '+x.tone+'">'+escAttr(x.t)+'</span>').join('');}
@@ -5212,7 +5214,7 @@ function tvdDlSub(it){
   if(t.status==='cancel')return {txt:lab+' 취소',warn:false};
   if(t.status==='idea')return {txt:'⚠ '+lab+' 아직 제안 단계',warn:true};
   const b=todoBucket(t);
-  return {txt:lab+' '+(b.col==='todo'?(b.days===1?'내일 시작':'D-'+b.days+' 시작'):'진행 · '+(b.days===1?'오늘 시작':b.days+'일째')),warn:false};
+  return {txt:lab+' '+(b.col==='todo'?'예정 · '+todoDayTag('todo',b.days):'진행 · '+todoDayTag('ing',b.days)),warn:false};
 }
 
 // ── 달력: 이번 달(월요일 시작) — 간트 캘린더와 같은 일정 모음(collectGanttEvents)을 쓴다 ──
@@ -5624,7 +5626,7 @@ function todoRowHtml(t){
   const done=t.status==='done';
   const whyColor=b.alert?'#B91C1C':b.col==='call'?'#0E7490':b.col==='todo'?'#1D4ED8':b.col==='idea'?'#0F766E':b.col==='done'?'#047857':'#C2410C';
   const why=b.col==='call'?'📞 '+(b.alert?'놓친 통화 · '+todoStart(t).slice(5).replace('-','/')+(t.callTime?' '+t.callTime:''):b.reason.split(' · ')[0]):b.col==='idea'?'💡 제안 · '+(b.days===0?'오늘 등록':'등록 '+b.days+'일 전'):b.col==='done'?(t.status==='cancel'?'취소':t.doneAt?new Date(t.doneAt).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})+' 완료':'완료')
-    :b.col==='todo'?(b.days===1?'내일 시작':'D-'+b.days+' · '+todoStart(t).slice(5).replace('-','/')+' 시작'):(b.days===1?'오늘 시작':b.days+'일째');
+    :b.col==='todo'?todoDayTag('todo',b.days)+' · '+todoStart(t).slice(5).replace('-','/')+' 시작':todoDayTag('ing',b.days);
   const chips=(b.col==='done'?'':b.col==='call'?todoTagChips(t).replace(/<span[^>]*>놓친 통화<\/span>/,''):todoTagChips(t))
     +(todoSource(t)!=='manual'?'<span class="todo-chip">'+escAttr(TODO_SRC[todoSource(t)]||'')+'</span>':'');
   return '<div class="tdl-row'+(done?' tdl-done':'')+'"'+(b.alert?' style="box-shadow:inset 3px 0 0 #DC2626"':'')+'>'
