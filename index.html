@@ -414,6 +414,10 @@ body.tvd-on{overflow:hidden;}
 .tvd-ag-hd.lead{color:#f9a8d4;}
 .tvd-ag-row .tm.ld{font-weight:800;white-space:nowrap;}
 .tvd-ag-row.lead-alert .tx{color:#ffb4ad;}
+/* 광고 DB 4줄이 넘으면 천천히 위로 흘러감(같은 목록을 두 번 이어 붙여 끊김 없이) */
+.tvd-ld-roll{height:calc(var(--afs)*1.8*4);overflow:hidden;position:relative;}
+.tvd-ld-track{animation:tvdLdRoll linear infinite;}
+@keyframes tvdLdRoll{from{transform:translateY(0)}to{transform:translateY(-50%)}}
 .tvd-ag-row .tx b{font-weight:700;}
 .tvd-ag-row .tm.tag{color:#c3cde0;font-weight:500;}
 .tvd-ag-dot{width:16px;height:16px;border-radius:5px;flex-shrink:0;background:#8a95ad;}
@@ -5271,16 +5275,22 @@ function leadCol(l){
   if(l.nextCallDate&&l.nextCallDate<=today)return {col:'call',alert:l.nextCallDate<today,why:head+' · '+(l.nextCallDate<today?tvdMD(l.nextCallDate)+' 약속 지남':'오늘 '+(l.nextCallTime||'재통화'))};
   return {col:'later'};
 }
+// 사장님이 보는 항목: 지역(city)·사업자 유형·업종 — sg-todo leads.js leadPick과 같은 규칙
+const LEAD_PICK={city:/^(city|지역|도시|소재지|시\s*\/?\s*군|주소)/i,bizType:/사업자\s*(유형|구분|형태)/,industry:/^(업종|업태|industry)/i};
+function leadPick(l,key){const e=(l.extras||[]).map(x=>Array.isArray(x)?x:[x.q,x.a]).find(([q])=>LEAD_PICK[key].test(String(q||'').trim()));return e?String(e[1]||'').replace(/_/g,' ').trim():'';}
 function leadMaskName(n){n=String(n||'').trim();if(!n)return '(이름 없음)';return n.length<=1?n:n.length===2?n[0]+'*':n[0]+'*'.repeat(n.length-2)+n.slice(-1);}
 function tvdLeadsHtml(){
   const xs=leads.map(l=>Object.assign({l},leadCol(l))).filter(x=>x.col==='new'||x.col==='call')
     .sort((a,b)=>(b.alert?1:0)-(a.alert?1:0)||(a.col==='new'?0:1)-(b.col==='new'?0:1)||(a.l.receivedAt||0)-(b.l.receivedAt||0));
   if(!xs.length)return '';
   const nN=xs.filter(x=>x.col==='new').length,nC=xs.length-nN;
-  return '<div class="tvd-ag-hd lead">📣 광고 DB<span class="c">새 '+nN+' · 재통화 '+nC+'</span></div>'
-    +xs.map(x=>{const p=LEAD_PRODUCT[x.l.product]||LEAD_PRODUCT.etc;
+  const rows=xs.map(x=>{const p=LEAD_PRODUCT[x.l.product]||LEAD_PRODUCT.etc;
+      const info=[leadPick(x.l,'city'),leadPick(x.l,'industry')].filter(Boolean).join(' · ');
       return '<div class="tvd-ag-row'+(x.alert?' lead-alert':'')+'"><div class="tm ld" style="color:'+p[1]+'">'+p[0]+'</div>'
-        +'<div class="tx"><b>'+escAttr(leadMaskName(x.l.name))+'</b>'+(x.l.company?' · '+escAttr(tvMask(x.l.company)):'')+' — '+escAttr(x.why)+'</div></div>';}).join('');
+        +'<div class="tx"><b>'+escAttr(leadMaskName(x.l.name))+'</b>'+(info?' · '+escAttr(info):'')+' — '+escAttr(x.why)+'</div></div>';}).join('');
+  // 4건이 넘으면 자동으로 흘러가게(한 건에 3초) — 2026-10-13 사장님: 다 보여 주기보다 스크롤 효과
+  const body=xs.length>4?'<div class="tvd-ld-roll"><div class="tvd-ld-track" style="animation-duration:'+(xs.length*3)+'s">'+rows+rows+'</div></div>':rows;
+  return '<div class="tvd-ag-hd lead">📣 광고 DB<span class="c">새 '+nN+' · 재통화 '+nC+'</span></div>'+body;
 }
 function tvdCallDate(t){return t.startDate||t.dueDate||(t.createdAt?todoDayStr(new Date(t.createdAt)):'');}
 function tvdCallsHtml(){
@@ -5307,7 +5317,7 @@ function tvdFitAgenda(){
   const over=()=>el.scrollHeight>el.clientHeight+2;
   for(let fs=28;fs>=20;fs-=2){el.style.setProperty('--afs',fs+'px');if(!over())return;}   // 2026-10-12 사장님: 두 단계 작게(34→28)
   const box=el.getBoundingClientRect();
-  const hidden=[...el.querySelectorAll('.tvd-ag-row')].filter(r=>r.getBoundingClientRect().bottom>box.bottom+1).length;
+  const hidden=[...el.querySelectorAll('.tvd-ag-row')].filter(r=>!r.closest('.tvd-ld-roll')&&r.getBoundingClientRect().bottom>box.bottom+1).length;   // 흘러가는 광고 DB 줄은 빼고 셈
   if(hidden)el.insertAdjacentHTML('beforeend','<div class="tvd-more" style="position:absolute;right:6px;bottom:4px;background:#1a2238;border-radius:12px;padding:4px 14px">'+hidden+'건 더</div>');
 }
 
