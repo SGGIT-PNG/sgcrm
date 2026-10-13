@@ -11,6 +11,7 @@
 - 광고 4개(ISO심사·벤처인증·기업인증·ESG인증) 신청자를 sg-todo 쓰기 창구가 **5분마다 Meta Graph API에서 가져옴**(`worker/src/leads.js` `syncMeta`). Firestore `leads/D-0001`, 중복(같은 리드 ID·같은 광고+같은 전화) 건너뜀. 처음엔 최근 90일치.
 - 상태: 🆕 새 DB → 📞 부재(다음 영업일 재통화 자동, **3번째 = 연락 안 됨**) → 💬 상담 중 → ✅ 고객 전환(진행 업무 할 일 생성) / ✖ 거절. 새 DB 24시간 넘게 안 걸면·약속 날 지나면 빨강. 담당 기본 정석진.
 - 화면: sg-todo 웹 「📣 광고 DB」 탭(전화번호 누르면 바로 전화, 부재·통화됨·약속·전환·거절, 광고별 성과, 예비 엑셀 올리기) + 할 일 첫 화면 숫자 칸. CRM TV 통화 카드 맨 위(이름 가운데 가림). Claude `lead_list`·`lead_update`·`lead_sync` + 스킬.
+- 10/13 오후: Meta 연결 완료(SG솔루션 페이지 108091025620236, Secret `META_TOKEN`). 시험 할 일 37건 휴지통 정리(사장님 지시). 광고 DB는 **9/15 이후 신청만**(`lead_reset`) · 보는 항목 이름·지역(city)·양식 이름·사업자 유형·업종 · 웹 표+스크롤, TV 4건 넘으면 자동으로 흘러감.
 - **남은 것: Meta 연결**(사장님 — sg-todo `META_SETUP.md`: 앱 만들기 → 페이지 토큰 → Cloudflare Secret `META_TOKEN`, 페이지 번호는 `wrangler.toml` `META_PAGE_ID`).
 
 ## ⭐ 2026-10-12 (6) — 📞 통화 일정 (A안)
