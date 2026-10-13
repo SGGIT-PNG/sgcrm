@@ -9843,6 +9843,9 @@ function parseBizCert(text){
   if(ceo)r.ceo=ceo;
   const od=grab('개업연월일',true).match(/(\d{4})\s*[년.\-]\s*(\d{1,2})\s*[월.\-]\s*(\d{1,2})/);
   if(od)r.estDate=od[1]+'-'+p2(+od[2])+'-'+p2(+od[3]);
+  // 대표자 생년월일 — 개인사업자 등록증에만 있음(법인 등록증은 법인등록번호만 있고 생년월일 칸이 없음)
+  const bd=grab('생년월일',true).match(/(\d{4})\s*[년.\-]\s*(\d{1,2})\s*[월.\-]\s*(\d{1,2})/);
+  if(bd)r.ceoBirth=bd[1]+'-'+p2(+bd[2])+'-'+p2(+bd[3]);
   const cn=(grab('법인등록번호',true)||'').match(/\d{6}\s*-\s*\d{7}/);
   if(cn)r.corpNo=cn[0].replace(/\s/g,'');
   const addr=grab('사업장소재지',true);
@@ -9869,7 +9872,7 @@ function parseBizCert(text){
 // 사업자등록증 값 → 기업에 넣을 값 (빈 칸만). cur는 현재 기업 값(없으면 신규)
 function bizCertFill(r,cur){
   cur=cur||{};const out={};const diff=[];
-  const map=[['name','name','기업명'],['ceo','ceo','대표자'],['corpNo','corpNo','법인번호'],['addr','addr','주소'],['biztype','biztype','업종'],['email','email','이메일'],['industry','industry','업종 분류'],['estDate','estDate','개업일']];
+  const map=[['name','name','기업명'],['ceo','ceo','대표자'],['corpNo','corpNo','법인번호'],['addr','addr','주소'],['biztype','biztype','업종'],['email','email','이메일'],['industry','industry','업종 분류'],['estDate','estDate','개업일'],['ceoBirth','ceoBirth','대표자 생년월일']];
   map.forEach(([k,f,label])=>{
     if(!r[k])return;
     const now=String(cur[f]||'').trim();
@@ -9901,12 +9904,14 @@ async function compFillFromBizCert(){
   const ids={name:'comp-name',ceo:'comp-ceo',corpNo:'comp-corp-no',addr:'comp-addr',biztype:'comp-biztype',email:'comp-email',industry:'comp-industry'};
   const cur={};Object.keys(ids).forEach(k=>cur[k]=document.getElementById(ids[k])?.value||'');
   cur.estDate=getDateFields('comp-est-y','comp-est-m','comp-est-d');
+  cur.ceoBirth=getDateFields('comp-birth-y','comp-birth-m','comp-birth-d');
   cur.bizclass=editBizno?document.getElementById('comp-bizclass').value:'';
   const {fill,diff}=bizCertFill(r,cur);
   let n=0;
   Object.keys(fill).forEach(k=>{
     if(ids[k]){const el=document.getElementById(ids[k]);if(el){el.value=fill[k];n++;}}
     else if(k==='estDate'){setDateFields('comp-est-y','comp-est-m','comp-est-d',fill[k]);calcCompAge();n++;}
+    else if(k==='ceoBirth'){setDateFields('comp-birth-y','comp-birth-m','comp-birth-d',fill[k]);n++;}
     else if(k==='bizclass'){document.getElementById('comp-bizclass').value=fill[k];toggleBizDateFields();}
   });
   let biznoNote='',biznoConvert='';
@@ -9984,7 +9989,7 @@ async function bizCertBulkRead(){
   if(st){st.textContent='✅ 읽기 완료 — 아래 표에서 확인 후 「선택 반영」';st.style.color='var(--ok)';}
   renderBizCertPreview();
 }
-const BIZ_LABEL={name:'기업명',ceo:'대표',corpNo:'법인번호',addr:'주소',biztype:'업종',email:'이메일',industry:'분류',estDate:'개업일',bizclass:'구분'};
+const BIZ_LABEL={name:'기업명',ceo:'대표',corpNo:'법인번호',addr:'주소',biztype:'업종',email:'이메일',industry:'분류',estDate:'개업일',ceoBirth:'대표자 생년월일',bizclass:'구분'};
 function bizCertToggle(i,on){if(bizCertRows[i])bizCertRows[i].sel=on;renderBizCertPreview();}
 function renderBizCertPreview(){
   const box=document.getElementById('drive-list');if(!box)return;
