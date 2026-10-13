@@ -2748,6 +2748,7 @@ let certStatus = [];   // cert_status — iso-one·메인이노가 보낸 인증
 let certEvents = [];   // cert_events — 진행 기록
 let calY = new Date().getFullYear();
 let calM = new Date().getMonth();
+let driveConn = {};   // 드라이브 스크립트 연결 {url,key} — app_state 공용(getDriveUrl·getDriveKey 참고)
 let expandedCats = new Set();
 let tempBiznoCounter = 1;
 let currentWorkCat = null;
@@ -2806,6 +2807,7 @@ async function loadAll(){
       gcalMode=d.calFormat==='week'?'week':'month';
       calWeekAnchor=d.calWeekAnchor||'';
       gcalSettings=d.gcalSettings||{};
+      driveConn=d.driveConn||{};
       todoRules=Object.assign({},TODO_RULES_DEFAULT,d.todoRules||{});
     }
     // 구글 캘린더 설정 이전: localStorage → Firestore (idempotent, 최초 1회만 동작)
@@ -2820,6 +2822,14 @@ async function loadAll(){
           await setDoc(COL.app_state(),appStatePayload());
         }
       }catch(e){console.warn('구글 캘린더 설정 이전 실패:',e.message);}
+    }
+    // 드라이브 연결 이전: 이 기기 localStorage → Firestore 공용(2026-10-13 사장님 A안). 공용 값이 비었을 때만, 여러 번 돌아도 안전
+    //   예전엔 기기마다 따로 저장 → TV 브라우저엔 없어서 통합 제어 시스템 달력에 구글 일정이 안 나왔음
+    if(!driveConn.url||!driveConn.key){
+      try{
+        const u=localStorage.getItem(DRIVE_URL_LS)||'',k=localStorage.getItem(DRIVE_KEY_LS)||'';
+        if(u&&k){driveConn={url:u,key:k};console.log('[마이그레이션] 드라이브 연결을 이 기기 → Firestore 공용으로 이전했습니다.');await setDoc(COL.app_state(),appStatePayload());}
+      }catch(e){console.warn('드라이브 연결 이전 실패:',e.message);}
     }
     // 컬렉션 병렬 로드
     const [cSnap,conSnap,ccSnap,wiSnap,tSnap,catSnap,certSnap,cmSnap,arSnap,iaSnap]=await Promise.all([
@@ -3292,6 +3302,7 @@ function appStatePayload(){
     calFormat:gcalMode,
     calWeekAnchor,
     gcalSettings,
+    driveConn,   // 드라이브 스크립트 연결(주소·비밀 문구) — 모든 기기 공용(2026-10-13, TV 달력 구글 일정용)
     todoRules,
     updatedAt:Date.now(),
   };
@@ -5353,6 +5364,9 @@ async function tvdLoadCal(force){
   if(!force&&gcalExternal.key===key&&Date.now()-tvdCalLoadedAt<30*60000)return;
   if(gcalExternal.loading)return;
   gcalExternal.key='';tvdCalLoadedAt=Date.now();
+  if(!getDriveUrl()||!getDriveKey()){   // TV를 켠 뒤 다른 기기가 공용 연결을 넣었을 수 있음 → 다시 읽기
+    try{const st=await getDoc(COL.app_state());if(st.exists()&&st.data().driveConn)driveConn=st.data().driveConn;}catch(e){}
+  }
   try{await loadGcalExternal(r.rs,r.re);}catch(e){console.warn('[TV] 구글 일정 조회 실패:',e.message);}
   if(tvdOn)renderTvd();
 }
@@ -5360,6 +5374,13 @@ function tvdEvLabel(e){return String(e.label||'').replace(/^\d{1,2}:\d{2}\s+/,''
 function tvdCalEvents(rs,re){
   const gf=ganttFilter;ganttFilter='all';
   try{return collectGanttEvents(rs,re);}finally{ganttFilter=gf;}
+}
+// 달력 위 작은 상태: 구글 일정을 못 불러오면 보이게(2026-10-13 — 조용히 0건이던 문제)
+function tvdGcalStatus(){
+  if(gcalExternal.loading)return '<div style="color:#8a95ad">구글 불러오는 중…</div>';
+  if(gcalExternal.error)return '<div style="color:#ff8f85" title="'+escAttr(gcalExternal.error)+'">⚠ 구글 조회 실패</div>';
+  if(!gcalExternalOn())return '<div style="color:#8a95ad">구글 연동 꺼짐</div>';
+  return '';
 }
 function tvdCalHtml(evs){
   const r=tvdCalRange();const today=tvdTodayStr();
@@ -5376,7 +5397,7 @@ function tvdCalHtml(evs){
   }
   const cal='<div class="tvd-glass tvd-cal">'
     +'<div style="display:flex;justify-content:space-between;align-items:baseline"><div class="tvd-sec">'+(r.m+1)+'월 일정</div>'
-    +'<div class="tvd-legend"><div><span style="color:#74c0fc">●</span> 구글 일정</div><div><span style="color:#ffd43b">●</span> 할 일 마감</div><div><span style="color:#c4b5fd">●</span> ISO·인증·신고</div></div></div>'
+    +'<div class="tvd-legend">'+tvdGcalStatus()+'<div><span style="color:#74c0fc">●</span> 구글 일정</div><div><span style="color:#ffd43b">●</span> 할 일 마감</div><div><span style="color:#c4b5fd">●</span> ISO·인증·신고</div></div></div>'
     +'<div class="tvd-wk">'+['월','화','수','목','금','토','일'].map((w,i)=>'<div style="'+(i>=5?'color:#8a95ad':'')+'">'+w+'</div>').join('')+'</div>'
     +'<div class="tvd-grid" style="grid-template-rows:repeat('+r.weeks+',minmax(0,1fr))">'+cells+'</div></div>';
   return cal;
@@ -9574,14 +9595,15 @@ async function saveCompany(){
 //   (§5 규칙의 예외 — Firestore는 아직 누구나 읽을 수 있어서 비밀 값을 둘 수 없다)
 const DRIVE_KEY_LS='sgcrm_drive_key';
 const DRIVE_URL_LS='sgcrm_drive_url';
-function getDriveUrl(){try{return localStorage.getItem(DRIVE_URL_LS)||'';}catch(e){return '';}}
-function setDriveUrl(v){try{v?localStorage.setItem(DRIVE_URL_LS,v):localStorage.removeItem(DRIVE_URL_LS);}catch(e){}}
+// 드라이브 연결 = 이 기기 값 → 없으면 공용(app_state.driveConn, 위 상태 변수). 바꾸면 공용에도 저장 → 모든 기기(TV 포함)가 같이 씀
+function getDriveUrl(){let v='';try{v=localStorage.getItem(DRIVE_URL_LS)||'';}catch(e){}return v||driveConn.url||'';}
+function setDriveUrl(v){try{v?localStorage.setItem(DRIVE_URL_LS,v):localStorage.removeItem(DRIVE_URL_LS);}catch(e){}driveConn=Object.assign({},driveConn,{url:v||''});saveAppState();}
 let driveFolders=null;          // [{id,name,sido,updated,cardId,cardName, ...parsed}]
 let driveLoading=false;
 let driveInternalIds=new Set();  // 사내 폴더(0.(주)SG솔루션 아래) ID — 업체로 등록되면 안 됨
 let driveSel=new Set();        // 일괄 처리 대상 폴더 ID (이름 일치=연결, 미등록=신규 등록)
-function getDriveKey(){try{return localStorage.getItem(DRIVE_KEY_LS)||'';}catch(e){return '';}}
-function setDriveKey(v){try{v?localStorage.setItem(DRIVE_KEY_LS,v):localStorage.removeItem(DRIVE_KEY_LS);}catch(e){}}
+function getDriveKey(){let v='';try{v=localStorage.getItem(DRIVE_KEY_LS)||'';}catch(e){}return v||driveConn.key||'';}
+function setDriveKey(v){try{v?localStorage.setItem(DRIVE_KEY_LS,v):localStorage.removeItem(DRIVE_KEY_LS);}catch(e){}driveConn=Object.assign({},driveConn,{key:v||''});saveAppState();}
 async function driveCall(params){
   const base=getDriveUrl();
   if(!base)throw new Error('드라이브 연결 주소(Apps Script 「SG CRM 드라이브」의 웹 앱 URL)를 입력하세요.');
