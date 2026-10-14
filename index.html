@@ -339,6 +339,26 @@ body.tvd-on{overflow:hidden;}
 .tvd-right{display:flex;flex-direction:column;gap:30px;min-height:0;}
 .tvd-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:30px;flex:1;min-height:0;}
 .tvd-cards>*{min-height:0;}
+/* 오른쪽 위 두 칸: 📞 통화 약속 │ 📣 광고 DB (2026-10-14 — 한 달 달력 대신) */
+.tvd-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:30px;flex:1.35;min-height:0;}
+.tvd-pair>*{min-height:0;}
+.tvd-next{display:flex;align-items:center;gap:calc(var(--afs)*0.8);margin:8px 0 6px;padding:calc(var(--afs)*0.45) calc(var(--afs)*0.7);border-radius:22px;background:linear-gradient(120deg,rgba(77,171,247,0.32),rgba(77,171,247,0.06));border:1px solid rgba(160,210,255,0.45);}
+.tvd-next .tm{font-size:calc(var(--afs)*1.7);font-weight:900;color:#fff;font-variant-numeric:tabular-nums;flex-shrink:0;line-height:1;}
+.tvd-next .tx{flex:1;min-width:0;font-size:calc(var(--afs)*1.1);font-weight:700;line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;word-break:keep-all;}
+.tvd-next .left{font-size:calc(var(--afs)*0.95);font-weight:800;color:#9fd0ff;white-space:nowrap;flex-shrink:0;}
+.tvd-next.soon{animation:tvdNextGlow 2s ease-in-out infinite;}
+.tvd-next.soon .left{color:#fff;}
+@keyframes tvdNextGlow{0%,100%{box-shadow:0 0 0 rgba(95,168,255,0)}50%{box-shadow:0 0 60px rgba(95,168,255,0.65)}}
+.tvd-ag-hd.fresh{color:#a5f3fc;}
+.tvd-ag-hd .snd{font-size:calc(var(--afs)*0.62);color:#8a95ad;font-weight:400;}
+/* 🔔 새로 들어온 DB — 맑은 유리 느낌(투명 바탕 + 흰 테두리 + 빛이 한 번씩 스쳐 감) */
+.tvd-ld-new{position:relative;overflow:hidden;display:flex;align-items:center;gap:18px;margin:8px 0;padding:calc(var(--afs)*0.4) calc(var(--afs)*0.6);border-radius:20px;background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.38);box-shadow:0 0 34px rgba(165,243,252,0.22),inset 0 1px 0 rgba(255,255,255,0.4);font-size:calc(var(--afs)*1.05);}
+.tvd-ld-new::after{content:'';position:absolute;top:0;bottom:0;width:30%;left:-40%;background:linear-gradient(100deg,transparent,rgba(255,255,255,0.28),transparent);animation:tvdShine 4s ease-in-out infinite;}
+@keyframes tvdShine{0%{left:-40%}45%,100%{left:120%}}
+.tvd-ld-new .pd{font-weight:900;white-space:nowrap;flex-shrink:0;}
+.tvd-ld-new .tx{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tvd-ld-new .ago{color:#a5f3fc;font-weight:700;white-space:nowrap;flex-shrink:0;font-size:calc(var(--afs)*0.85);}
+.tvd-ag-row.past{opacity:.45;}
 .tvd-col{display:flex;flex-direction:column;gap:30px;min-height:0;}
 .tvd-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:22px;}
 /* 숫자 칸: 이름 위 · 숫자 아래 — 이름이 길거나 숫자가 두세 자리여도 옆 칸을 침범하지 않게 (2026-10-12) */
@@ -467,6 +487,9 @@ body.tvd-on{overflow:hidden;}
 .tvd-pop.amb{background:linear-gradient(150deg,rgba(255,212,59,0.30) 0%,rgba(40,34,60,0.75) 55%,rgba(18,26,46,0.88) 100%);border-color:rgba(255,220,120,0.6);box-shadow:0 80px 160px rgba(0,0,0,0.7),0 0 220px rgba(255,212,59,0.25),inset 0 1px 0 rgba(255,255,255,0.3);}
 .tvd-pop.blue{background:linear-gradient(150deg,rgba(95,168,255,0.34) 0%,rgba(36,40,80,0.75) 55%,rgba(18,26,46,0.88) 100%);border-color:rgba(160,200,255,0.6);box-shadow:0 80px 160px rgba(0,0,0,0.7),0 0 220px rgba(95,168,255,0.3),inset 0 1px 0 rgba(255,255,255,0.3);}
 .tvd-pop .kind{font-size:52px;font-weight:700;color:#ffe3e0;}
+/* 새 광고 DB 경고창 — 맑고 투명한 유리 (2026-10-14 사장님) */
+.tvd-pop.clear{background:linear-gradient(150deg,rgba(255,255,255,0.24) 0%,rgba(165,243,252,0.10) 50%,rgba(18,26,46,0.55) 100%);border-color:rgba(255,255,255,0.6);backdrop-filter:blur(30px);box-shadow:0 80px 160px rgba(0,0,0,0.5),0 0 220px rgba(150,220,255,0.35),inset 0 2px 0 rgba(255,255,255,0.6);}
+.tvd-pop.clear .kind{color:#e0f7ff;}
 .tvd-pop .big{font-size:300px;font-weight:900;line-height:.9;color:#fff;text-shadow:0 0 80px rgba(255,90,79,0.8);}
 .tvd-pop .nm{font-size:92px;font-weight:900;line-height:1.15;}
 .tvd-pop .what{font-size:64px;font-weight:700;color:#e6ebf3;}
@@ -5353,14 +5376,9 @@ function tvdDlSub(it){
 function tvdEvClass(type){return type==='gcal'?'meet':type==='todo'?'todo':type==='cons'?'gov':'iso';}
 // ── 달력: 이번 달(월요일 시작) — 간트 캘린더와 같은 일정 모음(collectGanttEvents). 위쪽 절반, 아래는 오늘·내일 일정표 (2026-10-12)
 //   구글 일정은 달력 범위 + 내일까지 읽는다(말일에도 일정표의 「내일」이 비지 않게)
-function tvdCalRange(){
-  const now=new Date();const y=now.getFullYear(),m=now.getMonth();
-  const first=new Date(y,m,1);const off=(first.getDay()+6)%7;
-  const start=new Date(y,m,1-off);
-  const days=new Date(y,m+1,0).getDate();const weeks=Math.ceil((off+days)/7);
-  const end=new Date(start.getFullYear(),start.getMonth(),start.getDate()+weeks*7-1);
-  const tmr=addDaysStr(todoDayStr(now),1);
-  return {y,m,start,end,weeks,rs:todoDayStr(start),re:todoDayStr(end)>tmr?todoDayStr(end):tmr,calEnd:todoDayStr(end)};
+function tvdCalRange(){   // TV 일정 = 오늘부터 7일(2026-10-14 사장님) — 구글 일정도 이 범위만 읽는다
+  const rs=todoDayStr(new Date());const re=addDaysStr(rs,6);
+  return {rs,re};
 }
 let tvdCalLoadedAt=0;
 async function tvdLoadCal(force){
@@ -5388,25 +5406,25 @@ function tvdGcalStatus(){
   if(!gcalExternalOn())return '<div style="color:#8a95ad">구글 연동 꺼짐</div>';
   return '';
 }
-function tvdCalHtml(evs){
-  const r=tvdCalRange();const today=tvdTodayStr();
-  let cells='';
-  for(let i=0;i<r.weeks*7;i++){
-    const d=new Date(r.start.getFullYear(),r.start.getMonth(),r.start.getDate()+i);
-    const ds=todoDayStr(d);const dow=i%7;const inM=d.getMonth()===r.m;
-    const mine=evs.filter(e=>e.start<=ds&&(e.end||e.start)>=ds);
-    const cls=['tvd-day','tvd-day-s',dow>=5?'off':'',inM?'':'out',ds===today?'today':(inM&&ds<today?'past':'')].filter(Boolean).join(' ');
-    const max=r.weeks>5?2:3;   // 하루 2~3건, 나머지는 +N건 (전체는 아래 일정표·간트 캘린더)
-    cells+='<div class="'+cls+'"><div class="d">'+(inM?d.getDate():(d.getMonth()+1)+'/'+d.getDate())+'</div>'
-      +mine.slice(0,max).map(e=>'<div class="tvd-ev '+tvdEvClass(e.type)+'">'+tvdEsc((e.sTime?e.sTime+' ':'')+tvdEvLabel(e))+'</div>').join('')
-      +(mine.length>max?'<div class="tvd-ev-more">+'+(mine.length-max)+'건</div>':'')+'</div>';
+// 이번 주 일정 — 오늘부터 7일, 시간순 목록(2026-10-14 사장님: 한 달 달력은 「+N건」으로 줄어 파악이 안 됨 → 빼고 일주일만)
+//   일정 없는 날은 건너뛴다(오늘은 「일정 없음」이라도 보임)
+function tvdDayAgendaHtml(evs){
+  const today=tvdTodayStr();
+  const nowMin=new Date().getHours()*60+new Date().getMinutes();
+  const day=ds=>evs.filter(e=>e.start<=ds&&(e.end||e.start)>=ds)
+    .sort((a,b)=>(a.sTime?1:0)-(b.sTime?1:0)||String(a.sTime||'').localeCompare(String(b.sTime||'')));   // 종일 먼저, 그다음 시각순
+  const row=(e,ds)=>{const past=ds===today&&e.sTime&&hmToMin(e.eTime||e.sTime)<nowMin;
+    return '<div class="tvd-ag-row'+(past?' past':'')+'"><div class="tm'+(e.sTime?'':' tag')+'">'+(e.sTime||'종일')+'</div><span class="tvd-ag-dot '+tvdEvClass(e.type)+'"></span><div class="tx">'+tvdEsc(tvdEvLabel(e))+'</div></div>';};
+  let body='',total=0;
+  for(let i=0;i<7;i++){
+    const ds=addDaysStr(today,i);const arr=day(ds);total+=arr.length;
+    if(!arr.length&&i>0)continue;
+    const lab=i===0?'오늘':i===1?'내일':['일','월','화','수','목','금','토'][new Date(ds+'T00:00:00').getDay()]+'요일';
+    body+='<div class="tvd-ag-hd">'+lab+' <span>'+tvdMD(ds)+'</span><span class="c">'+arr.length+'건</span></div>'
+      +(arr.length?arr.map(e=>row(e,ds)).join(''):'<div class="tvd-ag-empty">일정 없음</div>');
   }
-  const cal='<div class="tvd-glass tvd-cal">'
-    +'<div style="display:flex;justify-content:space-between;align-items:baseline"><div class="tvd-sec">'+(r.m+1)+'월 일정</div>'
-    +'<div class="tvd-legend">'+tvdGcalStatus()+'<div><span style="color:#74c0fc">●</span> 구글 일정</div><div><span style="color:#ffd43b">●</span> 할 일 마감</div><div><span style="color:#c4b5fd">●</span> ISO·인증·신고</div></div></div>'
-    +'<div class="tvd-wk">'+['월','화','수','목','금','토','일'].map((w,i)=>'<div style="'+(i>=5?'color:#8a95ad':'')+'">'+w+'</div>').join('')+'</div>'
-    +'<div class="tvd-grid" style="grid-template-rows:repeat('+r.weeks+',minmax(0,1fr))">'+cells+'</div></div>';
-  return cal;
+  return '<div class="tvd-glass tvd-ag"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><div class="tvd-sec" style="font-size:44px">이번 주 일정</div><div class="tvd-legend" style="font-size:24px">'+(tvdGcalStatus()||'7일 '+total+'건')+'</div></div>'
+    +'<div class="tvd-ag-list" id="tvd-ag-day">'+body+'</div></div>';
 }
 // ── 📞 통화 일정 (2026-10-12) — 할 일 중 종류가 「전화」(kind call)인 것. 날짜 = 시작일(sg-todo와 같은 규칙, 옛 값은 마감일), 시각 = callTime(있으면)
 //   놓친 통화(날짜 지남·미완료) → 오늘 → 내일 → 이후 7일. 오늘 1시간 안의 통화는 강조
@@ -5426,45 +5444,66 @@ function leadCol(l){
 const LEAD_PICK={city:/^(city|지역|도시|소재지|시\s*\/?\s*군|주소)/i,bizType:/사업자\s*(유형|구분|형태)/,industry:/^(업종|업태|industry)/i};
 function leadPick(l,key){const e=(l.extras||[]).map(x=>Array.isArray(x)?x:[x.q,x.a]).find(([q])=>LEAD_PICK[key].test(String(q||'').trim()));return e?String(e[1]||'').replace(/_/g,' ').trim():'';}
 function leadMaskName(n){n=String(n||'').trim();if(!n)return '(이름 없음)';return n.length<=1?n:n.length===2?n[0]+'*':n[0]+'*'.repeat(n.length-2)+n.slice(-1);}
+// 🔔 새로 들어옴 = 아직 전화 안 한 DB 중 들어온 지 3시간 안(메타 접수 시각 기준)
+const TVD_LEAD_FRESH_H=3;
+function tvdLeadFresh(l){return (!l.status||l.status==='new')&&Date.now()-(l.receivedAt||l.createdAt||0)<TVD_LEAD_FRESH_H*3600000;}
+function tvdAgo(ms){const m=Math.max(0,Math.floor((Date.now()-(ms||0))/60000));return m<1?'방금':m<60?m+'분 전':Math.floor(m/60)+'시간 '+(m%60?m%60+'분 ':'')+'전';}
 function tvdLeadsHtml(){
   const xs=leads.map(l=>Object.assign({l},leadCol(l))).filter(x=>x.col==='new'||x.col==='call')
     .sort((a,b)=>(b.alert?1:0)-(a.alert?1:0)||(a.col==='new'?0:1)-(b.col==='new'?0:1)||(a.l.receivedAt||0)-(b.l.receivedAt||0));
-  if(!xs.length)return '';
+  const fresh=xs.filter(x=>tvdLeadFresh(x.l)).sort((a,b)=>(b.l.receivedAt||0)-(a.l.receivedAt||0));
+  const rest=xs.filter(x=>!fresh.includes(x));
   const nN=xs.filter(x=>x.col==='new').length,nC=xs.length-nN;
-  const rows=xs.map(x=>{const p=LEAD_PRODUCT[x.l.product]||LEAD_PRODUCT.etc;
-      const info=[leadPick(x.l,'city'),leadPick(x.l,'industry')].filter(Boolean).join(' · ');
+  const info=l=>[leadPick(l,'city'),leadPick(l,'industry')].filter(Boolean).join(' · ');
+  const freshHtml=fresh.length?'<div class="tvd-ag-hd fresh">🔔 새로 들어옴<span class="c">'+fresh.length+'건</span></div>'
+    +fresh.map(x=>{const p=LEAD_PRODUCT[x.l.product]||LEAD_PRODUCT.etc;
+      return '<div class="tvd-ld-new"><div class="pd" style="color:'+p[1]+'">'+p[0]+'</div><div class="tx"><b>'+escAttr(leadMaskName(x.l.name))+'</b>'+(x.l.company?' · '+escAttr(tvMask(x.l.company)):'')+(info(x.l)?' · '+escAttr(info(x.l)):'')+'</div><div class="ago">'+tvdAgo(x.l.receivedAt||x.l.createdAt)+'</div></div>';}).join(''):'';
+  const rows=rest.map(x=>{const p=LEAD_PRODUCT[x.l.product]||LEAD_PRODUCT.etc;const inf=info(x.l);
       return '<div class="tvd-ag-row'+(x.alert?' lead-alert':'')+'"><div class="tm ld" style="color:'+p[1]+'">'+p[0]+'</div>'
-        +'<div class="tx"><b>'+escAttr(leadMaskName(x.l.name))+'</b>'+(x.l.company?' · '+escAttr(tvMask(x.l.company)):'')+(info?' · '+escAttr(info):'')+' — '+escAttr(x.why)+'</div></div>';}).join('');
-  // 칸에 다 안 들어가면 자동으로 흘러가게(한 건에 3초) — 2026-10-13 사장님: 다 보여 주기보다 스크롤 효과
-  // 높이는 tvdFitAgenda가 카드의 남은 세로 길이에 맞춘다(10/13 사장님: 4줄만 말고 칸 높이만큼). 다 들어가면 흐르지 않고 멈춰 있음
-  const body='<div class="tvd-ld-roll"><div class="tvd-ld-track" style="animation-duration:'+(xs.length*3)+'s">'+rows+rows+'</div></div>';
-  return '<div class="tvd-ag-hd lead">📣 광고 DB<span class="c">새 '+nN+' · 재통화 '+nC+'</span></div>'+body;
+        +'<div class="tx"><b>'+escAttr(leadMaskName(x.l.name))+'</b>'+(x.l.company?' · '+escAttr(tvMask(x.l.company)):'')+(inf?' · '+escAttr(inf):'')+' — '+escAttr(x.why)+'</div></div>';}).join('');
+  // 칸에 다 안 들어가면 자동으로 흘러가게(한 건에 3초) — 높이는 tvdFitAg가 남은 세로 길이에 맞춘다. 다 들어가면 멈춰 있음
+  const restHtml=rest.length?'<div class="tvd-ag-hd lead">전화할 DB<span class="c">'+rest.length+'건</span></div>'
+    +'<div class="tvd-ld-roll"><div class="tvd-ld-track" style="animation-duration:'+(rest.length*3)+'s">'+rows+rows+'</div></div>':'';
+  const snd=tvdSoundReady()?'':'<span class="snd">🔇 화면을 한 번 누르면 알림음이 켜집니다</span>';
+  return '<div class="tvd-glass tvd-ag"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><div class="tvd-sec">📣 광고 DB</div>'
+    +'<div class="tvd-legend" style="font-size:28px">새 '+nN+' · 재통화 '+nC+'</div></div>'
+    +'<div class="tvd-ag-list" id="tvd-ag-lead">'+(snd?'<div class="tvd-ag-hd" style="border:0;padding:0">'+snd+'</div>':'')
+    +((freshHtml+restHtml)||'<div class="tvd-ag-empty">지금 전화할 DB가 없습니다.</div>')+'</div></div>';
 }
 function tvdCallDate(t){return t.startDate||t.dueDate||(t.createdAt?todoDayStr(new Date(t.createdAt)):'');}
+// 📞 통화 약속 (2026-10-14 광고 DB와 분리) — 놓친 통화(빨강, 처리할 때까지 남음) → ▶ 다음 통화(크게, 남은 시간) → 오늘 나머지 → 내일 → 이번 주
 function tvdCallsHtml(){
   const today=tvdTodayStr(),tmr=addDaysStr(today,1),wk=addDaysStr(today,7);
   const nowMin=new Date().getHours()*60+new Date().getMinutes();
+  const mOf=x=>x.tm?(+x.tm.slice(0,2))*60+(+x.tm.slice(3,5)):null;
   const calls=todos.filter(t=>t.kind==='call'&&!['done','cancel','idea'].includes(t.status))
     .map(t=>({t,d:tvdCallDate(t),tm:t.callTime||''})).filter(x=>x.d&&x.d<=wk)
     .sort((a,b)=>a.d.localeCompare(b.d)||(a.tm?0:1)-(b.tm?0:1)||a.tm.localeCompare(b.tm));
-  const row=(x,miss)=>{const t=x.t;const tmMin=x.tm?(+x.tm.slice(0,2))*60+(+x.tm.slice(3,5)):null;
-    const soon=!miss&&x.d===today&&tmMin!==null&&tmMin>=nowMin-10&&tmMin<=nowMin+60;
-    const co=todoCoShort(t);
+  const label=t=>{const co=todoCoShort(t);return (co?'<b>'+escAttr(co)+'</b> — ':'')+escAttr(todoText(t));};
+  const row=(x,miss)=>{const m=mOf(x);const soon=!miss&&x.d===today&&m!==null&&m>=nowMin-10&&m<=nowMin+60;
     return '<div class="tvd-ag-row'+(soon?' soon':'')+(miss?' miss':'')+'"><div class="tm'+(x.tm?'':' tag')+'">'+(x.tm||(miss?tvdMD(x.d):'시간 미정'))+'</div>'
-      +'<div class="tx">'+(co?'<b>'+escAttr(co)+'</b> — ':'')+escAttr(todoText(t))+'</div></div>';};
+      +'<div class="tx">'+label(x.t)+'</div></div>';};
   const sec=(lab,arr,miss)=>arr.length?'<div class="tvd-ag-hd'+(miss?' miss':'')+'">'+lab+'<span class="c">'+arr.length+'건</span></div>'+arr.map(x=>row(x,miss)).join(''):'';
   const miss=calls.filter(x=>x.d<today),tod=calls.filter(x=>x.d===today),tom=calls.filter(x=>x.d===tmr),later=calls.filter(x=>x.d>tmr);
-  const body=tvdLeadsHtml()+sec('⚠ 놓친 통화',miss,true)+sec('오늘',tod)+sec('내일',tom)
+  // 다음 통화 = 오늘 시각이 있는 통화 중 아직 안 지난(10분 여유) 첫 번째
+  const next=tod.find(x=>mOf(x)!==null&&mOf(x)>=nowMin-10)||null;
+  let nextHtml='';
+  if(next){const d=mOf(next)-nowMin;
+    const left=d<=0?'지금':d<60?d+'분 후':Math.floor(d/60)+'시간'+(d%60?' '+d%60+'분':'')+' 후';
+    nextHtml='<div class="tvd-ag-hd">▶ 다음 통화</div><div class="tvd-next'+(d<=10?' soon':'')+'"><div class="tm">'+next.tm+'</div><div class="tx">'+label(next.t)+'</div><div class="left">'+left+'</div></div>';}
+  const body=sec('⚠ 놓친 통화',miss,true)+nextHtml+sec(next?'오늘 나머지':'오늘',tod.filter(x=>x!==next))+sec('내일',tom)
     +(later.length?'<div class="tvd-ag-hd">이번 주<span class="c">'+later.length+'건</span></div>'+later.map(x=>row(Object.assign({},x,{tm:tvdMD(x.d)+(x.tm?' '+x.tm:'')}))).join(''):'');
-  return '<div class="tvd-glass tvd-ag tvd-calls"><div class="tvd-sec">'+(leads.some(l=>{const c=leadCol(l).col;return c==='new'||c==='call';})?'📞 통화 · 광고 DB':'📞 통화 일정')+'</div><div class="tvd-ag-list" id="tvd-ag">'
-    +(body||'<div class="tvd-ag-empty">예정된 통화가 없습니다.</div>')+'</div></div>';
+  const sum=(miss.length?'<span style="color:#ff8f85">놓침 '+miss.length+'</span> · ':'')+'오늘 '+tod.length+' · 내일 '+tom.length;
+  return '<div class="tvd-glass tvd-ag tvd-calls"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><div class="tvd-sec">📞 통화 약속</div><div class="tvd-legend" style="font-size:28px">'+sum+'</div></div>'
+    +'<div class="tvd-ag-list" id="tvd-ag-call">'+(body||'<div class="tvd-ag-empty">예정된 통화가 없습니다.</div>')+'</div></div>';
 }
-// 일정표 글자를 칸에 맞춘다(28→20px). 그래도 넘치면 「N건 더」
-function tvdFitAgenda(){
-  const el=document.getElementById('tvd-ag');if(!el)return;
+// 목록 글자를 칸에 맞춘다(통화·광고 DB 34→22px, 일정 28→20px). 그래도 넘치면 「N건 더」
+function tvdFitAgenda(){tvdFitAg('tvd-ag-call',34,22);tvdFitAg('tvd-ag-lead',34,22);tvdFitAg('tvd-ag-day',28,20);}
+function tvdFitAg(id,from,to){
+  const el=document.getElementById(id);if(!el)return;
   el.querySelectorAll('.tvd-more').forEach(x=>x.remove());   // 다시 맞출 때 지난 「N건 더」 지움
   const over=()=>el.scrollHeight>el.clientHeight+2;
-  // 광고 DB 흐르는 칸 = 통화 줄을 뺀 남은 세로 길이 전부(통화가 많으면 카드 절반). 목록이 다 들어가면 흐르지 않고 멈춤
+  // 광고 DB 흐르는 칸 = 다른 줄을 뺀 남은 세로 길이 전부. 목록이 다 들어가면 흐르지 않고 멈춤
   const roll=el.querySelector('.tvd-ld-roll'),track=roll&&roll.firstElementChild;
   const fitRoll=()=>{
     if(!roll)return;
@@ -5472,15 +5511,43 @@ function tvdFitAgenda(){
     // scrollHeight는 칸 높이보다 작아지지 않으므로 줄들의 실제 아래 끝으로 잰다
     const used=Math.max(0,...[...el.children].filter(c=>!c.classList.contains('tvd-more')).map(c=>c.offsetTop+c.offsetHeight));
     const free=el.clientHeight-used-4,full=track.scrollHeight/2;
-    const h=Math.max(Math.min(free,full),Math.min(full,el.clientHeight*0.5));   // 통화가 많아도 광고 DB는 카드 절반까지는 차지
+    const h=Math.max(Math.min(free,full),Math.min(full,el.clientHeight*0.4));   // 새 DB가 많아도 흐르는 칸은 40%까지는 차지
     roll.style.height=Math.floor(h)+'px';
     roll.classList.toggle('still',full<=h+1);
   };
-  for(let fs=28;fs>=20;fs-=2){el.style.setProperty('--afs',fs+'px');fitRoll();if(!over())return;}   // 2026-10-12 사장님: 두 단계 작게(34→28)
+  for(let fs=from;fs>=to;fs-=2){el.style.setProperty('--afs',fs+'px');fitRoll();if(!over())return;}
   const box=el.getBoundingClientRect();
-  const hidden=[...el.querySelectorAll('.tvd-ag-row')].filter(r=>!r.closest('.tvd-ld-roll')&&r.getBoundingClientRect().bottom>box.bottom+1).length;   // 흘러가는 광고 DB 줄은 빼고 셈
+  const hidden=[...el.querySelectorAll('.tvd-ag-row,.tvd-ld-new')].filter(r=>!r.closest('.tvd-ld-roll')&&r.getBoundingClientRect().bottom>box.bottom+1).length;   // 흘러가는 줄은 빼고 셈
   if(hidden)el.insertAdjacentHTML('beforeend','<div class="tvd-more" style="position:absolute;right:6px;bottom:4px;background:#1a2238;border-radius:12px;padding:4px 14px">'+hidden+'건 더</div>');
 }
+
+// ── 🔔 알림음 — 맑은 유리 종소리 세 음(파일 없이 Web Audio로 만듦, 2026-10-14 사장님: 맑고 투명한 알림)
+//   브라우저는 화면을 한 번 누르기(또는 키) 전에는 소리를 막는다 → 첫 누름에서 소리를 깨운다
+let tvdAudio=null;
+function tvdAudioCtx(){
+  try{
+    if(!tvdAudio){const A=window.AudioContext||window.webkitAudioContext;if(!A)return null;tvdAudio=new A();tvdAudio.onstatechange=()=>{if(tvdOn)renderTvd();};}   // 소리가 켜지면 「🔇」 안내를 지움
+    if(tvdAudio.state==='suspended')tvdAudio.resume().catch(()=>{});
+    return tvdAudio;
+  }catch(e){return null;}
+}
+function tvdSoundReady(){return !!(tvdAudio&&tvdAudio.state==='running');}
+function tvdChime(){
+  const ac=tvdAudioCtx();if(!ac||ac.state!=='running')return;
+  const t0=ac.currentTime+0.05;
+  const out=ac.createGain();out.gain.value=0.22;
+  const dl=ac.createDelay();dl.delayTime.value=0.19;const fb=ac.createGain();fb.gain.value=0.3;   // 살짝 울리는 메아리
+  out.connect(ac.destination);out.connect(dl);dl.connect(fb);fb.connect(dl);fb.connect(ac.destination);
+  [[1567.98,0],[2093.0,0.16],[2637.02,0.32]].forEach(([f,d])=>{        // 솔 → 도 → 미, 올라가는 세 음
+    [[1,1,1.9],[2.76,0.12,0.6],[5.4,0.04,0.3]].forEach(([k,v,len])=>{   // 기본음 + 종 배음(짧게)
+      const o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.value=f*k;
+      g.gain.setValueAtTime(0.0001,t0+d);g.gain.exponentialRampToValueAtTime(v,t0+d+0.008);g.gain.exponentialRampToValueAtTime(0.0001,t0+d+len);
+      o.connect(g);g.connect(out);o.start(t0+d);o.stop(t0+d+len+0.05);
+    });
+  });
+  setTimeout(()=>{try{out.disconnect();dl.disconnect();fb.disconnect();}catch(e){}},5000);
+}
+document.addEventListener('pointerdown',()=>{if(tvdOn)tvdAudioCtx();});
 
 // ── 통계: 열린 일 상태 비율 · 이번 달 완료 · 월별 완료(12개월) ──
 function tvdStatsHtml(g){
@@ -5585,9 +5652,10 @@ function renderTvd(){
     const cr=tvdCalRange();const evs=tvdCalEvents(cr.rs,cr.re);
     main.innerHTML='<div class="tvd-hd"><div style="display:flex;align-items:center;gap:30px"><div class="tvd-logo">SG</div><div class="tvd-title">(주)에스지솔루션 통합 제어 시스템</div></div>'
       +'<div class="tvd-glass tvd-clockbox"><div class="tvd-date" id="tvd-date">'+ck.date+'</div><div class="tvd-clock" id="tvd-clock">'+ck.time+'</div></div></div>'
-      // 화면 구성(2026-10-12 1안): 왼쪽 할 일 · 오른쪽 위 한 달 달력(넓게) · 오른쪽 아래 카드 3개(📞 통화 일정 / 인증·기한 알림 / 통계)
+      // 화면 구성(2026-10-14): 왼쪽 할 일 · 오른쪽 위 두 칸(📞 통화 약속 │ 📣 광고 DB) · 오른쪽 아래 카드 3개(이번 주 일정 7일 / 인증·기한 알림 / 통계)
+      //   한 달 달력은 뺐다(일정이 많으면 「+N건」으로 줄어 내용 파악이 안 됨) — 달 단위는 CRM 간트 캘린더에서
       +'<div class="tvd-body">'+tvdTodoHtml(g)
-        +'<div class="tvd-right">'+tvdCalHtml(evs)+'<div class="tvd-cards">'+tvdCallsHtml()+tvdDlHtml(dls)+tvdStatsHtml(g)+'</div></div></div>'
+        +'<div class="tvd-right"><div class="tvd-pair">'+tvdCallsHtml()+tvdLeadsHtml()+'</div><div class="tvd-cards">'+tvdDayAgendaHtml(evs)+tvdDlHtml(dls)+tvdStatsHtml(g)+'</div></div></div>'
       +tvdTickHtml();
     tvdFitList();tvdFitDl();tvdFitAgenda();
     setTimeout(tvdFitAgenda,700);   // 화면 배치가 다 잡힌 뒤 한 번 더(광고 DB 칸 높이가 처음엔 작게 잡히는 경우)
@@ -5615,6 +5683,8 @@ function tvdCheckAlerts(g,dls){
   const today=tvdTodayStr();
   if(new Date().getHours()>=TVD_WORK.from)add({key:'am|'+today,type:'sum',dls,g,pri:0});
   g.urg.forEach(t=>{if(!tvdUrgBase.has(t.id))add({key:'urg|'+t.id,type:'urg',t,pri:1});});
+  // 📣 TV를 켠 뒤 새로 들어온 광고 DB(아직 전화 안 함, 들어온 지 3시간 안) → 맑은 알림음 + 유리 경고창
+  leads.forEach(l=>{if((l.createdAt||0)>=tvdOpenedAt-60000&&tvdLeadFresh(l))add({key:'lead|'+l.id,type:'lead',l,pri:-1});});
   dls.forEach(it=>{
     if(tvdHandled(it))return;
     let stage=null;
@@ -5633,6 +5703,18 @@ function tvdPopHtml(p){
       +'<div class="tvd-cells"><div class="tvd-cell"><div class="l">긴급</div><div class="v" style="color:#ffb3ad">'+p.g.urg.length+'건</div></div><div class="tvd-cell"><div class="l">빨간 표시</div><div class="v" style="color:#ffb066">'+p.g.alert+'건</div></div><div class="tvd-cell"><div class="l">7일 안 기한</div><div class="v">'+near.length+'건</div></div></div>'
       +'<div class="tvd-sum">'+(near.length?near.map(it=>'<div><b>'+tvdDdLabel(it)+'</b> · '+tvdEsc(it.name)+' '+escAttr(it.what)+'</div>').join(''):'<div>이번 주에 다가오는 기한은 없습니다.</div>')+'</div>'
       +foot('오늘도 빨간 표시(마감 지남·오래 끈 일)부터 정리해 주세요.')+'</div>';
+  }
+  if(p.type==='lead'){
+    const l=p.l;const pr=LEAD_PRODUCT[l.product]||LEAD_PRODUCT.etc;
+    const info=[leadPick(l,'city'),leadPick(l,'bizType'),leadPick(l,'industry')].filter(Boolean).join(' · ');
+    const at=new Date(l.receivedAt||l.createdAt||Date.now());
+    return '<div class="tvd-pop clear"><div class="kind">🔔 새 광고 DB가 들어왔습니다</div>'
+      +'<div class="nm"><span style="color:'+pr[1]+'">'+pr[0]+'</span> · '+escAttr(leadMaskName(l.name))+(l.company?' · '+escAttr(tvMask(l.company)):'')+'</div>'
+      +(info?'<div class="what">'+escAttr(info)+'</div>':'')
+      +'<div class="tvd-cells"><div class="tvd-cell"><div class="l">번호</div><div class="v">'+escAttr(l.id)+'</div></div>'
+      +'<div class="tvd-cell"><div class="l">광고</div><div class="v">'+escAttr(l.formName||l.adName||pr[0])+'</div></div>'
+      +'<div class="tvd-cell"><div class="l">들어온 시각</div><div class="v">'+String(at.getHours()).padStart(2,'0')+':'+String(at.getMinutes()).padStart(2,'0')+' · '+tvdAgo(at.getTime())+'</div></div></div>'
+      +foot('전화하고 결과(부재·상담·약속)를 남기면 「전화할 DB」에서 정리됩니다.')+'</div>';
   }
   if(p.type==='urg'){
     const t=p.t;
@@ -5658,6 +5740,7 @@ function tvdNextPop(){
   if(!tvdPopCur){wrap.innerHTML='';return;}
   tvdMarkSeen(tvdPopCur.key);
   wrap.innerHTML='<div class="tvd-veil"></div>'+tvdPopHtml(tvdPopCur);
+  if(tvdPopCur.type==='lead')tvdChime();
   tvdPopTimer=setTimeout(tvdNextPop,TVD_POP_MS);
 }
 
