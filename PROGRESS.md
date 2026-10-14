@@ -7,6 +7,13 @@
 
 ---
 
+## ⭐ 2026-10-14 (2) — TV: 한 달 달력 빼고 「📞 통화 약속 │ 📣 광고 DB」 두 칸 + 맑은 알림음
+- 사장님: 달력은 일정이 많으면 「+N건」으로 줄어 내용 파악이 안 됨 · 통화(약속 놓침 방지)와 광고 DB(새로 들어온 것 놓침 방지)는 성격이 달라 분리
+- 오른쪽 위 = `tvdCallsHtml`(놓친 통화 → ▶ 다음 통화 크게·남은 시간·10분 전 빛남 → 오늘 나머지 → 내일 → 이번 주) │ `tvdLeadsHtml`(🔔 새로 들어옴 = 미통화·3시간 안, 유리 줄 → 「전화할 DB」 흐르는 칸)
+- 오른쪽 아래 = `tvdDayAgendaHtml`(이번 주 일정 = 오늘부터 7일 시간순, 일정 없는 날은 건너뜀, 구글 일정 포함 — 구글은 이 7일만 읽음) · 인증·기한 · 통계. 맞추기 `tvdFitAg(id,from,to)`
+- TV를 켠 뒤 들어온 광고 DB → 유리 경고창(`.tvd-pop.clear`) + `tvdChime`(Web Audio 솔·도·미 종소리, 파일 없음). 평일 9~18시만. 브라우저 정책상 화면을 한 번 누르기 전엔 소리 없음 → 광고 DB 칸에 「🔇 화면을 한 번 누르면…」
+- 다음: 광고 DB 통화 이력(시도마다 한 줄) — sg-todo
+
 ## ⭐ 2026-10-14 — 업무창 ISO 소식 → iso-one 우편함(iso_inbox)
 - sg-todo `worker/src/iso.js` + MCP `iso_update`·`iso_update_status` (iso-one `docs/ISO_INBOX_SPEC.md` v1). Worker는 서비스 계정으로 `iso_inbox`에 쓰기만, iso-one이 반영해 cert_status로 CRM. 심사 끝남+취득일 없음 → 「인증서 발급 확인」 할 일, 취득일 오면 자동 완료.
 - **남은 것(SGCRM 개발 창):** Firestore 보안 규칙에 `iso_inbox` 추가(iso-one 로그인이 읽고 state·result 쓰기).
