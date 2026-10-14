@@ -7,6 +7,10 @@
 
 ---
 
+## ⭐ 2026-10-14 — 업무창 ISO 소식 → iso-one 우편함(iso_inbox)
+- sg-todo `worker/src/iso.js` + MCP `iso_update`·`iso_update_status` (iso-one `docs/ISO_INBOX_SPEC.md` v1). Worker는 서비스 계정으로 `iso_inbox`에 쓰기만, iso-one이 반영해 cert_status로 CRM. 심사 끝남+취득일 없음 → 「인증서 발급 확인」 할 일, 취득일 오면 자동 완료.
+- **남은 것(SGCRM 개발 창):** Firestore 보안 규칙에 `iso_inbox` 추가(iso-one 로그인이 읽고 state·result 쓰기).
+
 ## ⭐ 2026-10-13 (5) — 통합 제어 시스템(TV) 달력에 구글 일정이 안 나오던 것
 - 원인: 드라이브 스크립트 연결(주소·비밀 문구)이 기기마다 localStorage에만 있어 TV 브라우저엔 없음 → 예전 웹훅(응답 없음)으로 넘어가 0건.
 - 고침(사장님 A안): `app_state.driveConn`(공용, `appStatePayload`에 포함) — 이 기기 값이 없으면 공용 값. 한 기기에서 처음 열 때 localStorage → 공용으로 자동 이전. TV는 연결이 없으면 달력 불러올 때 app_state를 다시 읽음. TV 달력에 「⚠ 구글 조회 실패」 표시.
