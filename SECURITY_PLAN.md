@@ -104,6 +104,15 @@ service cloud.firestore {
 ```
 ⚠️ 1단계 규칙의 `match /{document=**} { allow read, write: if staff(); }`를 **지우고** 위로 바꾼다(남겨 두면 차단이 무력화).
 
+#### 2-5-1. 인증 연동 컬렉션 (2026-10-14 확인 — **규칙 변경 필요 없음**)
+| 컬렉션 | 쓰는 곳 | 위 규칙에서 |
+|---|---|---|
+| `cert_status`·`cert_events` (`CERT_STATUS_SPEC.md`) | iso-one(CRM 연결 로그인) · 메인이노(서비스 계정) | staff 쓰기 허용 · 서비스 계정은 규칙과 무관 → 통과 |
+| `iso_inbox` (ims-project `docs/ISO_INBOX_SPEC.md` v1) | 할 일 프로그램 Worker `iso_update` 도구(서비스 계정)가 추가 · iso-one(CRM 연결 로그인)이 읽고 `state`·`result` 기록 | Worker는 규칙과 무관 → 통과 · iso-one은 staff 읽기·쓰기 허용 → 통과 |
+
+- 위 `match /{col}/{id}`가 최상위 컬렉션 전부를 덮으므로 새 컬렉션을 따로 적을 필요가 없다. **차단 목록(`todos`·`activity`)에 이 세 컬렉션을 넣지 않는다** — 넣으면 iso-one의 쓰기가 막힌다.
+- 나중에 컬렉션별로 좁히는 규칙으로 바꾸게 되면 이 표의 세 컬렉션을 staff 읽기·쓰기로 반드시 포함한다.
+
 ## 3. 순서 (제안)
 1. 사장님: Firebase 콘솔에서 Google 로그인 켜기, 현재 규칙 캡처(되돌리기용).
 2. CRM 로그인 화면 + 드라이브 스크립트 v6(OAuth) 만들기 → 잠그기 **전에** 둘 다 배포해 동작 확인.
