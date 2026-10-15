@@ -5477,7 +5477,8 @@ function tvdDayAgendaHtml(evs){
       +(arr.length?arr.map(e=>row(e,ds)).join(''):'<div class="tvd-ag-empty">일정 없음</div>');
   }
   return '<div class="tvd-glass tvd-ag"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><div class="tvd-sec" style="font-size:44px">이번 주 일정</div><div class="tvd-legend" style="font-size:24px">'+(tvdGcalStatus()||'7일 '+total+'건')+'</div></div>'
-    +'<div class="tvd-ag-list" id="tvd-ag-day">'+body+'</div></div>';
+    // 2026-10-15 사장님: 글씨 한 단계 크게(30px 고정) + 칸을 넘으면 천천히 위로 흐르게(광고 DB와 같은 방식, 다 들어가면 멈춤)
+    +'<div class="tvd-ag-list" id="tvd-ag-day"><div class="tvd-ld-roll"><div class="tvd-ld-track" style="animation-duration:'+Math.max(12,total*3)+'s">'+body+body+'</div></div></div></div>';
 }
 // ── 📞 통화 일정 (2026-10-12) — 할 일 중 종류가 「전화」(kind call)인 것. 날짜 = 시작일(sg-todo와 같은 규칙, 옛 값은 마감일), 시각 = callTime(있으면)
 //   놓친 통화(날짜 지남·미완료) → 오늘 → 내일 → 이후 7일. 오늘 1시간 안의 통화는 강조
@@ -5551,7 +5552,7 @@ function tvdCallsHtml(){
     +'<div class="tvd-ag-list" id="tvd-ag-call">'+(body||'<div class="tvd-ag-empty">예정된 통화가 없습니다.</div>')+'</div></div>';
 }
 // 목록 글자를 칸에 맞춘다(통화·광고 DB 34→22px, 일정 28→20px). 그래도 넘치면 「N건 더」
-function tvdFitAgenda(){tvdFitAg('tvd-ag-call',34,22);tvdFitAg('tvd-ag-lead',34,22);tvdFitAg('tvd-ag-day',28,20);}
+function tvdFitAgenda(){tvdFitAg('tvd-ag-call',34,22);tvdFitAg('tvd-ag-lead',34,22);tvdFitAg('tvd-ag-day',30,30);}   // 이번 주 일정 = 30px 고정, 넘치면 흐름
 function tvdFitAg(id,from,to){
   const el=document.getElementById(id);if(!el)return;
   el.querySelectorAll('.tvd-more').forEach(x=>x.remove());   // 다시 맞출 때 지난 「N건 더」 지움
