@@ -7,6 +7,10 @@
 
 ---
 
+## ⭐ 2026-10-17 (2) — CRM 「할 일」 메뉴 = 업무 현황 시스템(sg-todo) 화면
+- 현황은 TV, 할 일은 업무 현황 시스템이 따로 있어 CRM 할 일 화면이 중복 → 메뉴를 누르면 오른쪽에 sg-todo 웹을 그대로 띄움(`#todo-app-frame`, 처음 열 때 한 번만 불러옴 `openTodoAppFrame`). 같은 주소(sggit-png.github.io)라 로그인 이어짐. 「새 창으로 ↗」 버튼.
+- 예전 CRM 할 일 칸(`todo-grid-sub`)은 TV 모드(`#todo-tv`)에서만 보임. 대시보드 할 일 요약은 그대로.
+
 ## ⭐ 2026-10-17 — CRM → 통합 제어(TV) 버튼
 - 사이드바 맨 위 「📺 통합 제어 (TV)」(모바일 메뉴에도) → `openTvdScreen()` = 주소 `#tv`. 돌아올 때는 TV 화면의 「CRM으로 나가기」·Esc
 
