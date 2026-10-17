@@ -7,6 +7,9 @@
 
 ---
 
+## ⭐ 2026-10-17 (5) — 왼쪽 메뉴 「🏅 ISO 인증심사 ↗」 추가
+- 업무 프로그램 바로 아래(노란 버튼, 아이콘 = 사장님이 주신 ISO 마크 그림(48px data URI), 모바일 메뉴에도). 누르면 iso-one 웹(`https://iso-one.web.app/`)을 새 창으로(`openIsoOne()`).
+
 ## ⭐ 2026-10-17 (4) — 왼쪽 메뉴 접고 펼치기
 - 로고 오른쪽 「«」 → 아이콘만(64px), 「»」 → 펼침. 접으면 오른쪽 화면(할 일 = 업무 프로그램 등)이 넓어짐. 아이콘에 마우스 올리면 메뉴 이름. 기기마다 localStorage `sgcrm_sb_folded`로 기억(app_state 쓰기 없음). `toggleSidebar` export.
 
