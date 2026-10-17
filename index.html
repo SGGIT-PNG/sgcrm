@@ -70,6 +70,13 @@ body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);col
 
 .page-section{display:none;}
 .page-section.active{display:block;}
+/* 할 일 메뉴 = 업무 현황 시스템(sg-todo) 화면 (2026-10-17) */
+.todo-app-wrap{display:flex;flex-direction:column;height:calc(100vh - 120px);min-height:520px;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#0B1220;}
+.todo-app-bar{display:flex;align-items:center;gap:8px;padding:6px 10px;font-size:12px;color:var(--text3);background:var(--surface);border-bottom:1px solid var(--border);}
+.todo-app-bar .btn{margin-left:auto;}
+#todo-app-frame{flex:1;width:100%;border:0;background:#0B1220;}
+body.tv-mode #todo-app-wrap{display:none;}
+body:not(.tv-mode) #todo-grid-sub{display:none;}
 
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;}
 .card-hd{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border);}
@@ -1158,6 +1165,11 @@ body.tvd-on{overflow:hidden;}
 
     <!-- PAGE: TODO -->
     <div class="page-section" id="page-todo">
+      <!-- 2026-10-17 사장님: 현황은 TV, 할 일은 업무 현황 시스템(sg-todo)이 따로 있어 중복 → 이 메뉴는 업무 현황 시스템을 그대로 띄운다 -->
+      <div id="todo-app-wrap" class="todo-app-wrap">
+        <div class="todo-app-bar"><span>업무 현황 시스템 — 여기서 바로 추가·완료할 수 있습니다</span><button class="btn btn-ghost btn-sm" onclick="todoGoApp()">새 창으로 ↗</button></div>
+        <iframe id="todo-app-frame" title="업무 현황 시스템" allow="clipboard-write"></iframe>
+      </div>
       <div id="todo-grid-sub"></div>
     </div>
 
@@ -3463,7 +3475,7 @@ function navTo(page){
 function renderPage(p){
   if(p==='overview'){renderOverview();}
   else if(p==='gantt'){renderGanttView();}
-  else if(p==='todo'){renderTodo('sub');}
+  else if(p==='todo'){if(tvMode)renderTodo('sub');else openTodoAppFrame();}
   else if(p==='work'){renderWork('work-grid-sub');}
   else if(p==='clients'){renderClientsPage();}
   else if(p==='cert'){renderCertPage();}
@@ -5088,6 +5100,11 @@ const TODO_RULES_DEFAULT={stallDays:14,soonDays:3,horizonDays:30,leadDays:14};
 //   false로 바꾸면 예전처럼 CRM에서 직접 쓴다(되돌리기용 — 단, Firestore 규칙 2단계 뒤에는 저장이 거절됨).
 const TODO_READONLY=true;
 const TODO_APP_URL='https://sggit-png.github.io/sg-todo/';
+// 할 일 메뉴 안에 업무 현황 시스템을 띄운다 (2026-10-17). 같은 주소(sggit-png.github.io)라 로그인도 그대로 이어짐. 처음 열 때 한 번만 불러옴
+function openTodoAppFrame(){
+  const f=document.getElementById('todo-app-frame');
+  if(f&&!f.getAttribute('src'))f.setAttribute('src',TODO_APP_URL);
+}
 const TODO_API_URL='https://sg-todo.sgsolution.workers.dev';
 function todoNoLabel(t){return t&&t.no?'T-'+String(t.no).padStart(4,'0'):'';}
 // 할 일 프로그램 열기 (id·번호가 있으면 그 할 일로)
