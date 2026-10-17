@@ -858,6 +858,7 @@ body.tvd-on{overflow:hidden;}
     <!-- 메인 메뉴 -->
     <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,.35);padding:10px 8px 4px;letter-spacing:.08em;text-transform:uppercase">메인 메뉴</div>
     <div class="mob-drawer-item" onclick="openTvdScreen()">📺 통합 제어 (TV)</div>
+    <div class="mob-drawer-item" onclick="todoGoApp()">🗂️ 업무 프로그램 ↗</div>
     <div class="mob-drawer-item" onclick="mobileNavTo('gantt')">📅 일정관리</div>
     <div class="mob-drawer-item" onclick="mobileNavTo('overview')">🏠 전체 현황</div>
     <div class="mob-drawer-item" onclick="mobileNavTo('todo')">✅ 할 일</div>
@@ -924,6 +925,8 @@ body.tvd-on{overflow:hidden;}
   <div class="sb-section">메인 메뉴</div>
   <!-- 📺 통합 제어 시스템(TV 화면)으로 — TV 화면의 「CRM으로 나가기」와 짝 (2026-10-17) -->
   <div class="sb-menu" id="nav-tvd" onclick="openTvdScreen()" title="사무실 TV용 통합 제어 화면 (Esc로 CRM에 돌아옴)" style="background:rgba(95,168,255,.16);border:1px solid rgba(95,168,255,.35);margin-bottom:6px"><span class="sb-ico">📺</span><span>통합 제어 (TV)</span></div>
+  <!-- 2026-10-17 사장님: 통합 제어 아래 업무 프로그램(sg-todo)을 새 창으로 여는 메뉴 -->
+  <div class="sb-menu" id="nav-todoapp" onclick="todoGoApp()" title="업무 현황 시스템을 새 창으로 엽니다" style="background:rgba(81,207,102,.14);border:1px solid rgba(81,207,102,.35);margin-bottom:6px"><span class="sb-ico">🗂️</span><span>업무 프로그램</span><span style="margin-left:auto;font-size:12px;opacity:.7">↗</span></div>
   <div class="sb-menu" id="nav-gantt" onclick="navTo('gantt')"><span class="sb-ico">📅</span><span>일정관리</span><span class="sb-cnt" id="sb-gantt-cnt">0</span></div>
   <div class="sb-menu active" id="nav-overview" onclick="navTo('overview')"><span class="sb-ico">🏠</span><span>전체 현황</span></div>
   <div class="sb-menu" id="nav-todo" onclick="navTo('todo')"><span class="sb-ico">✅</span><span>할 일</span><span class="sb-cnt" id="sb-todo-cnt">0</span></div>
