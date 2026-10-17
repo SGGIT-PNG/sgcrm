@@ -850,6 +850,7 @@ body.tvd-on{overflow:hidden;}
 
     <!-- 메인 메뉴 -->
     <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,.35);padding:10px 8px 4px;letter-spacing:.08em;text-transform:uppercase">메인 메뉴</div>
+    <div class="mob-drawer-item" onclick="openTvdScreen()">📺 통합 제어 (TV)</div>
     <div class="mob-drawer-item" onclick="mobileNavTo('gantt')">📅 일정관리</div>
     <div class="mob-drawer-item" onclick="mobileNavTo('overview')">🏠 전체 현황</div>
     <div class="mob-drawer-item" onclick="mobileNavTo('todo')">✅ 할 일</div>
@@ -914,6 +915,8 @@ body.tvd-on{overflow:hidden;}
     <div class="sb-logo-sub">Business CRM v3</div>
   </div>
   <div class="sb-section">메인 메뉴</div>
+  <!-- 📺 통합 제어 시스템(TV 화면)으로 — TV 화면의 「CRM으로 나가기」와 짝 (2026-10-17) -->
+  <div class="sb-menu" id="nav-tvd" onclick="openTvdScreen()" title="사무실 TV용 통합 제어 화면 (Esc로 CRM에 돌아옴)" style="background:rgba(95,168,255,.16);border:1px solid rgba(95,168,255,.35);margin-bottom:6px"><span class="sb-ico">📺</span><span>통합 제어 (TV)</span></div>
   <div class="sb-menu" id="nav-gantt" onclick="navTo('gantt')"><span class="sb-ico">📅</span><span>일정관리</span><span class="sb-cnt" id="sb-gantt-cnt">0</span></div>
   <div class="sb-menu active" id="nav-overview" onclick="navTo('overview')"><span class="sb-ico">🏠</span><span>전체 현황</span></div>
   <div class="sb-menu" id="nav-todo" onclick="navTo('todo')"><span class="sb-ico">✅</span><span>할 일</span><span class="sb-cnt" id="sb-todo-cnt">0</span></div>
@@ -5892,6 +5895,8 @@ function applyHashRoute(){
   else{ if(tvMode)setTvMode(false); if(h&&document.getElementById('page-'+h))navTo(h); }
 }
 window.addEventListener('hashchange',applyHashRoute);
+// CRM → 통합 제어(TV) 화면. 주소가 #tv로 바뀌어 새로 고쳐도 TV 화면으로 열린다
+function openTvdScreen(){if(location.hash==='#tv')applyHashRoute();else location.hash='tv';}
 function todoOpen(){return todos.filter(t=>t.status!=='done'&&todoPassFilter(t));}
 function todoDayStr(d){return dateStr(d.getFullYear(),d.getMonth(),d.getDate());}
 function todoBriefData(g){
@@ -13088,7 +13093,7 @@ onAuthStateChanged(auth,(u)=>{
 
 
 // ── GLOBAL EXPORTS ──
-Object.assign(window,{
+Object.assign(window,{openTvdScreen,
   crmSignIn,crmSignOut,todoGoApp,todoGoRef,
   copyDriveScript,renderCertLinked,tvToggleMask,tvSetZoom,tvExit,tvdExit,tvdCheckDeploy,
   navTo,manualSave,closeModal,
