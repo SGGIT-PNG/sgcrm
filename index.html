@@ -5548,7 +5548,9 @@ function leadPick(l,key){const e=(l.extras||[]).map(x=>Array.isArray(x)?x:[x.q,x
 function leadMaskName(n){n=String(n||'').trim();if(!n)return '(이름 없음)';return n.length<=1?n:n.length===2?n[0]+'*':n[0]+'*'.repeat(n.length-2)+n.slice(-1);}
 // 🔔 새로 들어옴 = 아직 전화 안 한 DB 중 들어온 지 3시간 안(메타 접수 시각 기준)
 const TVD_LEAD_FRESH_H=3;
-function tvdLeadFresh(l){return (!l.status||l.status==='new')&&Date.now()-(l.receivedAt||l.createdAt||0)<TVD_LEAD_FRESH_H*3600000;}
+// 「새로 들어옴」 = 신청 시각과 우리에게 들어온 시각 중 늦은 쪽 기준 3시간 — Meta가 끊겼다 이어져 늦게 들어온 DB도 새 것으로 보이게(2026-10-19)
+const LEAD_ROLL_DAYS=30;   // 업무 프로그램 LEAD_ROLL_DAYS와 같게
+function tvdLeadFresh(l){return (!l.status||l.status==='new')&&Date.now()-Math.max(l.receivedAt||0,l.createdAt||0)<TVD_LEAD_FRESH_H*3600000;}
 function tvdAgo(ms){const m=Math.max(0,Math.floor((Date.now()-(ms||0))/60000));return m<1?'방금':m<60?m+'분 전':Math.floor(m/60)+'시간 '+(m%60?m%60+'분 ':'')+'전';}
 // Meta 연결이 끊겼는지 — 마지막 오류가 마지막 성공보다 뒤이고 15분 넘게 성공이 없으면(5분마다 가져오니 3번 연속 실패)
 function leadSyncBroken(){
@@ -5558,15 +5560,17 @@ function leadSyncBroken(){
   return {since:ss.lastOkAt||ss.lastErrorAt||0,err:ss.lastError};
 }
 function tvdLeadsHtml(){
-  const xs=leads.map(l=>Object.assign({l},leadCol(l))).filter(x=>x.col==='new'||x.col==='call')
-    .sort((a,b)=>(b.alert?1:0)-(a.alert?1:0)||(a.col==='new'?0:1)-(b.col==='new'?0:1)||(a.l.receivedAt||0)-(b.l.receivedAt||0));
-  const fresh=xs.filter(x=>tvdLeadFresh(x.l)).sort((a,b)=>(b.l.receivedAt||0)-(a.l.receivedAt||0));
+  // 업무 프로그램 「📣 전화할 DB」와 같은 규칙(2026-10-19): 최근 30일 들어온 것 · 새 DB·오늘 걸 곳 · 최근 들어온 것부터
+  const since=Date.now()-LEAD_ROLL_DAYS*86400000,at=l=>Math.max(l.receivedAt||0,l.createdAt||0);
+  const xs=leads.map(l=>Object.assign({l},leadCol(l))).filter(x=>(x.col==='new'||x.col==='call')&&at(x.l)>=since)
+    .sort((a,b)=>at(b.l)-at(a.l));
+  const fresh=xs.filter(x=>tvdLeadFresh(x.l));
   const rest=xs.filter(x=>!fresh.includes(x));
   const nN=xs.filter(x=>x.col==='new').length,nC=xs.length-nN;
   const info=l=>[leadPick(l,'city'),leadPick(l,'industry')].filter(Boolean).join(' · ');
   const freshHtml=fresh.length?'<div class="tvd-ag-hd fresh">🔔 새로 들어옴<span class="c">'+fresh.length+'건</span></div>'
     +fresh.map(x=>{const p=LEAD_PRODUCT[x.l.product]||LEAD_PRODUCT.etc;
-      return '<div class="tvd-ld-new"><div class="pd" style="color:'+p[1]+'">'+p[0]+'</div><div class="tx"><b>'+escAttr(leadMaskName(x.l.name))+'</b>'+(x.l.company?' · '+escAttr(tvMask(x.l.company)):'')+(info(x.l)?' · '+escAttr(info(x.l)):'')+'</div><div class="ago">'+tvdAgo(x.l.receivedAt||x.l.createdAt)+'</div></div>';}).join(''):'';
+      return '<div class="tvd-ld-new"><div class="pd" style="color:'+p[1]+'">'+p[0]+'</div><div class="tx"><b>'+escAttr(leadMaskName(x.l.name))+'</b>'+(x.l.company?' · '+escAttr(tvMask(x.l.company)):'')+(info(x.l)?' · '+escAttr(info(x.l)):'')+'</div><div class="ago">'+tvdAgo(at(x.l))+'</div></div>';}).join(''):'';
   const rows=rest.map(x=>{const p=LEAD_PRODUCT[x.l.product]||LEAD_PRODUCT.etc;const inf=info(x.l);
       return '<div class="tvd-ag-row'+(x.alert?' lead-alert':'')+'"><div class="tm ld" style="color:'+p[1]+'">'+p[0]+'</div>'
         +'<div class="tx"><b>'+escAttr(leadMaskName(x.l.name))+'</b>'+(x.l.company?' · '+escAttr(tvMask(x.l.company)):'')+(inf?' · '+escAttr(inf):'')+' — '+escAttr(x.why)+'</div></div>';}).join('');
