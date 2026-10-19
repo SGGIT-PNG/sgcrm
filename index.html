@@ -5519,12 +5519,12 @@ function tvdDayAgendaHtml(evs){
   let body='',total=0;
   for(let i=0;i<7;i++){
     const ds=addDaysStr(today,i);const arr=day(ds);total+=arr.length;
-    if(!arr.length&&i>0)continue;
+    // 2026-10-19 사장님: 일정 없는 날도 빼지 않고 오늘부터 7일을 무조건 다 보여 준다(전에는 빈 날을 건너뛰어 목요일까지만 보였음)
     const lab=i===0?'오늘':i===1?'내일':['일','월','화','수','목','금','토'][new Date(ds+'T00:00:00').getDay()]+'요일';
     body+='<div class="tvd-ag-hd">'+lab+' <span>'+tvdMD(ds)+'</span><span class="c">'+arr.length+'건</span></div>'
       +(arr.length?arr.map(e=>row(e,ds)).join(''):'<div class="tvd-ag-empty">일정 없음</div>');
   }
-  return '<div class="tvd-glass tvd-ag"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><div class="tvd-sec" style="font-size:44px">이번 주 일정</div><div class="tvd-legend" style="font-size:24px">'+(tvdGcalStatus()||'7일 '+total+'건')+'</div></div>'
+  return '<div class="tvd-glass tvd-ag"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><div class="tvd-sec" style="font-size:44px">이번 주 일정</div><div class="tvd-legend" style="font-size:24px">'+(tvdGcalStatus()||tvdMD(today)+'~'+tvdMD(addDaysStr(today,6))+' · '+total+'건')+'</div></div>'
     // 2026-10-15 사장님: 글씨 한 단계 크게(30px 고정) + 칸을 넘으면 천천히 위로 흐르게(광고 DB와 같은 방식, 다 들어가면 멈춤)
     +'<div class="tvd-ag-list" id="tvd-ag-day"><div class="tvd-ld-roll"><div class="tvd-ld-track" style="animation-duration:'+Math.max(12,total*3)+'s">'+body+body+'</div></div></div></div>';
 }
