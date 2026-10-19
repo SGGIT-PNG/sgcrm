@@ -7,6 +7,11 @@
 
 ---
 
+## ⭐ 2026-10-19 — 광고 DB 끊김 반복 해결: Meta 시스템 사용자 토큰 + TV 「Meta 연결 끊김」 경고
+- 원인: 사장님 개인 계정에서 만든 페이지 토큰이 계정 잠금·인증 때마다 무효(10/19 code 10 권한 오류).
+- 해결: 비즈니스 「SG솔루션」 시스템 사용자 **sgtodo-ads**(Admin) — 페이지 SG솔루션 전체 액세스 · 앱 SG 광고 DB 전체 액세스(앱에 「마케팅 API」 제품 추가해야 leads_retrieval이 보임) · 만료 없음 토큰 → Cloudflare `META_TOKEN`. sg-todo `syncMeta`가 매번 페이지 토큰으로 바꿔 씀.
+- TV: `app_state/lead_sync` 구독(`leadSync`) → 마지막 오류가 성공보다 늦고 15분 넘게 성공 없으면 광고 DB 칸 맨 위 빨간 깜빡임 「⚠ Meta 연결 끊김 — ○시간째」(`leadSyncBroken`).
+
 ## ⭐ 2026-10-17 (6) — SG솔루션 심볼 로고 통일 (iso-one과 같은 그림)
 - iso-one 헤더 로고(사장님 BI PDF에서 뽑은 82×128 PNG, base64)를 그대로 가져와 CRM 왼쪽 메뉴 위(`#sb-logo-img`, 접으면 심볼만)·TV 통합 제어 머리(`SG_LOGO` = 메뉴 그림 src 재사용)·업무 프로그램(sg-todo) 머리에 넣음. 예전 파란 네모 「SG」 글자 대체.
 
