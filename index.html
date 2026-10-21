@@ -10047,6 +10047,7 @@ function renderDriveImport(){
   const selFolders=driveFolders.filter(f=>driveSel.has(f.id));
   const nLink=selFolders.filter(f=>matchDriveFolder(f).state==='same').length;
   const nNew=selFolders.filter(f=>matchDriveFolder(f).state==='none').length;
+  const nRead=selFolders.filter(f=>matchDriveFolder(f).state==='linked').length;
   const bulkEl=document.getElementById('drive-bulk');
   const shownSel=rows.filter(f=>f.m.state!=='linked'&&!(f.parsed||parseDriveFolderName(f.name)).closed);
   const allOn=shownSel.length>0&&shownSel.every(f=>driveSel.has(f.id));
@@ -10054,7 +10055,7 @@ function renderDriveImport(){
     +'<span style="flex:1"></span>'
     +'<span>선택: 연결 <b>'+nLink+'</b> · 신규 등록 <b>'+nNew+'</b></span>'
     +'<button class="btn btn-primary btn-sm" onclick="driveBulkApply()" '+(nLink+nNew?'':'disabled')+'>선택 항목 일괄 처리</button>'
-    +'<button class="btn btn-ghost btn-sm" onclick="bizCertBulkRead()" title="드라이브가 연결된 기업의 사업자등록증을 읽어 빈 칸을 채웁니다" '+(cnt.linked?'':'disabled')+'>📄 연결된 '+cnt.linked+'곳 사업자등록증 읽기</button>';
+    +'<button class="btn btn-ghost btn-sm" onclick="bizCertBulkRead()" title="체크한 「연결됨」 기업의 사업자등록증만 읽어 빈 칸을 채웁니다. 새로 등록하는 기업은 「선택 항목 일괄 처리」 뒤에 자동으로 묻습니다" '+(nRead?'':'disabled')+'>📄 선택한 연결 기업 '+nRead+'곳 사업자등록증 읽기</button>';
   driveShownIds=rows.filter(f=>f.m.state!=='linked').map(f=>f.id);
   if(!rows.length){box.innerHTML='<div style="padding:24px;text-align:center;color:var(--text4);font-size:13px">조건에 맞는 폴더가 없습니다.</div>';return;}
   const chip={none:['미등록','#FEF3C7','#92400E'],same:['이름 일치','#E0F2FE','#075985'],linked:['연결됨','#DCFCE7','#166534']};
@@ -10064,8 +10065,7 @@ function renderDriveImport(){
   box.innerHTML=rows.map(f=>{
     const c=chip[f.m.state];
     const btn=f.m.state==='linked'?'열기':f.m.state==='same'?'연결':'등록';
-    const ck=f.m.state==='linked'?'<span style="width:16px;display:inline-block"></span>'
-      :'<input type="checkbox" '+(driveSel.has(f.id)?'checked ':'')+'data-id="'+escAttr(f.id)+'" onchange="driveToggleSel(this.dataset.id,this.checked)" style="width:16px;height:16px;cursor:pointer" title="일괄 처리에 포함">';
+    const ck='<input type="checkbox" '+(driveSel.has(f.id)?'checked ':'')+'data-id="'+escAttr(f.id)+'" onchange="driveToggleSel(this.dataset.id,this.checked)" style="width:16px;height:16px;cursor:pointer" title="'+(f.m.state==='linked'?'사업자등록증 읽기에 포함':'일괄 처리에 포함')+'">';
     return '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border)">'
       +ck
       +'<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;background:'+c[1]+';color:'+c[2]+';white-space:nowrap">'+c[0]+'</span>'
@@ -10175,6 +10175,18 @@ async function driveBulkApply(){
     console.log('[드라이브 일괄] 연결 '+toLink.length+'건, 신규 '+toNew.length+'건');
     driveSel=new Set();
     if(st){st.textContent='✅ 연결 '+toLink.length+'건 · 신규 등록 '+toNew.length+'건 완료';st.style.color='var(--ok)';}
+    // 방금 등록·연결한 기업만 사업자등록증을 읽는다 (다른 기업은 건드리지 않음)
+    const doneIds=ids.concat(toLink.map(f=>f.m.company._id));
+    const doneFolders=new Set(toNew.concat(toLink).map(f=>f.id));
+    if(doneIds.length&&confirm('방금 처리한 '+doneIds.length+'곳의 사업자등록증을 지금 읽을까요?\n(이 기업들만 읽습니다. 한 곳에 5~15초)')){
+      let tg=[];
+      for(let w=0;w<20;w++){   // 실시간 구독으로 새 기업이 목록에 들어올 때까지 잠깐 기다림
+        tg=companies.filter(c=>doneIds.includes(c._id)&&doneFolders.has(c.driveFolderId));
+        if(tg.length>=doneIds.length)break;
+        await new Promise(r=>setTimeout(r,300));
+      }
+      if(tg.length){await bizCertReadFor(tg,true);return;}
+    }
   }catch(e){
     if(st){st.textContent='⚠️ 일괄 처리 실패: '+(e.message||e);st.style.color='var(--danger)';}
     alert('일괄 처리 중 오류\n\n'+(e.message||e)+'\n\n일부만 반영됐을 수 있습니다. 목록 상태를 확인하세요.');
@@ -10361,10 +10373,18 @@ async function compSaveAndConvert(newBizno){
 }
 // ── 연결된 기업 사업자등록증 일괄 읽기 → 미리보기 → 선택 반영 ──
 let bizCertRows=[];
+// 체크한 「연결됨」 기업만 읽는다 (2026-10-21: 예전엔 연결된 기업 전부를 다시 읽어 몇 분씩 걸렸다)
 async function bizCertBulkRead(){
-  const targets=companies.filter(c=>c.driveFolderId&&c.active!=='N');
-  if(!targets.length){alert('드라이브 폴더가 연결된 기업이 없습니다. 먼저 연결하세요.');return;}
-  if(!confirm('드라이브가 연결된 기업 '+targets.length+'곳의 사업자등록증을 읽습니다.\n한 곳에 5~15초, 모두 몇 분 걸립니다. 이 창을 닫지 마세요.\n\n읽기만 하고, 반영은 미리보기에서 고른 뒤에 합니다.'))return;
+  const ids=new Set((driveFolders||[]).filter(f=>driveSel.has(f.id)&&matchDriveFolder(f).state==='linked').map(f=>f.id));
+  const targets=companies.filter(c=>c.driveFolderId&&ids.has(c.driveFolderId));
+  if(!targets.length){alert('사업자등록증을 읽을 「연결됨」 기업을 체크하세요.');return;}
+  await bizCertReadFor(targets);
+}
+async function bizCertReadFor(targets,skipConfirm){
+  targets=(targets||[]).filter(c=>c&&c.driveFolderId);
+  if(!targets.length)return;
+  if(!skipConfirm&&!confirm(targets.map(c=>'  · '+c.name).slice(0,15).join('\n')+(targets.length>15?'\n  … 외 '+(targets.length-15)+'곳':'')
+    +'\n\n위 '+targets.length+'곳의 사업자등록증을 읽습니다. 한 곳에 5~15초 걸립니다.\n읽기만 하고, 반영은 미리보기에서 고른 뒤에 합니다.'))return;
   const st=document.getElementById('drive-status');
   bizCertRows=[];
   for(let i=0;i<targets.length;i++){
