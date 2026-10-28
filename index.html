@@ -384,7 +384,7 @@ body.tvd-on{overflow:hidden;}
 .tvd-ld-new .ago{color:#a5f3fc;font-weight:700;white-space:nowrap;flex-shrink:0;font-size:calc(var(--afs)*0.85);}
 .tvd-ag-row.past{opacity:.45;}
 .tvd-col{display:flex;flex-direction:column;gap:30px;min-height:0;}
-.tvd-kpis{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:14px;}   /* 2026-10-28 「누구 차례」: 긴급·받은 요청·확인·우리 차례·기다림·예정·제안 7칸 */
+.tvd-kpis{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:14px;}   /* 2026-10-28 「누구 차례」: 긴급·검토할 일·확인·우리 차례·기다림·예정·제안 7칸 */
 /* 숫자 칸: 이름 위 · 숫자 아래 — 이름이 길거나 숫자가 두세 자리여도 옆 칸을 침범하지 않게 (2026-10-12) */
 .tvd-kpi{border-radius:30px;padding:12px 14px 10px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0;overflow:hidden;}
 .tvd-kpi .l{display:flex;align-items:center;gap:8px;font-size:28px;color:#c3cde0;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
@@ -5174,20 +5174,20 @@ function todoDayTag(col,days){if(col==='ing')return days<=1?'오늘 시작':'+'+
 const TODO_HOLD_LABEL={reply:'📨 업체 회신 대기',internal:'🗂 내부 장기 대기'};
 function todoHoldKind(t){return t.holdKind==='reply'||t.holdKind==='internal'?t.holdKind:(t.waitingFor?'reply':'internal');}
 function todoHoldGroups(list){return ['reply','internal'].map(k=>({name:TODO_HOLD_LABEL[k],items:list.filter(t=>todoHoldKind(t)===k)})).filter(g=>g.items.length);}
-// 📥 받은 요청 칸 = 업체가 부탁한 일만 / ⏳ 기다림 칸 안: ⏰ 오늘 확인할 것(기다린 지 3일·2주 넘음 — 칸은 그대로, 맨 위) → 📨 업체 → 🏛 기관 → 🗄 장기 대기 → 🗂 내부 (2026-10-28 사장님: 칸은 누구 차례로만)
-const TODO_CHECK_SUBS=[['📥 받은 요청 — 맡을지 정하기',t=>t._check==='inbox']];
+// 검토할 일 칸 = 우리가 생각해 낸, 할지 말지 정할 일만(업체 요청은 바로 진행) / ⏳ 기다림 칸 안: ⏰ 오늘 확인할 것(기다린 지 3일·2주 넘음 — 칸은 그대로, 맨 위) → 📨 업체 → 🏛 기관 → 🗄 장기 대기 → 🗂 내부 (2026-10-28 사장님: 칸은 누구 차례로만)
+const TODO_CHECK_SUBS=[['우리가 생각해 낸 일 — 할지 말지 정하기',t=>t._check==='inbox']];
 const todoChk=t=>t._check==='due'||t._check==='long';
 const TODO_WAIT_SUBS=[['⏰ 오늘 확인할 것 — 회신·결과 왔나요?',todoChk],['📨 업체 차례',t=>!todoChk(t)&&t.status!=='hold'&&t._waitOn!=='org'],['🏛 기관 차례',t=>!todoChk(t)&&t.status!=='hold'&&t._waitOn==='org'],['🗄 장기 대기 — 회신',t=>!todoChk(t)&&t.status==='hold'&&t._waitOn!=='internal'],['🗂 내부 장기 대기',t=>!todoChk(t)&&t.status==='hold'&&t._waitOn==='internal']];
 function todoSubGroups(list,defs){return defs.map(([name,f])=>({name,items:list.filter(f)})).filter(g=>g.items.length);}
 function todoSortWait(a,b){return ((b.priority==='high')-(a.priority==='high'))||((b._days||0)-(a._days||0))||((a.no||0)-(b.no||0));}
 const TODO_CHK_ORD={inbox:0,due:1,long:2};
 function todoSortCheck(a,b){return ((TODO_CHK_ORD[a._check]??9)-(TODO_CHK_ORD[b._check]??9))||todoSortWait(a,b);}
-// 기다림 머리 — 📨 3일째 · 🏛 16일째 · 🗂 대기 5일째 · 📥 받은 요청
-function todoWaitHead(t){if(t._check==='inbox')return '📥 '+(t._days?'받은 지 '+t._days+'일':'오늘 받음');if(t._waitOn==='internal')return '🗂 '+(t._days||0)+'일째';return (t._waitOn==='org'?'🏛 ':'📨 ')+(t._days||0)+'일째';}
+// 기다림 머리 — 📨 3일째 · 🏛 16일째 · 🗂 대기 5일째 · 검토할 일
+function todoWaitHead(t){if(t._check==='inbox')return t._days?'검토 '+t._days+'일째':'오늘 등록';if(t._waitOn==='internal')return '🗂 '+(t._days||0)+'일째';return (t._waitOn==='org'?'🏛 ':'📨 ')+(t._days||0)+'일째';}
 function todoBucket(t){
   if(TODO_CORE)return TODO_CORE.bucket(t,todoRules,Date.now());   // sg-todo와 똑같은 칸 — 체크·진행·기다림·예정·통화·제안·완료
-  // ↓ 옛 규칙(core.js를 못 불러왔을 때만): 받은 요청은 체크, 기다림·장기 대기는 기다림 칸
-  if(t.status==='inbox')return {col:'check',check:'inbox',days:0,alert:false,tags:[],reason:'받은 요청'};
+  // ↓ 옛 규칙(core.js를 못 불러왔을 때만): 검토할 일은 검토 칸, 기다림·장기 대기는 기다림 칸
+  if(t.status==='inbox')return {col:'check',check:'inbox',days:0,alert:false,tags:[],reason:'검토할 일'};
   if(t.status==='done'||t.status==='cancel')return {col:'done',days:0,alert:false,tags:[],reason:t.status==='cancel'?'취소':''};   // cancel = 할 일 프로그램의 「취소」
   const today=todoToday(),start=todoStart(t),tags=[];
   if(t.status==='hold'){   // ⏸ 장기 대기(2026-10-28 사장님) — 진행 업무에서 빼 둔 일. 빨간 표시 없이 대기 며칠째만 — sg-todo core.js와 같은 규칙
@@ -5414,7 +5414,7 @@ function tvdTodoGroups(){
     const b=todoBucket(t);if(b.col==='call')return;   // 📞 통화는 오른쪽 통화 카드에만
     if(!g[b.col])return;
     const x=Object.assign({},t,{_reason:b.reason,_col:b.col,_alert:b.alert,_days:b.days,_tags:b.tags,_start:todoStart(t),_check:b.check||'',_waitOn:b.waitOn||''});
-    g[b.col].push(x);   // 📥 받은 요청 · 🟠 진행 · ⏳ 기다림 · 📅 예정 · 💡 제안 (2026-10-28 「누구 차례」)
+    g[b.col].push(x);   // 검토할 일 · 🟠 진행 · ⏳ 기다림 · 📅 예정 · 💡 제안 (2026-10-28 「누구 차례」)
     if(t.priority==='high'&&(b.col==='ing'||b.col==='todo'))g.urg.push(x);
     if(b.alert)g.alert++;
   });
@@ -5748,12 +5748,12 @@ function tvdTodoHtml(g){
   const kp=(lab,n,c,nc,extra)=>'<div class="tvd-glass tvd-kpi" style="'+(extra||'')+'"><div class="l"><span class="tvd-dot" style="background:'+c+';box-shadow:0 0 14px '+c+'"></span>'+lab+'</div><div class="n" style="color:'+nc+'">'+n+'</div></div>';
   const kpis='<div class="tvd-kpis">'
     +kp('★ 긴급',g.urg.length,'#ff3b30','#ffffff',g.urg.length?'background:linear-gradient(145deg,rgba(255,90,79,0.55),rgba(229,40,29,0.35));border-color:rgba(255,140,130,0.7);box-shadow:0 30px 60px rgba(0,0,0,0.45),0 0 80px rgba(255,59,48,0.35)':'')
-    +kp('📥 요청',g.check.length,'#ffd43b',g.check.length?'#ffe066':'#c3cde0')+kp('⏰ 확인',g.wait.filter(todoChk).length,'#ffd43b',g.wait.some(todoChk)?'#ffe066':'#c3cde0')
+    +kp('검토',g.check.length,'#ffd43b',g.check.length?'#ffe066':'#c3cde0')+kp('⏰ 확인',g.wait.filter(todoChk).length,'#ffd43b',g.wait.some(todoChk)?'#ffe066':'#c3cde0')
     +kp('우리 차례',ingRest.length,'#ff922b','#ffc078')+kp('⏳ 기다림',g.wait.length,'#b197fc','#d0bfff')+kp('예정',todoRest.length,'#4dabf7','#74c0fc')
     +kp('💡 제안',g.idea.length,'#38d9a9','#96f2d7')+'</div>';
   // 개수를 자르지 않는다 — 넘치면 tvdFitList()가 글자를 줄이고, 그래도 넘치면 2단으로 나눈다
   // 칸(대분류) → 업무 분야(중분류) 작은 제목 → 할 일
-  const grp=(title,arr,c,tc,extra,flat,subs)=>{   // flat: 분야로 묶지 않고 그대로 (긴급 칸) · subs: 체크·기다림은 받은 요청·확인할 날 / 업체·기관·장기로 묶음
+  const grp=(title,arr,c,tc,extra,flat,subs)=>{   // flat: 분야로 묶지 않고 그대로 (긴급 칸) · subs: 검토할 일 / 기다림(⏰ 확인할 것·업체·기관·장기)으로 묶음
     if(!arr.length)return '';
     const row=t=>{const urg=t.priority==='high'&&!flat;const pc=urg?'#ffffff':t._alert?'#ff8f85':tc;
         return '<div class="tvd-row'+(urg?' urg':'')+'"><div class="no">'+escAttr(todoNoLabel(t))+'</div><div class="t">'+(urg?'<span style="color:#ff6b5e">★ </span>':'')+tvdTodoName(t)+'</div><div class="tvd-pill" style="color:'+pc+(urg?';background:#ff3b30':t._alert?';background:rgba(255,59,48,0.22)':'')+'">'+escAttr(tvdDueTxt(t))+'</div></div>';};
@@ -5764,9 +5764,9 @@ function tvdTodoHtml(g){
       +'</div>';
   };
   const urgList=g.urg.slice().sort((a,b)=>(a._col===b._col?0:a._col==='ing'?-1:1)||((b._alert?1:0)-(a._alert?1:0))||(a.dueDate||'9999').localeCompare(b.dueDate||'9999'));
-  // 2026-10-28 「누구 차례」: 긴급 → 📥 받은 요청 → 🟠 우리 차례 → ⏳ 기다림 → 📅 예정 → 💡 제안
+  // 2026-10-28 「누구 차례」: 긴급 → 검토할 일 → 🟠 우리 차례 → ⏳ 기다림 → 📅 예정 → 💡 제안
   const list=grp('★ 긴급 업무',urgList,'#ff3b30','#ffb3ad',' tvd-urgblk',true)
-    +grp('📥 받은 요청',g.check,'#ffd43b','#ffe066','',false,TODO_CHECK_SUBS)
+    +grp('검토할 일',g.check,'#ffd43b','#ffe066','',false,TODO_CHECK_SUBS)
     +grp('🟠 진행 — 우리 차례',ingRest,'#ff922b','#ffc078')+grp('⏳ 기다림',g.wait,'#b197fc','#d0bfff','',false,TODO_WAIT_SUBS)
     +grp('📅 예정',todoRest,'#4dabf7','#74c0fc')
     +grp('💡 제안',g.idea,'#38d9a9','#96f2d7',' tvd-idea');   // 제안은 맨 아래 흐리게
@@ -6126,7 +6126,7 @@ function todoSectionHtml(title,sub,color,bg,list,emptyText,grouped){
 function todoTodayHtml(g){
   const weekAgo=Date.now()-7*86400000;
   const doneRecent=g.done.filter(t=>(t.doneAt||t.updatedAt||t.createdAt||0)>=weekAgo);
-  return (g.check.length?todoSectionHtml('📥 받은 요청','업체가 부탁한 일 · 두 대표가 같이 보고 맡을지 정함','#854D0E','#FEF9C3',g.check,'','check'):'')
+  return (g.check.length?todoSectionHtml('검토할 일','우리가 생각해 낸 일 · 두 대표가 같이 보고 할지 말지 정함','#854D0E','#FEF9C3',g.check,'','check'):'')
     +(g.call.length?todoSectionHtml('📞 통화','날짜·시각을 정한 약속 · 날짜 지나도 안 한 통화는 빨갛게','#155E75','#ECFEFF',g.call,''):'')
     +todoSectionHtml('🟠 진행 — 우리 차례','시작일이 온 일 · 며칠째인지 · 업무 분야별','#9A3412','#FFF7ED',g.ing,'진행 업무가 없습니다',true)
     +(g.wait.length?todoSectionHtml('⏳ 기다림','업체·기관 차례 · 3일마다 체크 칸에 올라옴','#5B21B6','#F5F3FF',g.wait,'','wait'):'')
@@ -6224,9 +6224,9 @@ function todoMobileHtml(g){
   const b=todoBriefData(g);
   const list=[].concat(g.check.map(t=>['check',t]),g.call.map(t=>['call',t]),g.ing.map(t=>['ing',t]),g.wait.map(t=>['wait',t]),g.todo.map(t=>['todo',t]),g.idea.map(t=>['idea',t]));
   let last='';
-  const head={check:['📥 받은 요청','#854D0E'],call:['📞 통화','#155E75'],ing:['🟠 진행 — 우리 차례','#9A3412'],wait:['⏳ 기다림','#5B21B6'],todo:['📅 예정','#1E40AF'],idea:['💡 제안','#0F766E']};
+  const head={check:['검토할 일','#854D0E'],call:['📞 통화','#155E75'],ing:['🟠 진행 — 우리 차례','#9A3412'],wait:['⏳ 기다림','#5B21B6'],todo:['📅 예정','#1E40AF'],idea:['💡 제안','#0F766E']};
   return '<div class="tdl-m-stats">'
-      +'<div style="background:#FEF9C3"><span>📥 받은 요청</span><b style="color:#854D0E">'+g.check.length+'</b></div>'
+      +'<div style="background:#FEF9C3"><span>검토할 일</span><b style="color:#854D0E">'+g.check.length+'</b></div>'
       +'<div style="background:#FFF7ED"><span>우리 차례</span><b style="color:#C2410C">'+g.ing.length+'</b></div>'
       +'<div style="background:#F5F3FF"><span>⏳ 기다림</span><b style="color:#6D28D9">'+g.wait.length+'</b></div>'
     +'</div>'
@@ -6249,13 +6249,13 @@ function renderTodo(sfx){
   const grid=document.getElementById('todo-grid'+s);if(!grid)return;
   const g=todoGroups();
   const cnt=document.getElementById('ov-todo-cnt');
-  if(cnt)cnt.textContent=(g.check.length?'📥 요청 '+g.check.length+' · ':'')+(g.wait.some(todoChk)?'⏰ 확인 '+g.wait.filter(todoChk).length+' · ':'')+(g.call.length?'📞 '+g.call.length+' · ':'')+'진행 '+g.ing.length+' · 기다림 '+g.wait.length+' · 예정 '+g.todo.length+(g.idea.length?' · 제안 '+g.idea.length:'')+(g.alert?' · 빨간 표시 '+g.alert:'');
+  if(cnt)cnt.textContent=(g.check.length?'검토 '+g.check.length+' · ':'')+(g.wait.some(todoChk)?'⏰ 확인 '+g.wait.filter(todoChk).length+' · ':'')+(g.call.length?'📞 '+g.call.length+' · ':'')+'진행 '+g.ing.length+' · 기다림 '+g.wait.length+' · 예정 '+g.todo.length+(g.idea.length?' · 제안 '+g.idea.length:'')+(g.alert?' · 빨간 표시 '+g.alert:'');
   if(!sfx){
     // 대시보드: 할 일 화면과 같은 모양 — 접힌 브리핑 + 진행 업무 상위 6줄 + 곧 시작할 업무 3줄
     grid.className=TODO_READONLY?'todo-ro':'';
     const callNow=g.call.filter(t=>t._alert||t._days<=0);
     grid.innerHTML=todoBriefHtml(g)
-      +(g.check.length?todoSectionHtml('📥 받은 요청','맡을지 정하기','#854D0E','#FEF9C3',g.check,'','check'):'')
+      +(g.check.length?todoSectionHtml('검토할 일','할지 말지 정하기','#854D0E','#FEF9C3',g.check,'','check'):'')
       +(g.wait.some(todoChk)?todoSectionHtml('⏰ 오늘 확인할 것','기다림 중 — 기다린 지 3일 · 2주 넘음 · 회신·결과 왔나요?','#854D0E','#FEF9C3',g.wait.filter(todoChk),''):'')
       +(callNow.length?todoSectionHtml('📞 오늘 통화','놓친 통화 포함','#155E75','#ECFEFF',callNow,''):'')
       +todoSectionHtml('🟠 진행 — 우리 차례','긴급(★)·빨간 표시 먼저','#9A3412','#FFF7ED',g.ing.slice(0,6),'진행 업무가 없습니다')
