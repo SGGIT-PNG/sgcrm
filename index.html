@@ -384,9 +384,9 @@ body.tvd-on{overflow:hidden;}
 .tvd-ld-new .ago{color:#a5f3fc;font-weight:700;white-space:nowrap;flex-shrink:0;font-size:calc(var(--afs)*0.85);}
 .tvd-ag-row.past{opacity:.45;}
 .tvd-col{display:flex;flex-direction:column;gap:30px;min-height:0;}
-.tvd-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:22px;}
+.tvd-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:22px;}   /* 2026-10-28 「빨간 표시」 칸 빼고 「⏸ 장기 대기」 넣어 5칸 */
 /* 숫자 칸: 이름 위 · 숫자 아래 — 이름이 길거나 숫자가 두세 자리여도 옆 칸을 침범하지 않게 (2026-10-12) */
-.tvd-kpi{border-radius:30px;padding:12px 26px 10px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0;overflow:hidden;}
+.tvd-kpi{border-radius:30px;padding:12px 20px 10px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0;overflow:hidden;}
 .tvd-kpi .l{display:flex;align-items:center;gap:12px;font-size:32px;color:#c3cde0;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
 .tvd-kpi .n{font-size:64px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;}
 .tvd-dot{width:18px;height:18px;border-radius:6px;flex-shrink:0;}
@@ -5383,22 +5383,23 @@ function tvdOpenTodo(t){return t&&t.status!=='done'&&t.status!=='cancel';}
 
 // ── 할 일 묶기: 세 칸 규칙(todoBucket) — 진행 업무(긴급·빨간 표시 먼저) · 예정 업무(시작 가까운 순) ──
 function tvdTodoGroups(){
-  const g={ing:[],todo:[],idea:[],urg:[],alert:0,doneToday:0};
+  const g={ing:[],todo:[],idea:[],hold:[],urg:[],alert:0,doneToday:0};
   const today=tvdTodayStr();
   todos.forEach(t=>{
     if(!tvdOpenTodo(t)){if(t.status==='done'&&t.doneAt){const d=new Date(t.doneAt);if(dateStr(d.getFullYear(),d.getMonth(),d.getDate())===today)g.doneToday++;}return;}
-    const b=todoBucket(t);if(b.col==='call'||b.col==='hold')return;   // 📞 통화는 오른쪽 통화 카드에만 · ⏸ 장기 대기는 TV에 안 띄움(2026-10-28)
+    const b=todoBucket(t);if(b.col==='call')return;   // 📞 통화는 오른쪽 통화 카드에만
     const x=Object.assign({},t,{_reason:b.reason,_col:b.col,_alert:b.alert,_days:b.days,_tags:b.tags,_start:todoStart(t)});
-    g[b.col==='todo'||b.col==='idea'?b.col:'ing'].push(x);
-    if(t.priority==='high'&&b.col!=='idea')g.urg.push(x);
+    g[b.col==='todo'||b.col==='idea'||b.col==='hold'?b.col:'ing'].push(x);   // ⏸ 장기 대기는 맨 아래 따로(2026-10-28)
+    if(t.priority==='high'&&b.col!=='idea'&&b.col!=='hold')g.urg.push(x);
     if(b.alert)g.alert++;
   });
-  g.ing.sort(todoSortIng);g.todo.sort(todoSortTodo);g.idea.sort(todoSortIdea);
+  g.ing.sort(todoSortIng);g.todo.sort(todoSortTodo);g.idea.sort(todoSortIdea);g.hold.sort((a,b)=>b._days-a._days);
   return g;
 }
 // 오른쪽 알약: 진행 업무 = 오늘 시작·+N일, 예정 업무 = -N일
 function tvdDueTxt(t){
   if(t._col==='idea')return '💡 제안';
+  if(t._col==='hold')return '⏸ '+(t._days===0?'오늘':t._days+'일째');
   if(t._col==='todo')return todoDayTag('todo',t._days);
   return todoDayTag('ing',t._days);
 }
@@ -5723,7 +5724,7 @@ function tvdTodoHtml(g){
   const kpis='<div class="tvd-kpis">'
     +kp('★ 긴급',g.urg.length,'#ff3b30','#ffffff',g.urg.length?'background:linear-gradient(145deg,rgba(255,90,79,0.55),rgba(229,40,29,0.35));border-color:rgba(255,140,130,0.7);box-shadow:0 30px 60px rgba(0,0,0,0.45),0 0 80px rgba(255,59,48,0.35)':'')
     +kp('진행 업무',ingRest.length,'#4dabf7','#74c0fc')+kp('예정 업무',todoRest.length,'#b197fc','#d0bfff')
-    +kp('빨간 표시',g.alert,'#ff922b',g.alert?'#ffb066':'#8a95ad')+kp('💡 제안',g.idea.length,'#38d9a9','#96f2d7')+'</div>';
+    +kp('💡 제안',g.idea.length,'#38d9a9','#96f2d7')+kp('⏸ 장기 대기',g.hold.length,'#adb5bd','#dee2e6')+'</div>';
   // 개수를 자르지 않는다 — 넘치면 tvdFitList()가 글자를 줄이고, 그래도 넘치면 2단으로 나눈다
   // 칸(대분류) → 업무 분야(중분류) 작은 제목 → 할 일
   const grp=(title,arr,c,tc,extra,flat)=>{   // flat: 분야로 묶지 않고 그대로 (긴급 칸)
@@ -5739,7 +5740,8 @@ function tvdTodoHtml(g){
   const urgList=g.urg.slice().sort((a,b)=>(a._col===b._col?0:a._col==='ing'?-1:1)||((b._alert?1:0)-(a._alert?1:0))||(a.dueDate||'9999').localeCompare(b.dueDate||'9999'));
   const list=grp('★ 긴급 업무',urgList,'#ff3b30','#ffb3ad',' tvd-urgblk',true)
     +grp('진행 업무',ingRest,'#4dabf7','#74c0fc')+grp('예정 업무',todoRest,'#b197fc','#d0bfff')   // 예정 업무 = 라벤더 (제목·숫자·D-n만, 할 일 글자는 흰색)
-    +grp('💡 제안 업무',g.idea,'#38d9a9','#96f2d7',' tvd-idea');   // 제안은 맨 아래 흐리게
+    +grp('💡 제안 업무',g.idea,'#38d9a9','#96f2d7',' tvd-idea')   // 제안은 맨 아래 흐리게
+    +grp('⏸ 장기 대기',g.hold,'#adb5bd','#dee2e6',' tvd-idea');   // 장기 대기도 맨 아래 흐리게(2026-10-28 사장님 — TV에도 보이게)
   return '<div class="tvd-col">'+kpis+'<div class="tvd-glass tvd-list" id="tvd-list">'+(list||'<div class="tvd-empty">열린 할 일이 없습니다.</div>')+'</div></div>';
 }
 // 할 일 목록을 칸에 맞춘다: 글자 36→28px로 줄여 보고, 그래도 넘치면 2단으로 나눠 32→24px.
