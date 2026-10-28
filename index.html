@@ -5164,6 +5164,10 @@ function todoStart(t){if(t.status==='idea')return t.startDate||'';if(t.startDate
 // 할 일 하나 → {col:'call'|'ing'|'todo'|'hold'|'idea'|'done', days, alert, tags:[{t,tone}], reason}
 // 칸 앞머리 날짜 표시 (2026-10-13 사장님) — sg-todo core.js dayTag와 같음: 진행 = 오늘 시작·+1일·+2일 / 예정 = -1일·-2일
 function todoDayTag(col,days){if(col==='ing')return days<=1?'오늘 시작':'+'+(days-1)+'일';if(col==='todo')return '-'+days+'일';return '';}
+// ⏸ 장기 대기 두 가지(2026-10-28) — sg-todo core.js holdKindOf와 같음: reply 📨 업체 회신 대기 · internal 🗂 내부 장기 대기(안 정했으면 기다리는 대상이 있으면 업체 회신)
+const TODO_HOLD_LABEL={reply:'📨 업체 회신 대기',internal:'🗂 내부 장기 대기'};
+function todoHoldKind(t){return t.holdKind==='reply'||t.holdKind==='internal'?t.holdKind:(t.waitingFor?'reply':'internal');}
+function todoHoldGroups(list){return ['reply','internal'].map(k=>({name:TODO_HOLD_LABEL[k],items:list.filter(t=>todoHoldKind(t)===k)})).filter(g=>g.items.length);}
 function todoBucket(t){
   if(t.status==='done'||t.status==='cancel')return {col:'done',days:0,alert:false,tags:[],reason:t.status==='cancel'?'취소':''};   // cancel = 할 일 프로그램의 「취소」
   const today=todoToday(),start=todoStart(t),tags=[];
@@ -5173,7 +5177,8 @@ function todoBucket(t){
     if(t.priority==='high')tags.push({t:'긴급',tone:'red'});
     if(t.waitingFor)tags.push({t:'⏳ '+t.waitingFor,tone:'wait'});
     if(t.dueDate)tags.push({t:(t.dueDate<today?'마감 지남 ':'마감 ')+t.dueDate.slice(5).replace('-','/'),tone:'mute'});
-    return {col:'hold',days:d,alert:false,tags,reason:[d===0?'오늘 대기 시작':'대기 '+d+'일째'].concat(tags.map(x=>x.t)).join(' · ')};
+    const hk=todoHoldKind(t),head=hk==='reply'?(d===0?'오늘 요청':'요청 '+d+'일째'):(d===0?'오늘 대기 시작':'대기 '+d+'일째');
+    return {col:'hold',holdKind:hk,days:d,alert:false,tags,reason:[head].concat(tags.map(x=>x.t)).join(' · ')};
   }
   if(t.kind==='call'&&t.status!=='idea'){   // 📞 통화(2026-10-12) — 업무 칸에서 빠진다. 날짜 = 시작일, 시각 = callTime. 날짜 지났는데 안 했으면 놓친 통화(빨간 표시) — sg-todo core.js와 같은 규칙
     const missed=start<today;
@@ -5399,7 +5404,7 @@ function tvdTodoGroups(){
 // 오른쪽 알약: 진행 업무 = 오늘 시작·+N일, 예정 업무 = -N일
 function tvdDueTxt(t){
   if(t._col==='idea')return '💡 제안';
-  if(t._col==='hold')return '⏸ '+(t._days===0?'오늘':t._days+'일째');
+  if(t._col==='hold')return (todoHoldKind(t)==='reply'?'📨 요청 ':'🗂 ')+(t._days===0?'오늘':t._days+'일째');
   if(t._col==='todo')return todoDayTag('todo',t._days);
   return todoDayTag('ing',t._days);
 }
@@ -5727,21 +5732,21 @@ function tvdTodoHtml(g){
     +kp('💡 제안',g.idea.length,'#38d9a9','#96f2d7')+kp('⏸ 장기 대기',g.hold.length,'#adb5bd','#dee2e6')+'</div>';
   // 개수를 자르지 않는다 — 넘치면 tvdFitList()가 글자를 줄이고, 그래도 넘치면 2단으로 나눈다
   // 칸(대분류) → 업무 분야(중분류) 작은 제목 → 할 일
-  const grp=(title,arr,c,tc,extra,flat)=>{   // flat: 분야로 묶지 않고 그대로 (긴급 칸)
+  const grp=(title,arr,c,tc,extra,flat,byHold)=>{   // flat: 분야로 묶지 않고 그대로 (긴급 칸) · byHold: 장기 대기는 업체 회신·내부로 묶음
     if(!arr.length)return '';
     const row=t=>{const urg=t.priority==='high'&&!flat;const pc=urg?'#ffffff':t._alert?'#ff8f85':tc;
         return '<div class="tvd-row'+(urg?' urg':'')+'"><div class="no">'+escAttr(todoNoLabel(t))+'</div><div class="t">'+(urg?'<span style="color:#ff6b5e">★ </span>':'')+tvdTodoName(t)+'</div><div class="tvd-pill" style="color:'+pc+(urg?';background:#ff3b30':t._alert?';background:rgba(255,59,48,0.22)':'')+'">'+escAttr(tvdDueTxt(t))+'</div></div>';};
     // 칸마다 색 상자(연한 바탕 + 왼쪽 굵은 띠 + 색 제목 띠)로 감싸 멀리서도 구분 (2026-10-12)
     return '<div class="tvd-blk'+(extra||'')+'" style="--bc:'+c+'">'
       +'<div class="tvd-grp-hd" style="color:'+tc+'">'+title+'<span class="c">'+arr.length+'</span></div>'
-      +(flat?arr.map(row).join(''):todoCatGroups(arr).map(gr=>'<div class="tvd-subhd">'+escAttr(gr.name)+'<span>'+gr.items.length+'</span></div>'+gr.items.map(row).join('')).join(''))
+      +(flat?arr.map(row).join(''):(byHold?todoHoldGroups(arr):todoCatGroups(arr)).map(gr=>'<div class="tvd-subhd">'+escAttr(gr.name)+'<span>'+gr.items.length+'</span></div>'+gr.items.map(row).join('')).join(''))
       +'</div>';
   };
   const urgList=g.urg.slice().sort((a,b)=>(a._col===b._col?0:a._col==='ing'?-1:1)||((b._alert?1:0)-(a._alert?1:0))||(a.dueDate||'9999').localeCompare(b.dueDate||'9999'));
   const list=grp('★ 긴급 업무',urgList,'#ff3b30','#ffb3ad',' tvd-urgblk',true)
     +grp('진행 업무',ingRest,'#4dabf7','#74c0fc')+grp('예정 업무',todoRest,'#b197fc','#d0bfff')   // 예정 업무 = 라벤더 (제목·숫자·D-n만, 할 일 글자는 흰색)
     +grp('💡 제안 업무',g.idea,'#38d9a9','#96f2d7',' tvd-idea')   // 제안은 맨 아래 흐리게
-    +grp('⏸ 장기 대기',g.hold,'#adb5bd','#dee2e6',' tvd-idea');   // 장기 대기도 맨 아래 흐리게(2026-10-28 사장님 — TV에도 보이게)
+    +grp('⏸ 장기 대기',g.hold,'#adb5bd','#dee2e6',' tvd-idea',false,true);   // 장기 대기도 맨 아래 흐리게(2026-10-28 사장님 — TV에도 보이게)
   return '<div class="tvd-col">'+kpis+'<div class="tvd-glass tvd-list" id="tvd-list">'+(list||'<div class="tvd-empty">열린 할 일이 없습니다.</div>')+'</div></div>';
 }
 // 할 일 목록을 칸에 맞춘다: 글자 36→28px로 줄여 보고, 그래도 넘치면 2단으로 나눠 32→24px.
@@ -6090,7 +6095,7 @@ function todoSectionHtml(title,sub,color,bg,list,emptyText,grouped){
   return '<section class="tdl-sec">'
     +'<div class="tdl-sec-hd" style="background:'+bg+';color:'+color+'"><b>'+title+' '+list.length+'</b>'+(sub?'<span>'+sub+'</span>':'')+'</div>'
     +(!list.length?'<div class="tdl-empty">'+emptyText+'</div>'
-      :grouped?todoCatGroups(list).map(gr=>'<div class="tdl-subhd">'+escAttr(gr.name)+' <span>'+gr.items.length+'</span></div>'+gr.items.map(todoRowHtml).join('')).join('')
+      :grouped?(grouped==='hold'?todoHoldGroups(list):todoCatGroups(list)).map(gr=>'<div class="tdl-subhd">'+escAttr(gr.name)+' <span>'+gr.items.length+'</span></div>'+gr.items.map(todoRowHtml).join('')).join('')
       :list.map(todoRowHtml).join(''))
   +'</section>';
 }
@@ -6101,7 +6106,7 @@ function todoTodayHtml(g){
     +todoSectionHtml('진행 업무','시작일이 온 일 · 며칠째인지 · 업무 분야별','#9A3412','#FFF7ED',g.ing,'진행 업무가 없습니다',true)
     +todoSectionHtml('예정 업무','시작일이 아직 · 그날이 되면 위로 올라감','#1E40AF','#EFF6FF',g.todo,'없음',true)
     +(g.idea.length?todoSectionHtml('💡 제안 업무','업체가 맡기기 전, 우리가 먼저 제안할 일','#0F766E','#F0FDFA',g.idea,'',true):'')
-    +(g.hold.length?todoSectionHtml('⏸ 장기 대기','오래 기다려야 해서 진행 업무에서 빼 둔 일 · 빨간 표시 없음','#475569','#F1F5F9',g.hold,'',true):'')
+    +(g.hold.length?todoSectionHtml('⏸ 장기 대기','📨 업체 회신 대기 · 🗂 내부 장기 대기 · 빨간 표시 없음','#475569','#F1F5F9',g.hold,'','hold'):'')
     +'<button class="tdl-fold" onclick="todoToggleLater()">'+(todoLaterOpen?'▾':'▸')+' 완료 업무 (최근 7일) '+doneRecent.length+'건</button>'
     +(todoLaterOpen&&doneRecent.length?todoSectionHtml('완료 업무','최근 7일','#065F46','#ECFDF5',doneRecent,''):'');
 }
