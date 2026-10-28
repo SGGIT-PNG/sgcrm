@@ -3,9 +3,15 @@
 > **PC와 노트북 두 대에서 번갈아 작업합니다.**
 > 작업 시작 전 `git pull` / 작업 종료 시 이 파일 갱신 → "올려줘" 지시 시 push.
 >
-> **최종 갱신: 2026-10-13**
+> **최종 갱신: 2026-10-28**
 
 ---
+
+## ⭐ 2026-10-28 (2) — 칸을 「누구 차례」로 다시 나눔 + ✅ 체크 칸 + 업무 종류별 단계 (sg-todo + CRM·TV)
+- 칸: ✅ 체크(두 대표가 같이 봄 — 📥 받은 요청 · 기다린 지 3일 · 2주 넘음 「계속 기다릴까요?」) / 🟠 진행 — 우리 차례 / ⏳ 기다림(📨 업체 · 🏛 기관 · 🗄 장기 대기 · 🗂 내부) / 📅 예정 / 📞 통화(날짜·시각 약속만) / 💡 제안 / 완료(부결은 「종료(부결)」).
+- 단계(`flow`): 정책자금·자금조달 / 지원사업 / ISO / 연구소 / 벤처 / 확인서 — 규칙은 sg-todo `worker/src/core.js`(`FLOWS`·`bucket`) 한 곳.
+- **CRM은 그 core.js를 동적 import**(`TODO_CORE_URL`, 같은 github.io 주소) → `todoBucket`이 `TODO_CORE.bucket` 그대로 씀. 못 불러오면 옛 규칙(받은 요청 → 체크, 기다림·장기 대기 → 기다림 칸). `todoGroups`·TV `tvdTodoGroups` 키 = check·ing·wait·todo·idea(·call·done), 칸 안 묶음 `TODO_CHECK_SUBS`·`TODO_WAIT_SUBS`(`todoSubGroups`).
+- TV 위쪽 숫자 6칸: ★ 긴급 · ✅ 체크 · 우리 차례 · ⏳ 기다림 · 예정 · 💡 제안. 목록 순서 긴급 → 체크 → 진행 → 기다림 → 예정 → 제안. 단계 꼬리표(`2/4 승인·부결 대기`, `.tvd-tag.stage`).
 
 ## ⭐ 2026-10-28 — ⏸ 장기 대기 칸 (sg-todo + CRM)
 - (추가) 장기 대기 두 가지 `holdKind`: 📨 업체 회신 대기(reply, 「요청 N일째」) / 🗂 내부 장기 대기(internal) — `todoHoldKind`·`todoHoldGroups`로 할 일 요약·TV 칸 안을 두 묶음으로. 웹은 「장기 대기」 버튼 → 고르는 창(`openHold`/`holdTo`).
