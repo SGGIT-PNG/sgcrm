@@ -10494,6 +10494,14 @@ function bizCertFill(r,cur){
     if(!r[k])return;
     const now=String(cur[f]||'').trim();
     if(!now)out[f]=r[k];
+    // 기업명: 폴더 이름에서 온 「지임팩트」·「임팩트」처럼 법인 표기가 빠졌거나 일부만 있는 이름은
+    // 등록증의 정식 상호(「주식회사 지임팩트」)로 바꾸자고 제안한다 (반영은 미리보기·저장에서 사람이)
+    else if(k==='name'){
+      const a=normCompName(now),b=normCompName(r[k]);
+      const mk=/주식회사|유한회사|\(주\)|㈜|\(유\)|법인/;
+      if(a&&b.includes(a)&&r[k].length<=40&&(a!==b||(!mk.test(now)&&mk.test(r[k]))))out[f]=r[k];
+      else if(a!==b)diff.push(label+': CRM「'+now+'」 / 등록증「'+r[k]+'」');
+    }
     else if(normCompName(now)!==normCompName(r[k])&&k!=='industry')diff.push(label+': CRM「'+now+'」 / 등록증「'+r[k]+'」');
   });
   if(!cur.bizclass||cur.bizclass==='예비')out.bizclass=r.corp?'법인':'개인';
