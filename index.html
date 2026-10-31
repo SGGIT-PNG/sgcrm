@@ -2840,7 +2840,7 @@ const PAGE_TITLES={
   overview:'전체 현황',gantt:'일정관리',
   todo:'할 일',work:'업무 영역별 진행 현황',
   clients:'기업별 진행 분야 현황',cert:'📋 인증·갱신 관리',
-  stats:'누적 통계 데이터',history:'📁 완료 업무 이력',companies:'기업 관리',matching:'🎯 지원사업 매칭'
+  stats:'📈 통계',history:'📁 완료 업무 이력',companies:'기업 관리',matching:'🎯 지원사업 매칭'
 };
 const DONE_HIDE_MS = 7*24*60*60*1000;
 const GROUP_BADGE = {'주요고객':'⭐','일반고객':'🏢','잠재고객':'🔍','휴면':'💤','계약종료':'🔚'};
@@ -7495,300 +7495,189 @@ function renderStatsCards(targetId){
     </div>
   </div>`;
 }
-// ── STATS PAGE (누적 통계) ──
-let statsYear='all', statsCat='all', statsCompPage=1;
+// ── STATS PAGE (통계) — 2026-10-31 재구성 ──
+//   CRM 축소(2026-10-06 사장님 결정) 뒤 남은 데이터로만 센다: 할 일(sg-todo) · 인증(수기 + cert_status) · 기업 · 광고 DB.
+//   옛 통계는 숨긴 업무·지원사업(workItems·consulting)을 세어 거의 빈 화면이었다. 보기 전용 — 아무것도 쓰지 않는다.
+let statsYear='year', statsCat='all', statsCompPage=1;   // statsYear = 기간 키(이름은 옛 export 호환)
 const STATS_COMP_PER_PAGE=10;
-
-function setStatsYear(y){
-  statsYear=y; statsCompPage=1;
-  document.querySelectorAll('#stats-year-toggle .toggle-opt').forEach(b=>{
-    b.classList.toggle('active', b.dataset.val===String(y));
+const STATS_PERIODS=[['month','이번 달'],['prev','지난달'],['year','올해'],['last12','최근 12개월'],['all','전체']];
+function setStatsYear(y){statsYear=String(y);statsCompPage=1;renderStatsPage();}
+function setStatsCat(c){statsCat=c;statsCompPage=1;renderStatsPage();}
+function setStatsCompPage(p){statsCompPage=p;renderStatsPage();}
+// 기간 [시작, 끝) — 밀리초
+function statsRange(){
+  const n=new Date(),y=n.getFullYear(),m=n.getMonth();
+  if(statsYear==='month')return [new Date(y,m,1).getTime(),new Date(y,m+1,1).getTime()];
+  if(statsYear==='prev')return [new Date(y,m-1,1).getTime(),new Date(y,m,1).getTime()];
+  if(statsYear==='year')return [new Date(y,0,1).getTime(),new Date(y+1,0,1).getTime()];
+  if(statsYear==='last12')return [new Date(y,m-11,1).getTime(),new Date(y,m+1,1).getTime()];
+  return [0,Infinity];
+}
+function statsTs(v){if(!v)return 0;if(typeof v==='number')return v;const t=new Date(String(v).length===10?v+'T00:00:00':v).getTime();return isNaN(t)?0:t;}
+function statsIn(v,r){const t=statsTs(v);return !!t&&t>=r[0]&&t<r[1];}
+const statsCoNew=c=>statsTs(c.createdAt)||statsTs(c.joinDate);
+const statsLeadAt=l=>Math.max(l.receivedAt||0,l.createdAt||0);
+const statsLeadAd=l=>String(l.formName||l.adName||'').trim()||'(광고 이름 없음)';
+// 회사 이름(가림 없음 — TV가 아니라 CRM 화면)
+function statsCoName(bizno,fallback){const c=bizno&&companies.find(x=>x._id===bizno);return (c&&c.name)||fallback||bizno||'—';}
+// 집계 — 화면과 엑셀이 같은 값을 쓴다
+function statsData(){
+  const r=statsRange();
+  const live=companies.filter(c=>c.active!=='N');
+  const cust=live.filter(c=>c.group!=='잠재고객');
+  const newCos=live.filter(c=>statsIn(statsCoNew(c),r));
+  // 할 일: 끝낸 업무(통화 약속 제외) · 끝낸 통화 · 지금 칸별 열린 일
+  const catOk=t=>statsCat==='all'||todoCatKey(t.category)===statsCat;
+  const doneAll=todos.filter(t=>t.status==='done'&&statsIn(t.doneAt,r)&&catOk(t));
+  const doneWork=doneAll.filter(t=>t.kind!=='call'),doneCall=doneAll.filter(t=>t.kind==='call');
+  const open={check:0,ing:0,wait:0,todo:0,call:0,idea:0};
+  todos.filter(catOk).forEach(t=>{const b=todoBucket(t);if(open[b.col]!==undefined)open[b.col]++;});
+  const byCat={};doneWork.forEach(t=>{const k=todoCatKey(t.category)||'_none';byCat[k]=(byCat[k]||0)+1;});
+  const catRows=Object.keys(byCat).map(k=>({k,name:k==='_none'?'미분류':CAT_META[k].icon+' '+CAT_META[k].name,color:k==='_none'?'#9CA3AF':CAT_META[k].color,n:byCat[k]})).sort((a,b)=>b.n-a.n);
+  const byCo={};doneWork.forEach(t=>{if(!t.bizno)return;const o=byCo[t.bizno]||(byCo[t.bizno]={bizno:t.bizno,name:statsCoName(t.bizno,t.companyName),n:0,cats:{},last:0});
+    o.n++;const ck=todoCatKey(t.category);if(ck)o.cats[ck]=1;o.last=Math.max(o.last,t.doneAt||0);});
+  const coRows=Object.values(byCo).sort((a,b)=>b.n-a.n||b.last-a.last);
+  // 인증: 기업×인증 하나로 묶어 센다(ISO는 단계마다 문서가 있어 그대로 세면 4배가 된다)
+  const certKeys={};
+  certsForView().forEach(c=>{if(!c.bizno||!c.certMasterId)return;const k=c.bizno+'__'+c.certMasterId;(certKeys[k]=certKeys[k]||{cert:c.certMasterId,bizno:c.bizno,recs:[]}).recs.push(c);});
+  certStatus.forEach(x=>{if(!x.bizno||!x.cert)return;const k=x.bizno+'__'+x.cert;const o=certKeys[k]=certKeys[k]||{cert:x.cert,bizno:x.bizno,recs:[]};o.cs=x;});
+  const byCert={};
+  Object.values(certKeys).forEach(o=>{
+    const row=byCert[o.cert]||(byCert[o.cert]={cert:o.cert,active:0,acq:0,soon:0,expired:0,progress:0});
+    const st=o.cs?csState(o.cs):null;
+    if(st&&st.key==='progress'){row.progress++;return;}
+    const active=o.recs.some(certIsActive);
+    if(active)row.active++;else if(o.recs.some(certIsExpired)||(st&&st.key==='expired'))row.expired++;
+    if([...new Set(o.recs.map(c=>c.acqDate).filter(Boolean))].some(d=>statsIn(d,r)))row.acq++;
+    const ds=o.recs.filter(c=>certCountable(c)&&!certIsExpired(c)).map(c=>getCertDday(c.expDate)).filter(d=>d!==null&&d>=0);
+    if(active&&ds.length&&Math.min(...ds)<=CS_RENEW_DAYS)row.soon++;
   });
-  renderStatsPage();
+  const certRows=Object.values(byCert).map(x=>Object.assign(x,{info:getCertMasterInfo(x.cert)}))
+    .filter(x=>x.active+x.acq+x.soon+x.expired+x.progress>0)
+    .sort((a,b)=>((a.info.sortOrder??999)-(b.info.sortOrder??999))||b.active-a.active);
+  const certSum=k=>certRows.reduce((s,x)=>s+x[k],0);
+  // 광고 DB
+  const lds=leads.filter(l=>statsIn(statsLeadAt(l),r));
+  const LEAD_COLS=[['new','미통화',s=>!s||s==='new'],['noans','부재·연락 안 됨',s=>s==='noans'||s==='unreach'],['talk','상담 중',s=>s==='talk'||s==='schedule'],['meet','미팅',s=>s==='meet'],['won','전환',s=>s==='won'],['lost','거절',s=>s==='lost']];
+  const adMap={};lds.forEach(l=>{const a=statsLeadAd(l);const o=adMap[a]||(adMap[a]={ad:a,n:0,c:{}});o.n++;const col=LEAD_COLS.find(x=>x[2](l.status));if(col)o.c[col[0]]=(o.c[col[0]]||0)+1;});
+  const adRows=Object.values(adMap).sort((a,b)=>b.n-a.n);
+  const won=lds.filter(l=>l.status==='won').length;
+  // 월별 추이(최근 12개월, 기간과 무관)
+  const now=new Date(),months=[];
+  for(let i=11;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({y:d.getFullYear(),m:d.getMonth(),work:0,cos:0,leads:0});}
+  const mOf=t=>{if(!t)return null;const d=new Date(t);return months.find(x=>x.y===d.getFullYear()&&x.m===d.getMonth())||null;};
+  todos.forEach(t=>{if(t.status==='done'&&t.kind!=='call'&&catOk(t)){const x=mOf(t.doneAt);if(x)x.work++;}});
+  live.forEach(c=>{const x=mOf(statsCoNew(c));if(x)x.cos++;});
+  leads.forEach(l=>{const x=mOf(statsLeadAt(l));if(x)x.leads++;});
+  // 지역 분포(보유 고객)
+  const reg={};cust.forEach(c=>{const k=c.region||'미입력';reg[k]=(reg[k]||0)+1;});
+  const regRows=Object.entries(reg).sort((a,b)=>(a[0]==='미입력')-(b[0]==='미입력')||b[1]-a[1]);
+  return {r,live,cust,newCos,doneWork,doneCall,open,catRows,coRows,certRows,certSum,lds,LEAD_COLS,adRows,won,months,regRows};
 }
-function setStatsCat(c){
-  statsCat=c; statsCompPage=1;
-  renderStatsPage();
+function statsBarRow(label,n,max,color,right){
+  return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px"><div style="font-size:12px;color:var(--text2);width:110px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escAttr(label)+'">'+escAttr(label)+'</div>'
+    +'<div style="flex:1;height:12px;background:var(--surface2);border-radius:6px;overflow:hidden"><div style="height:100%;width:'+Math.round(n/Math.max(1,max)*100)+'%;background:'+color+';border-radius:6px"></div></div>'
+    +'<div style="font-family:\'JetBrains Mono\',monospace;font-size:12px;width:'+(right?'auto':'28px')+';text-align:right;flex-shrink:0">'+(right||n)+'</div></div>';
 }
-function setStatsCompPage(p){
-  statsCompPage=p;
-  renderStatsPage();
+function statsTrend(months,key,color,label){
+  const max=Math.max(1,...months.map(x=>x[key]));
+  return '<div style="flex:1;min-width:240px"><div style="font-size:12px;color:var(--text3);margin-bottom:6px">'+label+' <b style="color:var(--text)">'+months.reduce((s,x)=>s+x[key],0)+'</b></div>'
+    +'<div style="display:flex;align-items:flex-end;gap:3px;height:90px">'+months.map((x,i)=>{const h=x[key]?Math.max(4,Math.round(x[key]/max*70)):2;
+      return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px" title="'+x.y+'년 '+(x.m+1)+'월 '+x[key]+'건">'
+        +'<div style="font-size:9px;color:'+(x[key]?color:'transparent')+';font-family:\'JetBrains Mono\',monospace">'+x[key]+'</div>'
+        +'<div style="width:100%;height:'+h+'px;background:'+(x[key]?color:'#E5E7EB')+';border-radius:3px 3px 0 0;opacity:'+(i===months.length-1?1:.75)+'"></div>'
+        +'<div style="font-size:9px;color:var(--text4)">'+(x.m+1)+'월</div></div>';}).join('')+'</div></div>';
 }
-// 월별 막대 HTML 생성 (중첩 템플릿 리터럴 회피)
-function makeMonthBar(key, val, maxVal){
-  const h=val?Math.max(Math.round(val/maxVal*80),4):2;
-  const mon=key.slice(5);
-  const color=val>0?'var(--ok)':'#E5E7EB';
-  const numHtml=val>0
-    ? '<div style="font-size:8px;color:var(--ok);font-family:JetBrains Mono,monospace">'+val+'</div>'
-    : '<div style="font-size:8px;color:transparent">0</div>';
-  return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">'
-    +numHtml
-    +'<div style="width:100%;height:'+h+'px;background:'+color+';border-radius:3px 3px 0 0;min-height:2px"></div>'
-    +'<div style="font-size:8px;color:var(--text4);white-space:nowrap">'+mon+'</div>'
-    +'</div>';
-}
-// 분야별 바 HTML 생성
-function makeCatBar(r, maxCnt){
-  return '<div style="margin-bottom:10px">'
-    +'<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">'
-    +'<span>'+r.icon+' '+r.name+'</span>'
-    +'<span style="font-family:JetBrains Mono,monospace;color:var(--ok)">'+r.cnt+'건'+(r.amt?' · '+fmtAmt(r.amt):'' )+'</span>'
-    +'</div>'
-    +'<div style="height:10px;background:#F3F4F6;border-radius:5px;overflow:hidden">'
-    +'<div style="height:100%;width:'+Math.round(r.cnt/maxCnt*100)+'%;background:'+r.color+';border-radius:5px"></div>'
-    +'</div></div>';
-}
-
 function renderStatsPage(){
   const el=document.getElementById('stats-page');if(!el)return;
-
-  // 연도 목록 자동 생성
-  const years=new Set();
-  [...workItems,...consulting].forEach(i=>{
-    const d=i.doneAt||i.createdAt;
-    if(d) years.add(new Date(d).getFullYear());
-  });
-  const yearList=[...years].sort((a,b)=>b-a);
-
-  function inPeriod(ts){
-    if(statsYear==='all') return true;
-    if(!ts) return false;
-    return new Date(ts).getFullYear()===+statsYear;
-  }
-
-  // 완료 데이터 수집
-  const doneWork=workItems.filter(w=>w.status==='done'&&inPeriod(w.doneAt)&&(statsCat==='all'||w.category===statsCat));
-  const doneConsComp=consCompanies.filter(cc=>{
-    const c=consulting.find(x=>x.id===cc.consId);
-    return cc.status==='done'&&c&&(statsCat==='all'||c.category===statsCat)&&inPeriod(cc.doneAt);
-  });
-  const doneCons=consulting.filter(c=>c.status==='done'&&inPeriod(c.doneAt)&&(statsCat==='all'||c.category===statsCat));
-
-  const totalDone=doneWork.length+doneConsComp.length;
-  const totalAmt=doneCons.reduce((s,c)=>s+(+c.amount||0),0);
-  const totalApproved=doneCons.reduce((s,c)=>s+(+c.approvedAmt||0),0);
-  const uniqueComps=new Set([...doneWork.map(w=>w.clientBizno),...doneConsComp.map(cc=>cc.bizno)].filter(Boolean));
-
-  // 분야별 집계
-  const catList=[];
-  CAT_IDS.forEach(cat=>{
-    const m=CAT_META[cat];
-    const wCnt=doneWork.filter(w=>w.category===cat).length;
-    const cCnt=doneConsComp.filter(cc=>{const c=consulting.find(x=>x.id===cc.consId);return c&&c.category===cat;}).length;
-    const amt=doneCons.filter(c=>c.category===cat).reduce((s,c)=>s+(+c.amount||0),0);
-    const approved=doneCons.filter(c=>c.category===cat).reduce((s,c)=>s+(+c.approvedAmt||0),0);
-    if(wCnt+cCnt>0) catList.push({name:m.name,icon:m.icon,color:m.color,cnt:wCnt+cCnt,amt,approved});
-  });
-  catList.sort((a,b)=>b.cnt-a.cnt);
-  const maxCnt=catList[0]?.cnt||1;
-
-  // 기업별 집계
-  const compMap={};
-  doneWork.forEach(w=>{
-    if(!w.clientBizno)return;
-    const comp=companies.find(c=>c._id===w.clientBizno);
-    if(!compMap[w.clientBizno]) compMap[w.clientBizno]={name:comp?.name||w.client||'—',cnt:0,amt:0,approved:0,lastDone:0};
-    compMap[w.clientBizno].cnt++;
-    if((w.doneAt||0)>compMap[w.clientBizno].lastDone) compMap[w.clientBizno].lastDone=w.doneAt||0;
-  });
-  doneConsComp.forEach(cc=>{
-    const c=consulting.find(x=>x.id===cc.consId);
-    if(!cc.bizno)return;
-    const comp=companies.find(x=>x._id===cc.bizno);
-    if(!compMap[cc.bizno]) compMap[cc.bizno]={name:comp?.name||cc.companyName||'—',cnt:0,amt:0,approved:0,lastDone:0};
-    compMap[cc.bizno].cnt++;
-    compMap[cc.bizno].amt+=(+c?.amount||0);
-    compMap[cc.bizno].approved+=(+c?.approvedAmt||0);
-    if((cc.doneAt||0)>compMap[cc.bizno].lastDone) compMap[cc.bizno].lastDone=cc.doneAt||0;
-  });
-  const compList=Object.values(compMap).sort((a,b)=>b.cnt-a.cnt);
-
-  // 월별 추이 (최근 12개월)
-  const monthStats={};
-  const now=new Date();
-  for(let i=11;i>=0;i--){
-    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
-    const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-    monthStats[key]=0;
-  }
-  [...doneWork,...doneConsComp].forEach(it=>{
-    if(!it.doneAt)return;
-    const d=new Date(it.doneAt);
-    const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-    if(key in monthStats) monthStats[key]++;
-  });
-  const monthKeys=Object.keys(monthStats);
-  const monthVals=Object.values(monthStats);
-  const maxMonth=Math.max(...monthVals,1);
-
-  // 분야별 바 HTML
-  const catBarsHtml=catList.length
-    ? catList.map(r=>{
-        const approvedHtml=r.approved?'<span style="font-size:11px;color:var(--gold)">승인 '+fmtAmt(r.approved)+'</span>':'';
-        const amtHtml=r.amt?'<span style="font-size:11px;color:var(--text4)">신청 '+fmtAmt(r.amt)+'</span>':'';
-        const barW=Math.round(r.cnt/maxCnt*100);
-        return '<div style="margin-bottom:10px">'
-          +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">'
-          +'<span style="font-size:13px">'+r.icon+' '+r.name+'</span>'
-          +'<div style="display:flex;gap:8px;align-items:center">'+approvedHtml+amtHtml
-          +'<span style="font-family:JetBrains Mono,monospace;font-size:13px;color:var(--ok);font-weight:500">'+r.cnt+'건</span>'
-          +'</div></div>'
-          +'<div style="height:6px;background:var(--surface2);border-radius:3px;overflow:hidden">'
-          +'<div style="height:100%;width:'+barW+'%;background:'+r.color+';border-radius:3px;transition:width .4s"></div>'
-          +'</div></div>';
-      }).join('')
-    : '<div class="empty"><div class="empty-txt">완료된 업무가 없습니다</div></div>';
-
-  // 월별 바 HTML
-  const monthBarsHtml=monthKeys.map((k,i)=>{
-    const h=Math.round(monthVals[i]/maxMonth*90);
-    const label=k.slice(5);
-    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
-      <span style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--text4)">${monthVals[i]||''}</span>
-      <div style="width:100%;background:var(--surface2);border-radius:3px;overflow:hidden;height:90px;display:flex;align-items:flex-end">
-        <div style="width:100%;height:${h||2}px;background:var(--teal);border-radius:3px;transition:height .4s"></div>
-      </div>
-      <span style="font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--text4)">${label}</span>
-    </div>`;
-  }).join('');
-
-  // 기업별 테이블 - 페이지네이션 적용
-  const totalComps=compList.length;
-  const totalCompPages=Math.ceil(totalComps/STATS_COMP_PER_PAGE)||1;
-  const safeCompPage=Math.min(Math.max(1,statsCompPage),totalCompPages);
-  const pagedComps=compList.slice((safeCompPage-1)*STATS_COMP_PER_PAGE, safeCompPage*STATS_COMP_PER_PAGE);
-
-  const compRowsHtml=pagedComps.length
-    ? pagedComps.map(c=>'<tr>'
-        +'<td style="font-size:14px;font-weight:500">'+c.name+'</td>'
-        +'<td><span style="font-family:JetBrains Mono,monospace;color:var(--ok)">'+c.cnt+'건</span></td>'
-        +'<td style="font-family:JetBrains Mono,monospace;font-size:13px;color:var(--text4)">'+(c.amt?fmtAmt(c.amt):'—')+'</td>'
-        +'<td style="font-family:JetBrains Mono,monospace;font-size:13px;color:var(--gold)">'+(c.approved?fmtAmt(c.approved):'—')+'</td>'
-        +'<td style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--text4)">'+(c.lastDone?new Date(c.lastDone).toLocaleDateString('ko-KR'):'—')+'</td>'
-        +'</tr>').join('')
-    : '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text4)">완료된 업무가 없습니다</td></tr>';
-
-  const compPaginationHtml=totalComps>STATS_COMP_PER_PAGE
-    ? makePagination(safeCompPage,totalCompPages,'setStatsCompPage')
-      +'<div style="text-align:center;font-size:12px;color:var(--text4);margin-top:4px">총 '+totalComps+'개 기업 중 '+((safeCompPage-1)*STATS_COMP_PER_PAGE+1)+'~'+Math.min(safeCompPage*STATS_COMP_PER_PAGE,totalComps)+'번째</div>'
-    : '<div style="text-align:center;font-size:12px;color:var(--text4);padding:6px">총 '+totalComps+'개 기업</div>';
-
-  el.innerHTML=`
-    <!-- 필터 -->
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:20px">
-      <div class="toggle-btn" id="stats-year-toggle">
-        <button class="toggle-opt${statsYear==='all'?' active':''}" onclick="setStatsYear('all')">전체</button>
-        ${yearList.map(y=>'<button class="toggle-opt'+(statsYear===y?' active':'')+'" data-val="'+y+'" onclick="setStatsYear('+y+')">'+y+'년</button>').join('')}
-      </div>
-      <select class="fs" onchange="setStatsCat(this.value)" style="width:140px">
-        <option value="all">전체 분야</option>
-        ${CAT_IDS.map(c=>'<option value="'+c+'"'+(statsCat===c?' selected':'')+'>'+CAT_META[c].icon+' '+CAT_META[c].name+'</option>').join('')}
-      </select>
-      <button class="btn btn-ghost btn-sm" onclick="exportStatsExcel()" style="margin-left:auto">📥 엑셀 다운로드</button>
-    </div>
-
-    <!-- 요약 카드 4개 -->
-    <div class="grid4" style="margin-bottom:20px">
-      <div class="stat-mini" style="padding:16px">
-        <div class="stat-mini-val" style="font-size:28px;color:var(--ok)">${totalDone}</div>
-        <div class="stat-mini-label">✅ 완료 건수</div>
-        <div class="stat-mini-sub">업무+간트 합산</div>
-      </div>
-      <div class="stat-mini" style="padding:16px">
-        <div class="stat-mini-val" style="font-size:22px;color:var(--gold)">${totalAmt?fmtAmt(totalAmt):'—'}</div>
-        <div class="stat-mini-label">💰 신청금액 합계</div>
-        <div class="stat-mini-sub">${totalApproved?'승인 '+fmtAmt(totalApproved):'승인금액 미입력'}</div>
-      </div>
-      <div class="stat-mini" style="padding:16px">
-        <div class="stat-mini-val" style="font-size:28px;color:var(--blue-l)">${uniqueComps.size}</div>
-        <div class="stat-mini-label">🏢 참여 기업 수</div>
-        <div class="stat-mini-sub">중복 제외</div>
-      </div>
-      <div class="stat-mini" style="padding:16px">
-        <div class="stat-mini-val" style="font-size:28px;color:var(--teal)">${uniqueComps.size?Math.round(totalDone/uniqueComps.size*10)/10:'—'}</div>
-        <div class="stat-mini-label">📊 기업당 평균</div>
-        <div class="stat-mini-sub">완료 건수</div>
-      </div>
-    </div>
-
-    <!-- 차트 2개 나란히 -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
-      <div class="card" style="padding:16px">
-        <div style="font-size:14px;font-weight:500;color:var(--text3);margin-bottom:14px">📊 분야별 완료 현황</div>
-        ${catBarsHtml}
-      </div>
-      <div class="card" style="padding:16px">
-        <div style="font-size:14px;font-weight:500;color:var(--text3);margin-bottom:14px">📈 월별 완료 추이 (최근 12개월)</div>
-        <div style="display:flex;align-items:flex-end;gap:3px;height:120px">${monthBarsHtml}</div>
-      </div>
-    </div>
-
-    <!-- 기업별 완료 이력 -->
-    <div class="card" style="margin-bottom:20px">
-      <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-        <div style="font-size:14px;font-weight:500">🏢 기업별 완료 이력</div>
-        <div style="font-size:12px;color:var(--text4)">${totalComps}개 기업</div>
-      </div>
-      <div class="tbl-wrap"><table class="tbl">
-        <thead><tr>
-          <th>기업명</th><th>완료 건수</th><th>신청금액</th><th>승인금액</th><th>최근 완료일</th>
-        </tr></thead>
-        <tbody>${compRowsHtml}</tbody>
-      </table></div>
-      <div style="padding:8px 16px;border-top:1px solid var(--border)">${compPaginationHtml}</div>
-    </div>
-
-    <!-- 업무 현황 요약 (기존 카드) -->
-    <div>
-      <div style="font-size:14px;font-weight:500;color:var(--text3);margin-bottom:12px">📋 업무 현황 요약</div>
-      <div id="stats-cards-sub"></div>
-    </div>`;
-
-  renderStatsCards('stats-cards-sub');
+  const D=statsData();
+  const pName=(STATS_PERIODS.find(p=>p[0]===statsYear)||STATS_PERIODS[2])[1];
+  const fmtD=t=>{const d=new Date(t);return d.getFullYear()+'.'+(d.getMonth()+1)+'.'+d.getDate();};
+  const rangeTxt=D.r[1]===Infinity?'전체 기간':fmtD(D.r[0])+' ~ '+fmtD(D.r[1]-86400000);
+  const tile=(v,label,sub,color)=>'<div class="stat-mini" style="padding:14px 16px"><div class="stat-mini-val" style="font-size:26px;color:'+(color||'var(--text)')+'">'+v+'</div><div class="stat-mini-label">'+label+'</div>'+(sub?'<div style="font-size:11px;color:var(--text4);margin-top:3px">'+sub+'</div>':'')+'</div>';
+  const conv=D.lds.length?Math.round(D.won/D.lds.length*100)+'%':'—';
+  let h='<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px">'
+    +'<div class="toggle-btn">'+STATS_PERIODS.map(p=>'<button class="toggle-opt'+(statsYear===p[0]?' active':'')+'" onclick="setStatsYear(\''+p[0]+'\')">'+p[1]+'</button>').join('')+'</div>'
+    +'<select class="fs" onchange="setStatsCat(this.value)" style="width:150px" title="할 일 분야 거르기"><option value="all">할 일 전체 분야</option>'
+    +CAT_IDS.map(c=>'<option value="'+c+'"'+(statsCat===c?' selected':'')+'>'+CAT_META[c].icon+' '+CAT_META[c].name+'</option>').join('')+'</select>'
+    +'<span style="font-size:12px;color:var(--text3)">'+rangeTxt+'</span>'
+    +'<button class="btn btn-ghost btn-sm" onclick="exportStatsExcel()" style="margin-left:auto">📥 엑셀(CSV) 받기</button></div>';
+  // 1. 요약
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px">'
+    +tile(D.cust.length,'🏢 보유 고객','지금 · 잠재고객 제외')
+    +tile(D.newCos.length,'🆕 신규 기업',pName+' 등록','var(--ok)')
+    +tile(D.doneWork.length,'✅ 끝낸 업무',pName+(statsCat==='all'?'':' · '+CAT_META[statsCat].name),'var(--blue)')
+    +tile(D.certSum('acq'),'🏅 인증 취득',pName+' 취득일 기준','#7C3AED')
+    +tile(D.certSum('soon'),'⏰ 90일 안 기한','갱신·사후심사 · 지금',D.certSum('soon')?'#D97706':null)
+    +tile(D.lds.length,'📣 광고 DB',pName+' 유입','#DB2777')
+    +tile(conv,'🤝 광고 전환율',D.won+'건 전환',D.won?'var(--ok)':null)
+    +'</div>';
+  // 2. 월별 추이
+  h+='<div class="card" style="padding:16px;margin-bottom:16px"><div style="font-size:14px;font-weight:600;margin-bottom:12px">월별 추이 <span style="font-size:12px;color:var(--text4);font-weight:400">최근 12개월 · 기간 버튼과 무관</span></div>'
+    +'<div style="display:flex;gap:24px;flex-wrap:wrap">'+statsTrend(D.months,'work','#2563EB','✅ 끝낸 업무')+statsTrend(D.months,'cos','#10B981','🆕 신규 기업')+statsTrend(D.months,'leads','#DB2777','📣 광고 DB 유입')+'</div></div>';
+  // 3. 할 일
+  const O=D.open;
+  const openChip=(l,n,c)=>'<div style="flex:1;min-width:90px;background:var(--surface2);border-radius:10px;padding:10px 12px"><div style="font-size:11px;color:var(--text3)">'+l+'</div><div style="font-size:22px;font-weight:700;font-family:\'JetBrains Mono\',monospace;color:'+c+'">'+n+'</div></div>';
+  const maxCat=D.catRows[0]?D.catRows[0].n:1;
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;margin-bottom:16px">'
+    +'<div class="card" style="padding:16px"><div style="font-size:14px;font-weight:600;margin-bottom:12px">📋 할 일 — 지금 열린 일</div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'+openChip('검토할 일',O.check,'#7C3AED')+openChip('진행',O.ing,'#EA580C')+openChip('기다림',O.wait,'#0891B2')+openChip('예정',O.todo,'#6366F1')+openChip('📞 통화',O.call,'#2563EB')+openChip('💡 제안',O.idea,'#0D9488')+'</div>'
+      +'<div style="font-size:13px;font-weight:600;margin-bottom:8px">분야별 끝낸 업무 <span style="font-size:12px;color:var(--text4);font-weight:400">'+pName+' · 업무 '+D.doneWork.length+'건 · 통화 '+D.doneCall.length+'건</span></div>'
+      +(D.catRows.length?D.catRows.map(x=>statsBarRow(x.name,x.n,maxCat,x.color)).join(''):'<div class="empty-txt" style="padding:8px 0;color:var(--text4)">이 기간에 끝낸 업무가 없습니다</div>')
+    +'</div>';
+  // 4. 인증
+  const th='style="padding:7px 8px;font-size:12px;text-align:right"';
+  h+='<div class="card" style="padding:16px"><div style="font-size:14px;font-weight:600;margin-bottom:4px">🏅 인증 현황</div>'
+    +'<div style="font-size:11px;color:var(--text4);margin-bottom:10px">기업×인증 하나로 셈(ISO 단계 문서는 묶음) · 수기 기록 + 각 프로그램 연동(cert_status) · 취득은 '+pName+', 나머지는 지금</div>'
+    +(D.certRows.length?'<div class="tbl-wrap"><table class="tbl"><thead><tr><th>인증</th><th '+th+'>유효</th><th '+th+'>취득</th><th '+th+'>90일 안</th><th '+th+'>진행 중</th><th '+th+'>만료</th></tr></thead><tbody>'
+      +D.certRows.map(x=>'<tr><td>'+escAttr((x.info.icon||'')+' '+(x.info.certName||x.cert))+'</td><td '+th+'><b>'+x.active+'</b></td><td '+th+'>'+(x.acq||'·')+'</td>'
+        +'<td '+th+(x.soon?' class="st-warn"':'')+'>'+(x.soon?'<b style="color:#D97706">'+x.soon+'</b>':'·')+'</td><td '+th+'>'+(x.progress||'·')+'</td><td '+th+'>'+(x.expired?'<span style="color:var(--danger)">'+x.expired+'</span>':'·')+'</td></tr>').join('')
+      +'<tr style="border-top:2px solid var(--border)"><td><b>합계</b></td>'+['active','acq','soon','progress','expired'].map(k=>'<td '+th+'><b>'+D.certSum(k)+'</b></td>').join('')+'</tr>'
+      +'</tbody></table></div>':'<div class="empty-txt" style="color:var(--text4)">인증 기록이 없습니다</div>')
+    +'</div></div>';
+  // 5. 광고 DB
+  h+='<div class="card" style="padding:16px;margin-bottom:16px"><div style="font-size:14px;font-weight:600;margin-bottom:10px">📣 광고 DB — 광고별 성과 <span style="font-size:12px;color:var(--text4);font-weight:400">'+pName+' 유입 기준 · 상태는 지금</span></div>'
+    +(D.adRows.length?'<div class="tbl-wrap"><table class="tbl"><thead><tr><th>광고</th><th '+th+'>유입</th>'+D.LEAD_COLS.map(c=>'<th '+th+'>'+c[1]+'</th>').join('')+'<th '+th+'>전환율</th></tr></thead><tbody>'
+      +D.adRows.map(a=>'<tr><td>'+escAttr(a.ad)+'</td><td '+th+'><b>'+a.n+'</b></td>'+D.LEAD_COLS.map(c=>'<td '+th+'>'+(a.c[c[0]]||'·')+'</td>').join('')
+        +'<td '+th+'>'+(a.c.won?'<b style="color:var(--ok)">'+Math.round(a.c.won/a.n*100)+'%</b>':'0%')+'</td></tr>').join('')
+      +'<tr style="border-top:2px solid var(--border)"><td><b>합계</b></td><td '+th+'><b>'+D.lds.length+'</b></td>'+D.LEAD_COLS.map(c=>'<td '+th+'><b>'+D.adRows.reduce((s,a)=>s+(a.c[c[0]]||0),0)+'</b></td>').join('')+'<td '+th+'><b>'+conv+'</b></td></tr>'
+      +'</tbody></table></div>':'<div class="empty-txt" style="color:var(--text4)">이 기간에 들어온 광고 DB가 없습니다</div>')
+    +'</div>';
+  // 6. 기업
+  const totPages=Math.max(1,Math.ceil(D.coRows.length/STATS_COMP_PER_PAGE));
+  const pg=Math.min(statsCompPage,totPages);
+  const maxReg=D.regRows[0]?D.regRows[0][1]:1;
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px">'
+    +'<div class="card" style="padding:16px"><div style="font-size:14px;font-weight:600;margin-bottom:10px">🏢 기업별 끝낸 업무 <span style="font-size:12px;color:var(--text4);font-weight:400">'+pName+' · '+D.coRows.length+'곳</span></div>'
+      +(D.coRows.length?'<div class="tbl-wrap"><table class="tbl"><thead><tr><th>기업</th><th '+th+'>끝낸 업무</th><th>분야</th><th '+th+'>마지막</th></tr></thead><tbody>'
+        +D.coRows.slice((pg-1)*STATS_COMP_PER_PAGE,pg*STATS_COMP_PER_PAGE).map(o=>'<tr><td><button class="tdl-link" data-b="'+escAttr(o.bizno)+'" onclick="openCompanyModal(this.dataset.b)">'+escAttr(o.name)+'</button></td><td '+th+'><b>'+o.n+'</b></td>'
+          +'<td style="font-size:12px">'+Object.keys(o.cats).map(k=>CAT_META[k].icon).join(' ')+'</td><td '+th+'>'+(o.last?(new Date(o.last).getMonth()+1)+'/'+new Date(o.last).getDate():'')+'</td></tr>').join('')
+        +'</tbody></table></div>'+(totPages>1?makePagination(pg,totPages,'setStatsCompPage'):'')
+        :'<div class="empty-txt" style="color:var(--text4)">이 기간에 기업과 연결된 끝낸 업무가 없습니다</div>')
+    +'</div>'
+    +'<div class="card" style="padding:16px"><div style="font-size:14px;font-weight:600;margin-bottom:10px">📍 지역별 보유 고객 <span style="font-size:12px;color:var(--text4);font-weight:400">지금 · '+D.cust.length+'곳</span></div>'
+      +(D.regRows.length?D.regRows.map(([k,n])=>statsBarRow(k,n,maxReg,k==='미입력'?'#D1D5DB':'#0EA5E9')).join(''):'<div class="empty-txt" style="color:var(--text4)">기업이 없습니다</div>')
+    +'</div></div>';
+  el.innerHTML=h;
 }
-
-// 엑셀 다운로드
+// 엑셀(CSV) — 화면과 같은 집계를 표 여러 개로
 function exportStatsExcel(){
-  const doneCons=consulting.filter(c=>{
-    if(c.status!=='done') return false;
-    if(statsYear!=='all'&&new Date(c.doneAt||0).getFullYear()!==+statsYear) return false;
-    return statsCat==='all'||c.category===statsCat;
-  });
-  const doneWork=workItems.filter(w=>{
-    if(w.status!=='done') return false;
-    if(statsYear!=='all'&&new Date(w.doneAt||0).getFullYear()!==+statsYear) return false;
-    return statsCat==='all'||w.category===statsCat;
-  });
-
-  // CSV 생성
-  let csv='\uFEFF'; // BOM for Excel Korean
-  csv+='구분,기업명,분야,업무내용,신청금액(만원),승인금액(만원),완료일\n';
-
-  doneCons.forEach(c=>{
-    const m=CAT_META[c.category]||CAT_META.etc;
-    const ccs=consCompanies.filter(cc=>cc.consId===c.id&&cc.status==='done');
-    if(!ccs.length){
-      csv+=`간트,—,${m.name},${c.title},${c.amount||0},${c.approvedAmt||0},${c.doneAt?new Date(c.doneAt).toLocaleDateString('ko-KR'):''}\n`;
-    } else {
-      ccs.forEach(cc=>{
-        csv+=`간트,${cc.companyName},${m.name},${c.title},${c.amount||0},${c.approvedAmt||0},${cc.doneAt?new Date(cc.doneAt).toLocaleDateString('ko-KR'):''}\n`;
-      });
-    }
-  });
-
-  doneWork.forEach(w=>{
-    const m=CAT_META[w.category]||CAT_META.etc;
-    csv+=`업무,${w.client||'—'},${m.name},${w.name},—,—,${w.doneAt?new Date(w.doneAt).toLocaleDateString('ko-KR'):''}\n`;
-  });
-
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;
-  a.download=`SG완료실적_${statsYear==='all'?'전체':statsYear+'년'}_${new Date().toISOString().slice(0,10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  const D=statsData();
+  const pName=(STATS_PERIODS.find(p=>p[0]===statsYear)||STATS_PERIODS[2])[1];
+  const q=v=>{const s=String(v==null?'':v);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
+  const rows=[];const add=a=>rows.push(a.map(q).join(','));
+  add(['SG솔루션 CRM 통계',pName+(statsCat==='all'?'':' · 할 일 분야 '+CAT_META[statsCat].name),new Date().toLocaleDateString('ko-KR')]);add([]);
+  add(['[요약]']);add(['보유 고객',D.cust.length]);add(['신규 기업',D.newCos.length]);add(['끝낸 업무',D.doneWork.length]);add(['끝낸 통화',D.doneCall.length]);
+  add(['인증 취득',D.certSum('acq')]);add(['90일 안 기한',D.certSum('soon')]);add(['광고 DB 유입',D.lds.length]);add(['광고 전환',D.won]);add([]);
+  add(['[월별 추이]','월','끝낸 업무','신규 기업','광고 DB']);D.months.forEach(x=>add(['',x.y+'-'+String(x.m+1).padStart(2,'0'),x.work,x.cos,x.leads]));add([]);
+  add(['[분야별 끝낸 업무]','분야','건수']);D.catRows.forEach(x=>add(['',x.name.replace(/^\S+\s/,''),x.n]));add([]);
+  add(['[인증 현황]','인증','유효','취득','90일 안','진행 중','만료']);D.certRows.forEach(x=>add(['',x.info.certName||x.cert,x.active,x.acq,x.soon,x.progress,x.expired]));add([]);
+  add(['[광고별 성과]','광고','유입'].concat(D.LEAD_COLS.map(c=>c[1])));D.adRows.forEach(a=>add(['',a.ad,a.n].concat(D.LEAD_COLS.map(c=>a.c[c[0]]||0))));add([]);
+  add(['[기업별 끝낸 업무]','기업','사업자번호','건수']);D.coRows.forEach(o=>add(['',o.name,o.bizno,o.n]));add([]);
+  add(['[지역별 보유 고객]','지역','기업 수']);D.regRows.forEach(([k,n])=>add(['',k,n]));
+  const blob=new Blob(['﻿'+rows.join('\n')],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');
+  a.href=url;a.download='SG통계_'+pName.replace(/\s/g,'')+'_'+new Date().toISOString().slice(0,10)+'.csv';a.click();URL.revokeObjectURL(url);
   setBadge('✅ 다운로드 완료',2000);
 }
 
